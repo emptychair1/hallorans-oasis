@@ -55,7 +55,7 @@ export class ConversationScene {
     floor.position.y = -0.015;
     // Darken the reflected image in the reflector shader itself.
     // Reflector's color option does not reliably act as reflection opacity.
-    floor.material.onBeforeCompile = shader => {
+    (floor.material as THREE.ShaderMaterial).onBeforeCompile = (shader: THREE.WebGLProgramParametersWithUniforms) => {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <dithering_fragment>',
         'gl_FragColor.rgb *= 0.18;\n#include <dithering_fragment>'
