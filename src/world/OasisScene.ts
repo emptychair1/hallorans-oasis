@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { WalkControls } from './WalkControls';
+import { addFurnishings } from './Furnishings';
 
 const ROOM_URL = '/assets/models/white-room1.glb';
 const TARGET_ROOM_SPAN_METERS = 14;
@@ -121,6 +122,7 @@ export class OasisScene {
       this.camera.lookAt(0, eyeHeight, finalSize.z * 0.4);
       this.camera.updateProjectionMatrix();
       this.controls.setBounds(finalBounds);
+      void addFurnishings(this.roomRoot, finalBounds, this.loader, () => this.disposed);
 
       console.info('[Oasis] Room loaded', {
         source: ROOM_URL,
@@ -130,7 +132,7 @@ export class OasisScene {
       });
 
       document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-        document.createTextNode('HALLORAN\'S OASIS · WALK STUDY 0.3')
+        document.createTextNode('HALLORAN\'S OASIS · FURNISHING STUDY 0.4')
       );
     } catch (error) {
       console.error('[Oasis] Could not load approved room asset', error);
