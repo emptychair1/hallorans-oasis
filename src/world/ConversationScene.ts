@@ -134,11 +134,11 @@ export class ConversationScene {
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
       // Keep original rig and pose intact until the skeleton and animations are inspected.
-      this.place(piper, 0.9, 1.7, 1.55, -0.3, -Math.PI / 2);
+      this.place(piper, 1.25, 2.15, 1.55, -0.3, -Math.PI / 2);
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · WALKABOUT STUDY 0.8")
+      document.createTextNode("HALLORAN'S OASIS · PIPER SCALE STUDY 0.9")
     );
   }
 
