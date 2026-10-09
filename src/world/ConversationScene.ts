@@ -42,7 +42,7 @@ export class ConversationScene {
     fill.position.set(-4, 6, 4);
     this.scene.add(fill);
 
-    // Tiles074 floor audition. Decode the approved ZIP in-browser without
+    // Marble016 floor audition. Decode the approved ZIP in-browser without
     // modifying the uploaded source asset or requiring manual extraction.
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
@@ -67,17 +67,17 @@ export class ConversationScene {
 
   private async loadTilesFloor(floor: THREE.Mesh): Promise<void> {
     try {
-      const response = await fetch('/assets/models/Tiles074_2K-JPG.zip');
-      if (!response.ok) throw new Error('Tiles074 ZIP HTTP ' + response.status);
+      const response = await fetch('/assets/models/Marble016_2K-JPG.zip');
+      if (!response.ok) throw new Error('Marble016 ZIP HTTP ' + response.status);
       const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
-      console.info('[Oasis] Tiles074 ZIP contents:', Object.keys(files));
+      console.info('[Oasis] Marble016 ZIP contents:', Object.keys(files));
       const entries = Object.entries(files).filter(([name]) => /\.(jpe?g|png)$/i.test(name));
       const find = (pattern: RegExp) => entries.find(([name]) => pattern.test(name))?.[1];
       const color = find(/(?:color|diffuse|albedo)\.(?:jpe?g|png)$/i);
       const normal = find(/normal(?:gl|dx)?\.(?:jpe?g|png)$/i);
       const rough = find(/roughness\.(?:jpe?g|png)$/i);
       const ao = find(/(?:ambientocclusion|_ao)\.(?:jpe?g|png)$/i);
-      if (!color) throw new Error('Tiles074 ZIP contains no recognized color map: ' + entries.map(([n]) => n).join(', '));
+      if (!color) throw new Error('Marble016 ZIP contains no recognized color map: ' + entries.map(([n]) => n).join(', '));
       const loader = new THREE.TextureLoader();
       const load = async (bytes: Uint8Array, srgb = false): Promise<THREE.Texture> => {
         const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'image/jpeg' }));
@@ -101,11 +101,11 @@ export class ConversationScene {
       });
       if (this.disposed) { material.dispose(); return; }
       floor.material = material;
-      console.info('[Oasis] Tiles074 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('TILES074 FLOOR STUDY 4.1 · TEXTURE LOADED');
+      console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.2 · TEXTURE LOADED');
     } catch (error) {
-      console.error('[Oasis] Tiles074 floor audition failed:', error);
-      this.setFloorStatus('TILES074 FLOOR STUDY 4.1 · TEXTURE ERROR');
+      console.error('[Oasis] Marble016 floor audition failed:', error);
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.2 · TEXTURE ERROR');
     }
   }
 
@@ -240,7 +240,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · TILES074 FLOOR STUDY 4.1")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.2")
     );
   }
 
