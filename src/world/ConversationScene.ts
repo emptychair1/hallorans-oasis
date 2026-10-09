@@ -120,9 +120,11 @@ export class ConversationScene {
           }
         });
         this.scene.add(sky); this.assets.push(sky);
-        // Extend the approved nebula below its horizon without modifying the GLB.
+        // Mirror the original upper sky across the horizontal plane.
+        // Unlike rotating the sky 180 degrees, this preserves the horizon's
+        // position and copies its visible hemisphere directly below it.
         const lowerSky = sky.clone(true);
-        lowerSky.rotation.z = Math.PI;
+        lowerSky.scale.y *= -1;
         lowerSky.traverse(obj => {
           if (obj instanceof THREE.Mesh) {
             obj.renderOrder = -11;
@@ -175,7 +177,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · HORIZON STUDY 3.2")
+      document.createTextNode("HALLORAN'S OASIS · HORIZON STUDY 3.3")
     );
   }
 
