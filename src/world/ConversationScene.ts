@@ -124,8 +124,8 @@ export class ConversationScene {
     }
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
-      this.place(chair, 1.1, 1.25, -1.55, -0.3, -Math.PI / 2);
-      this.place(chair.clone(true), 1.1, 1.25, 1.55, -0.3, Math.PI / 2);
+      this.place(chair, 0.85, 0.95, -1.55, -0.3, -Math.PI / 2);
+      this.place(chair.clone(true), 0.85, 0.95, 1.55, -0.3, Math.PI / 2);
     }
     const table = await this.model(ASSETS.table, 'approved floating dining set');
     if (table) this.place(table, 1.7, 1.2, 0, -0.3, 0, 0.7);
@@ -138,7 +138,7 @@ export class ConversationScene {
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · PIPER HEIGHT STUDY 1.0")
+      document.createTextNode("HALLORAN'S OASIS · CHAIR SCALE STUDY 1.1")
     );
   }
 
