@@ -125,7 +125,7 @@ export class ConversationScene {
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
       this.place(chair, 0.85, 0.95, -0.9476, -0.3, -Math.PI);
-      this.place(chair.clone(true), 0.85, 0.95, 0.7206, -0.3, 0);
+      this.place(chair.clone(true), 0.85, 0.95, 0.6444, -0.3, 0);
     }
     const table = await this.model(ASSETS.table, 'approved floating dining set');
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
@@ -159,10 +159,10 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Hand_/, 'x', Math.PI * 0.12);
       rotate(/^CC_Base_R_Hand_/, 'x', -Math.PI * 0.12);
       piper.updateMatrixWorld(true);
-      this.place(piper, 1.25, 1.5494, 0.7206, -0.3, -Math.PI / 2);
+      this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CHAIR PLACEMENT STUDY 3.0")
+      document.createTextNode("HALLORAN'S OASIS · CHAIR PLACEMENT STUDY 3.1")
     );
   }
 
