@@ -16,7 +16,7 @@ const ITEMS: Item[] = [
   { name: 'round table', url: '/assets/models/simple_round_table_obj.glb', width: 1.4, height: 0.8, depth: 1.4, x: 0, z: 0.5, yaw: 0 },
   { name: 'left Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: -1.45, z: 0.5, yaw: Math.PI },
   { name: 'right Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: 1.45, z: 0.5, yaw: 0 },
-  { name: 'inert portal', url: '/assets/models/sci-fi_portal_gateway.glb', width: 5.2, height: 5.8, depth: 2.0, x: 0, z: -4.5, yaw: 0 }
+  { name: 'inert portal', url: '/assets/models/sci-fi_portal_gateway.glb', width: 6.0, height: 6.6, depth: 2.0, x: 0, z: -4.5, yaw: 0 }
 ];
 
 /** Approved models only. Dimensions are provisional, with no geometry edits. */
@@ -45,13 +45,18 @@ export async function addFurnishings(
       const factor = Math.min(...[
         size.x > 0.00001 ? item.width / size.x : Infinity,
         size.y > 0.00001 ? item.height / size.y : Infinity,
-        size.z > 0.00001 ? item.depth / size.z : Infinity
+        size.z > 0.00001 && item.name !== 'inert portal' ? item.depth / size.z : Infinity
       ]);
       if (!Number.isFinite(factor) || factor <= 0) {
         console.warn('[Oasis] Could not scale approved model', item.name, size.toArray());
         continue;
       }
-      model.scale.multiplyScalar(factor);
+      // Portal's source geometry is unusually deep; depth must not shrink its doorway.
+      // Cap its height to the room's available vertical space instead.
+      const roomHeightLimit = item.name === 'inert portal'
+        ? Math.max(0.5, (roomBounds.max.y - roomBounds.min.y - 0.3) / size.y)
+        : Infinity;
+      model.scale.multiplyScalar(Math.min(factor, roomHeightLimit));
       model.updateMatrixWorld(true);
       const scaled = new THREE.Box3().setFromObject(model);
       const center = scaled.getCenter(new THREE.Vector3());
@@ -68,7 +73,7 @@ export async function addFurnishings(
       if (item.name === 'inert portal') {
         // A shallow portal can disappear when intersecting the back wall.
         // Keep the whole approved mesh inside the room for this placement study.
-        pivot.position.z = Math.max(pivot.position.z, roomBounds.min.z + item.depth / 2 + 0.5);
+        pivot.position.z = Math.max(pivot.position.z, roomBounds.min.z + (size.z * Math.min(factor, roomHeightLimit)) / 2 + 0.4);
       }
       model.traverse((object) => {
         if (object instanceof THREE.Mesh) {
