@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { WalkControls } from './WalkControls';
 
 const BASE = '/assets/models/';
@@ -41,14 +42,17 @@ export class ConversationScene {
     fill.position.set(-4, 6, 4);
     this.scene.add(fill);
 
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshPhysicalMaterial({ color: 0x090b14, metalness: 0.55, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.15 })
-    );
+    // FLOOR STUDY 3.6: real planar reflection, half-resolution for mobile.
+    // Reflector mirrors the room and nebula rather than merely applying gloss.
+    const reflectionSize = Math.min(768, Math.max(256, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.75)));
+    const floor = new Reflector(new THREE.PlaneGeometry(200, 200), {
+      textureWidth: reflectionSize,
+      textureHeight: reflectionSize,
+      color: 0x171922,
+      clipBias: 0.003,
+    });
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.015;
-    // FLOOR VISIBILITY TEST 3.5: temporarily hide the opaque floor to isolate the black horizon.
-    floor.visible = false;
     this.scene.add(floor);
     this.assets.push(floor);
 
@@ -182,7 +186,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · FLOOR VISIBILITY TEST 3.5")
+      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.6")
     );
   }
 
