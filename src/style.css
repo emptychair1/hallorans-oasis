@@ -72,3 +72,31 @@ canvas {
   background: #d2b36f;
   box-shadow: 0 0 12px rgba(210, 179, 111, 0.6);
 }
+
+/* Bite 3: mobile walking control, safe-area aware. */
+.walk-pad {
+  position: absolute;
+  z-index: 8;
+  left: calc(env(safe-area-inset-left, 0px) + 24px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 34px);
+  width: 112px;
+  height: 112px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(10, 12, 16, 0.28);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.walk-nub {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(210, 179, 111, 0.3);
+  box-shadow: 0 0 22px rgba(0, 0, 0, 0.22);
+  will-change: transform;
+}
+@media (pointer: fine) {
+  .walk-pad { opacity: 0.35; }
+}
