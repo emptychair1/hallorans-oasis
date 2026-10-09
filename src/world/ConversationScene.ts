@@ -64,12 +64,12 @@ export class ConversationScene {
       const response = await fetch('/assets/models/Tiles074_2K-JPG.zip');
       if (!response.ok) throw new Error('Tiles074 ZIP HTTP ' + response.status);
       const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
-      const entries = Object.entries(files).filter(([name]) => /\\.(jpe?g|png)$/i.test(name));
+      const entries = Object.entries(files).filter(([name]) => /\.(jpe?g|png)$/i.test(name));
       const find = (pattern: RegExp) => entries.find(([name]) => pattern.test(name))?.[1];
-      const color = find(/(?:color|diffuse|albedo)\\.(?:jpe?g|png)$/i);
-      const normal = find(/normal(?:gl|dx)?\\.(?:jpe?g|png)$/i);
-      const rough = find(/roughness\\.(?:jpe?g|png)$/i);
-      const ao = find(/(?:ambientocclusion|_ao)\\.(?:jpe?g|png)$/i);
+      const color = find(/(?:color|diffuse|albedo)\.(?:jpe?g|png)$/i);
+      const normal = find(/normal(?:gl|dx)?\.(?:jpe?g|png)$/i);
+      const rough = find(/roughness\.(?:jpe?g|png)$/i);
+      const ao = find(/(?:ambientocclusion|_ao)\.(?:jpe?g|png)$/i);
       if (!color) throw new Error('Tiles074 ZIP contains no recognized color map: ' + entries.map(([n]) => n).join(', '));
       const loader = new THREE.TextureLoader();
       const load = async (bytes: Uint8Array, srgb = false): Promise<THREE.Texture> => {
