@@ -131,20 +131,29 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Keep original rig and pose intact until the skeleton and animations are inspected.
-      this.place(piper, 1.25, 1.5494, 1.55, -0.3, -Math.PI / 2);
-      const bones: string[] = [];
-      piper.traverse(node => { if (node instanceof THREE.Bone) bones.push(node.name); });
-      const rigReport = 'Rig: ' + bones.length + ' bones · ' +
-        (bones.length ? bones.slice(0, 14).join(', ') : 'no named bones detected');
-      console.info('[Oasis] Piper rig inspection', { bones });
-      const report = document.createElement('div');
-      report.textContent = rigReport;
-      report.style.cssText = 'position:absolute;bottom:100px;left:12px;right:12px;z-index:20;padding:8px 10px;background:#101018dd;color:#fff;font:11px/1.4 monospace;border-radius:6px;pointer-events:none;overflow-wrap:anywhere';
-      this.mount.appendChild(report);
+      // Non-destructive first seated-pose study. Original GLB stays unchanged.
+      const bones = new Map<string, THREE.Bone>();
+      piper.traverse(node => {
+        if (node instanceof THREE.Bone) bones.set(node.name, node);
+      });
+      const rotate = (pattern: RegExp, axis: 'x' | 'y' | 'z', radians: number) => {
+        const bone = [...bones.entries()].find(([name]) => pattern.test(name))?.[1];
+        if (bone) bone.rotation[axis] += radians;
+        else console.warn('[Oasis] Pose bone not found:', pattern.source);
+      };
+      // Hip flexion and bent knees. Keep the head and torso untouched.
+      rotate(/^CC_Base_L_Thigh_04$/, 'x', -Math.PI * 0.46);
+      rotate(/^CC_Base_R_Thigh_/, 'x', -Math.PI * 0.46);
+      rotate(/^CC_Base_L_Calf_05$/, 'x', Math.PI * 0.49);
+      rotate(/^CC_Base_R_Calf_/, 'x', Math.PI * 0.49);
+      // Relax arms from the T-pose.
+      rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
+      rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
+      piper.updateMatrixWorld(true);
+      this.place(piper, 1.25, 1.5494, 0.9476, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · PIPER RIG INSPECTION 2.0")
+      document.createTextNode("HALLORAN'S OASIS · SEATED POSE STUDY 2.1")
     );
   }
 
