@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const BASE = '/assets/models/';
 const ASSETS = {
   sky: 'nebula_skybox_16k.glb',
-  chair: 'modern_chair.glb',
+  chair: 'aeroshell_glide_chair_b.glb',
   table: 'elegant_dining_table_set.glb',
   lamp: 'old_table_lamp_v03.glb',
   piper: 'free_stylized_cartoon_girl_rigged_character.glb'
@@ -43,8 +43,8 @@ export class ConversationScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     mount.appendChild(this.renderer.domElement);
-    this.camera.position.set(-1.35, 1.12, 0.95);
-    this.camera.lookAt(1.05, 1.08, -0.3);
+    this.camera.position.set(-1.25, 1.18, 0.65);
+    this.camera.lookAt(1.25, 1.12, -0.3);
     this.camera.rotation.order = 'YXZ';
     this.yaw = this.camera.rotation.y;
     this.pitch = this.camera.rotation.x;
@@ -140,8 +140,8 @@ export class ConversationScene {
     }
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
-      this.place(chair, 1.5, 1.5, -1.25, -0.3, -Math.PI / 2);
-      this.place(chair.clone(true), 1.5, 1.5, 1.25, -0.3, Math.PI / 2);
+      this.place(chair, 1.1, 1.25, -1.55, -0.3, -Math.PI / 2);
+      this.place(chair.clone(true), 1.1, 1.25, 1.55, -0.3, Math.PI / 2);
     }
     const table = await this.model(ASSETS.table, 'approved floating dining set');
     if (table) this.place(table, 1.7, 1.2, 0, -0.3, 0, 0.7);
@@ -150,11 +150,11 @@ export class ConversationScene {
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
       // Keep original rig and pose intact until the skeleton and animations are inspected.
-      this.place(piper, 0.9, 1.7, 1.25, -0.3, -Math.PI / 2);
+      this.place(piper, 0.9, 1.7, 1.55, -0.3, -Math.PI / 2);
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · COMPOSITION STUDY 0.6")
+      document.createTextNode("HALLORAN'S OASIS · COMPOSITION STUDY 0.7")
     );
   }
 
