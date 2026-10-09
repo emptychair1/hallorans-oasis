@@ -133,10 +133,18 @@ export class ConversationScene {
     if (piper) {
       // Keep original rig and pose intact until the skeleton and animations are inspected.
       this.place(piper, 1.25, 1.5494, 1.55, -0.3, -Math.PI / 2);
-      console.info('[Oasis] Piper model loaded; seated animation not yet verified');
+      const bones: string[] = [];
+      piper.traverse(node => { if (node instanceof THREE.Bone) bones.push(node.name); });
+      const rigReport = 'Rig: ' + bones.length + ' bones · ' +
+        (bones.length ? bones.slice(0, 14).join(', ') : 'no named bones detected');
+      console.info('[Oasis] Piper rig inspection', { bones });
+      const report = document.createElement('div');
+      report.textContent = rigReport;
+      report.style.cssText = 'position:absolute;bottom:100px;left:12px;right:12px;z-index:20;padding:8px 10px;background:#101018dd;color:#fff;font:11px/1.4 monospace;border-radius:6px;pointer-events:none;overflow-wrap:anywhere';
+      this.mount.appendChild(report);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CHAIR PLACEMENT STUDY 1.9")
+      document.createTextNode("HALLORAN'S OASIS · PIPER RIG INSPECTION 2.0")
     );
   }
 
