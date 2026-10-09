@@ -149,11 +149,14 @@ export class ConversationScene {
       // Relax arms from the T-pose.
       rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
       rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
+      // Bring forearms forward toward the lap, without touching the approved leg pose.
+      rotate(/^CC_Base_L_Forearm_/, 'x', -Math.PI * 0.36);
+      rotate(/^CC_Base_R_Forearm_/, 'x', -Math.PI * 0.36);
       piper.updateMatrixWorld(true);
       this.place(piper, 1.25, 1.5494, 0.9476, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · SEATED POSE STUDY 2.2")
+      document.createTextNode("HALLORAN'S OASIS · ARM POSE STUDY 2.3")
     );
   }
 
