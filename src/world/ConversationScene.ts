@@ -128,7 +128,7 @@ export class ConversationScene {
       this.place(chair.clone(true), 0.85, 0.95, 1.55, -0.3, Math.PI / 2);
     }
     const table = await this.model(ASSETS.table, 'approved floating dining set');
-    if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.7);
+    if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const lamp = await this.model(ASSETS.lamp, 'approved antique lamp');
     if (lamp) this.place(lamp, 0.38, 0.65, 0.5, -0.3, 0, 0.75);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
@@ -138,7 +138,7 @@ export class ConversationScene {
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · TABLE SCALE STUDY 1.4")
+      document.createTextNode("HALLORAN'S OASIS · TABLE HEIGHT STUDY 1.5")
     );
   }
 
