@@ -53,6 +53,12 @@ export class ConversationScene {
     this.scene.add(floor);
     this.assets.push(floor);
     void this.loadTilesFloor(floor);
+    // Neutral floor-only light to reveal dark tile without altering the room.
+    const floorLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    floorLight.position.set(-2, 5, 3);
+    floorLight.layers.set(1);
+    this.scene.add(floorLight);
+    floor.layers.enable(1);
 
     window.addEventListener('resize', this.onResize);
     window.visualViewport?.addEventListener('resize', this.onResize);
@@ -64,6 +70,7 @@ export class ConversationScene {
       const response = await fetch('/assets/models/Tiles074_2K-JPG.zip');
       if (!response.ok) throw new Error('Tiles074 ZIP HTTP ' + response.status);
       const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+      console.info('[Oasis] Tiles074 ZIP contents:', Object.keys(files));
       const entries = Object.entries(files).filter(([name]) => /\.(jpe?g|png)$/i.test(name));
       const find = (pattern: RegExp) => entries.find(([name]) => pattern.test(name))?.[1];
       const color = find(/(?:color|diffuse|albedo)\.(?:jpe?g|png)$/i);
@@ -95,9 +102,17 @@ export class ConversationScene {
       if (this.disposed) { material.dispose(); return; }
       floor.material = material;
       console.info('[Oasis] Tiles074 material loaded from ZIP', entries.map(([n]) => n));
+      this.setFloorStatus('TILES074 FLOOR STUDY 4.1 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Tiles074 floor audition failed:', error);
+      this.setFloorStatus('TILES074 FLOOR STUDY 4.1 · TEXTURE ERROR');
     }
+  }
+
+  private setFloorStatus(label: string): void {
+    document.querySelector('.foundation-status span:last-child')?.replaceChildren(
+      document.createTextNode("HALLORAN'S OASIS · " + label)
+    );
   }
 
   start(): void {
@@ -225,7 +240,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · TILES074 FLOOR STUDY 4.0")
+      document.createTextNode("HALLORAN'S OASIS · TILES074 FLOOR STUDY 4.1")
     );
   }
 
