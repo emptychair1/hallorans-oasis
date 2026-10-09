@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { Reflector } from 'three/addons/objects/Reflector.js';
+import { unzipSync } from 'fflate';
 import { WalkControls } from './WalkControls';
 
 const BASE = '/assets/models/';
@@ -42,31 +42,62 @@ export class ConversationScene {
     fill.position.set(-4, 6, 4);
     this.scene.add(fill);
 
-    // FLOOR STUDY 3.6: real planar reflection, half-resolution for mobile.
-    // Reflector mirrors the room and nebula rather than merely applying gloss.
-    const reflectionSize = Math.min(768, Math.max(256, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.75)));
-    const floor = new Reflector(new THREE.PlaneGeometry(200, 200), {
-      textureWidth: reflectionSize,
-      textureHeight: reflectionSize,
-      color: 0x050609,
-      clipBias: 0.003,
-    });
+    // Tiles074 floor audition. Decode the approved ZIP in-browser without
+    // modifying the uploaded source asset or requiring manual extraction.
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshStandardMaterial({ color: 0x171717, roughness: 0.22, metalness: 0.08 })
+    );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.015;
-    // Darken the reflected image in the reflector shader itself.
-    // Reflector's color option does not reliably act as reflection opacity.
-    (floor.material as THREE.ShaderMaterial).onBeforeCompile = (shader: THREE.WebGLProgramParametersWithUniforms) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <dithering_fragment>',
-        'gl_FragColor.rgb *= 0.18;\n#include <dithering_fragment>'
-      );
-    };
     this.scene.add(floor);
     this.assets.push(floor);
+    void this.loadTilesFloor(floor);
 
     window.addEventListener('resize', this.onResize);
     window.visualViewport?.addEventListener('resize', this.onResize);
     this.resize();
+  }
+
+  private async loadTilesFloor(floor: THREE.Mesh): Promise<void> {
+    try {
+      const response = await fetch('/assets/models/Tiles074_2K-JPG.zip');
+      if (!response.ok) throw new Error('Tiles074 ZIP HTTP ' + response.status);
+      const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+      const entries = Object.entries(files).filter(([name]) => /\\.(jpe?g|png)$/i.test(name));
+      const find = (pattern: RegExp) => entries.find(([name]) => pattern.test(name))?.[1];
+      const color = find(/(?:color|diffuse|albedo)\\.(?:jpe?g|png)$/i);
+      const normal = find(/normal(?:gl|dx)?\\.(?:jpe?g|png)$/i);
+      const rough = find(/roughness\\.(?:jpe?g|png)$/i);
+      const ao = find(/(?:ambientocclusion|_ao)\\.(?:jpe?g|png)$/i);
+      if (!color) throw new Error('Tiles074 ZIP contains no recognized color map: ' + entries.map(([n]) => n).join(', '));
+      const loader = new THREE.TextureLoader();
+      const load = async (bytes: Uint8Array, srgb = false): Promise<THREE.Texture> => {
+        const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'image/jpeg' }));
+        try {
+          const texture = await loader.loadAsync(url);
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set(18, 18);
+          texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+          if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
+          return texture;
+        } finally { URL.revokeObjectURL(url); }
+      };
+      const material = new THREE.MeshStandardMaterial({
+        map: await load(color, true),
+        normalMap: normal ? await load(normal) : null,
+        roughnessMap: rough ? await load(rough) : null,
+        aoMap: ao ? await load(ao) : null,
+        color: 0xffffff,
+        roughness: 0.24,
+        metalness: 0.06,
+      });
+      if (this.disposed) { material.dispose(); return; }
+      floor.material = material;
+      console.info('[Oasis] Tiles074 material loaded from ZIP', entries.map(([n]) => n));
+    } catch (error) {
+      console.error('[Oasis] Tiles074 floor audition failed:', error);
+    }
   }
 
   start(): void {
@@ -194,7 +225,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.8")
+      document.createTextNode("HALLORAN'S OASIS · TILES074 FLOOR STUDY 4.0")
     );
   }
 
