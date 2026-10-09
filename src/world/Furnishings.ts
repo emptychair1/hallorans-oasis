@@ -14,8 +14,8 @@ type Item = {
 
 const ITEMS: Item[] = [
   { name: 'round table', url: '/assets/models/simple_round_table_obj.glb', width: 1.4, height: 0.8, depth: 1.4, x: 0, z: 0.5, yaw: 0 },
-  { name: 'left Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: -1.65, z: 0.5, yaw: -Math.PI / 2 },
-  { name: 'right Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: 1.65, z: 0.5, yaw: Math.PI / 2 },
+  { name: 'left Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: -1.45, z: 0.5, yaw: Math.PI / 2 },
+  { name: 'right Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: 1.45, z: 0.5, yaw: -Math.PI / 2 },
   { name: 'inert portal', url: '/assets/models/sci-fi_portal_gateway.glb', width: 2.6, height: 3.1, depth: 0.8, x: 0, z: -4.5, yaw: 0 }
 ];
 
@@ -28,7 +28,7 @@ export async function addFurnishings(
 ): Promise<void> {
   const roomSize = roomBounds.getSize(new THREE.Vector3());
   // Keep the portal just in front of the back wall; all items stay inside.
-  const portalZ = roomBounds.min.z + Math.min(0.8, roomSize.z * 0.12);
+  const portalZ = roomBounds.min.z + Math.min(2.0, roomSize.z * 0.3);
   for (const item of ITEMS) {
     try {
       const gltf = await loader.loadAsync(item.url);
@@ -37,12 +37,20 @@ export async function addFurnishings(
       model.updateMatrixWorld(true);
       const raw = new THREE.Box3().setFromObject(model);
       const size = raw.getSize(new THREE.Vector3());
-      if (raw.isEmpty() || Math.min(size.x, size.y, size.z) <= 0) {
+      if (raw.isEmpty() || Math.max(size.x, size.y, size.z) <= 0) {
         console.warn('[Oasis] Invalid model bounds:', item.name);
         continue;
       }
       // Uniform scaling preserves original asset proportions.
-      const factor = Math.min(item.width / size.x, item.height / size.y, item.depth / size.z);
+      const factor = Math.min(...[
+        size.x > 0.00001 ? item.width / size.x : Infinity,
+        size.y > 0.00001 ? item.height / size.y : Infinity,
+        size.z > 0.00001 ? item.depth / size.z : Infinity
+      ]);
+      if (!Number.isFinite(factor) || factor <= 0) {
+        console.warn('[Oasis] Could not scale approved model', item.name, size.toArray());
+        continue;
+      }
       model.scale.multiplyScalar(factor);
       model.updateMatrixWorld(true);
       const scaled = new THREE.Box3().setFromObject(model);
@@ -57,6 +65,11 @@ export async function addFurnishings(
         item.name === 'inert portal' ? portalZ : item.z
       );
       pivot.rotation.y = item.yaw;
+      if (item.name === 'inert portal') {
+        // A shallow portal can disappear when intersecting the back wall.
+        // Keep the whole approved mesh inside the room for this placement study.
+        pivot.position.z = Math.max(pivot.position.z, roomBounds.min.z + item.depth / 2 + 0.5);
+      }
       model.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.receiveShadow = true;
