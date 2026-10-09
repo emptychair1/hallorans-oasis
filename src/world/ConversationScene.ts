@@ -120,6 +120,19 @@ export class ConversationScene {
           }
         });
         this.scene.add(sky); this.assets.push(sky);
+        // Extend the approved nebula below its horizon without modifying the GLB.
+        const lowerSky = sky.clone(true);
+        lowerSky.rotation.z = Math.PI;
+        lowerSky.traverse(obj => {
+          if (obj instanceof THREE.Mesh) {
+            obj.renderOrder = -11;
+            obj.material = Array.isArray(obj.material)
+              ? obj.material.map(m => m.clone())
+              : obj.material.clone();
+          }
+        });
+        this.scene.add(lowerSky);
+        this.assets.push(lowerSky);
       }
     }
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
@@ -162,7 +175,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CHAIR PLACEMENT STUDY 3.1")
+      document.createTextNode("HALLORAN'S OASIS · HORIZON STUDY 3.2")
     );
   }
 
