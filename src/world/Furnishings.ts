@@ -14,9 +14,9 @@ type Item = {
 
 const ITEMS: Item[] = [
   { name: 'round table', url: '/assets/models/simple_round_table_obj.glb', width: 1.4, height: 0.8, depth: 1.4, x: 0, z: 0.5, yaw: 0 },
-  { name: 'left Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: -1.45, z: 0.5, yaw: Math.PI / 2 },
-  { name: 'right Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: 1.45, z: 0.5, yaw: -Math.PI / 2 },
-  { name: 'inert portal', url: '/assets/models/sci-fi_portal_gateway.glb', width: 2.6, height: 3.1, depth: 0.8, x: 0, z: -4.5, yaw: 0 }
+  { name: 'left Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: -1.45, z: 0.5, yaw: Math.PI },
+  { name: 'right Barcelona chair', url: '/assets/models/barcelona_chair.glb', width: 1.0, height: 0.9, depth: 1.0, x: 1.45, z: 0.5, yaw: 0 },
+  { name: 'inert portal', url: '/assets/models/sci-fi_portal_gateway.glb', width: 5.2, height: 5.8, depth: 2.0, x: 0, z: -4.5, yaw: 0 }
 ];
 
 /** Approved models only. Dimensions are provisional, with no geometry edits. */
