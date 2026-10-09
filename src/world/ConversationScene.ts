@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { WalkControls } from './WalkControls';
 
 const BASE = '/assets/models/';
 const ASSETS = {
@@ -17,24 +18,9 @@ export class ConversationScene {
   private loader = new GLTFLoader();
   private frame: number | null = null;
   private disposed = false;
-  private pointers = new Map<number, { x: number; y: number }>();
-  private yaw = 0;
-  private pitch = 0;
+  private readonly controls: WalkControls;
   private assets: THREE.Object3D[] = [];
   private readonly onResize = () => this.resize();
-  private readonly onDown = (e: PointerEvent) => {
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    this.renderer.domElement.setPointerCapture(e.pointerId);
-  };
-  private readonly onMove = (e: PointerEvent) => {
-    const p = this.pointers.get(e.pointerId);
-    if (!p) return;
-    this.yaw = THREE.MathUtils.clamp(this.yaw - (e.clientX - p.x) * 0.0025, -1.6, 1.6);
-    this.pitch = THREE.MathUtils.clamp(this.pitch - (e.clientY - p.y) * 0.0025, -0.5, 0.5);
-    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
-    p.x = e.clientX; p.y = e.clientY;
-  };
-  private readonly onUp = (e: PointerEvent) => { this.pointers.delete(e.pointerId); };
 
   constructor(private mount: HTMLElement) {
     this.scene.background = new THREE.Color(0x030308);
@@ -45,9 +31,8 @@ export class ConversationScene {
     mount.appendChild(this.renderer.domElement);
     this.camera.position.set(-1.25, 1.18, 0.65);
     this.camera.lookAt(1.25, 1.12, -0.3);
-    this.camera.rotation.order = 'YXZ';
-    this.yaw = this.camera.rotation.y;
-    this.pitch = this.camera.rotation.x;
+    this.controls = new WalkControls(this.mount, this.camera);
+    this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 2));
     const warm = new THREE.PointLight(0xffc28a, 28, 9);
     warm.position.set(1.2, 2.5, 0.5);
@@ -65,10 +50,6 @@ export class ConversationScene {
     this.scene.add(floor);
     this.assets.push(floor);
 
-    this.renderer.domElement.addEventListener('pointerdown', this.onDown);
-    this.renderer.domElement.addEventListener('pointermove', this.onMove);
-    this.renderer.domElement.addEventListener('pointerup', this.onUp);
-    this.renderer.domElement.addEventListener('pointercancel', this.onUp);
     window.addEventListener('resize', this.onResize);
     window.visualViewport?.addEventListener('resize', this.onResize);
     this.resize();
@@ -77,8 +58,11 @@ export class ConversationScene {
   start(): void {
     if (this.frame !== null) return;
     void this.populate();
-    const render = () => {
+    let previous = 0;
+    const render = (now: number) => {
       if (this.disposed) return;
+      this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
+      previous = now;
       this.renderer.render(this.scene, this.camera);
       this.frame = requestAnimationFrame(render);
     };
@@ -154,7 +138,7 @@ export class ConversationScene {
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · COMPOSITION STUDY 0.7")
+      document.createTextNode("HALLORAN'S OASIS · WALKABOUT STUDY 0.8")
     );
   }
 
@@ -172,10 +156,7 @@ export class ConversationScene {
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     window.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('resize', this.onResize);
-    this.renderer.domElement.removeEventListener('pointerdown', this.onDown);
-    this.renderer.domElement.removeEventListener('pointermove', this.onMove);
-    this.renderer.domElement.removeEventListener('pointerup', this.onUp);
-    this.renderer.domElement.removeEventListener('pointercancel', this.onUp);
+    this.controls.dispose();
     // Shared geometry/materials from cloned chairs are disposed only once.
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
