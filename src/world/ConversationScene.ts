@@ -53,6 +53,14 @@ export class ConversationScene {
     });
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.015;
+    // Darken the reflected image in the reflector shader itself.
+    // Reflector's color option does not reliably act as reflection opacity.
+    floor.material.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        'gl_FragColor.rgb *= 0.18;\n#include <dithering_fragment>'
+      );
+    };
     this.scene.add(floor);
     this.assets.push(floor);
 
@@ -186,7 +194,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.7")
+      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.8")
     );
   }
 
