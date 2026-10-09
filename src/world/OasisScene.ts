@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { WalkControls } from './WalkControls';
 
 const ROOM_URL = '/assets/models/white-room1.glb';
 const TARGET_ROOM_SPAN_METERS = 14;
@@ -12,6 +13,8 @@ export class OasisScene {
   private readonly loader = new GLTFLoader();
   private frameId: number | null = null;
   private disposed = false;
+  private readonly controls: WalkControls;
+  private previousFrame = 0;
 
   constructor(private readonly mount: HTMLElement) {
     this.scene.background = new THREE.Color(0x101114);
@@ -48,6 +51,7 @@ export class OasisScene {
     this.camera.position.set(0, 2, 5);
     this.camera.lookAt(0, 1.6, 0);
 
+    this.controls = new WalkControls(this.mount, this.camera);
     this.resize();
     window.addEventListener('resize', this.resize, { passive: true });
     window.visualViewport?.addEventListener('resize', this.resize, { passive: true });
@@ -57,7 +61,10 @@ export class OasisScene {
     if (this.disposed || this.frameId !== null) return;
     void this.loadRoom();
 
-    const render = (): void => {
+    const render = (now: number): void => {
+      const dt = this.previousFrame ? (now - this.previousFrame) / 1000 : 0;
+      this.previousFrame = now;
+      this.controls.tick(dt);
       if (this.disposed) return;
       this.renderer.render(this.scene, this.camera);
       this.frameId = window.requestAnimationFrame(render);
@@ -113,6 +120,7 @@ export class OasisScene {
       this.camera.position.set(0, eyeHeight, -finalSize.z * 0.12);
       this.camera.lookAt(0, eyeHeight, finalSize.z * 0.4);
       this.camera.updateProjectionMatrix();
+      this.controls.setBounds(finalBounds);
 
       console.info('[Oasis] Room loaded', {
         source: ROOM_URL,
@@ -122,7 +130,7 @@ export class OasisScene {
       });
 
       document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-        document.createTextNode('HALLORAN\'S OASIS · ROOM STUDY 0.2')
+        document.createTextNode('HALLORAN\'S OASIS · WALK STUDY 0.3')
       );
     } catch (error) {
       console.error('[Oasis] Could not load approved room asset', error);
@@ -142,6 +150,7 @@ export class OasisScene {
     window.removeEventListener('resize', this.resize);
     window.visualViewport?.removeEventListener('resize', this.resize);
 
+    this.controls.dispose();
     this.disposeObject(this.roomRoot);
     this.renderer.dispose();
     this.renderer.domElement.remove();
