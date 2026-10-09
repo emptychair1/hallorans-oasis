@@ -48,7 +48,7 @@ export class ConversationScene {
     const floor = new Reflector(new THREE.PlaneGeometry(200, 200), {
       textureWidth: reflectionSize,
       textureHeight: reflectionSize,
-      color: 0x171922,
+      color: 0x050609,
       clipBias: 0.003,
     });
     floor.rotation.x = -Math.PI / 2;
@@ -186,7 +186,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.6")
+      document.createTextNode("HALLORAN'S OASIS · BLACK GLASS FLOOR STUDY 3.7")
     );
   }
 
