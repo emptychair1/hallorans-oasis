@@ -29,7 +29,7 @@ export class ConversationScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     mount.appendChild(this.renderer.domElement);
-    this.camera.position.set(-1.25, 1.18, 0.65);
+    this.camera.position.set(-1.25, 1.70, 0.65);
     this.camera.lookAt(1.25, 1.12, -0.3);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
@@ -138,7 +138,7 @@ export class ConversationScene {
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CHAIR SCALE STUDY 1.1")
+      document.createTextNode("HALLORAN'S OASIS · CAMERA HEIGHT STUDY 1.2")
     );
   }
 
