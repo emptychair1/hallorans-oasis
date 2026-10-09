@@ -29,7 +29,7 @@ export class ConversationScene {
   private readonly onMove = (e: PointerEvent) => {
     const p = this.pointers.get(e.pointerId);
     if (!p) return;
-    this.yaw = THREE.MathUtils.clamp(this.yaw - (e.clientX - p.x) * 0.0025, -0.85, 0.85);
+    this.yaw = THREE.MathUtils.clamp(this.yaw - (e.clientX - p.x) * 0.0025, -1.6, 1.6);
     this.pitch = THREE.MathUtils.clamp(this.pitch - (e.clientY - p.y) * 0.0025, -0.5, 0.5);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
     p.x = e.clientX; p.y = e.clientY;
@@ -43,8 +43,11 @@ export class ConversationScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     mount.appendChild(this.renderer.domElement);
-    this.camera.position.set(0, 1.17, 3.3);
-    this.camera.lookAt(0, 1.1, 0);
+    this.camera.position.set(-1.35, 1.12, 0.95);
+    this.camera.lookAt(1.05, 1.08, -0.3);
+    this.camera.rotation.order = 'YXZ';
+    this.yaw = this.camera.rotation.y;
+    this.pitch = this.camera.rotation.x;
     this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 2));
     const warm = new THREE.PointLight(0xffc28a, 28, 9);
     warm.position.set(1.2, 2.5, 0.5);
@@ -137,21 +140,21 @@ export class ConversationScene {
     }
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
-      this.place(chair, 1.5, 1.5, -1.55, -0.2, -Math.PI / 2);
-      this.place(chair.clone(true), 1.5, 1.5, 1.55, -0.2, Math.PI / 2);
+      this.place(chair, 1.5, 1.5, -1.25, -0.3, -Math.PI / 2);
+      this.place(chair.clone(true), 1.5, 1.5, 1.25, -0.3, Math.PI / 2);
     }
     const table = await this.model(ASSETS.table, 'approved floating dining set');
-    if (table) this.place(table, 2.0, 1.2, 0, -0.2, 0, 0.7);
+    if (table) this.place(table, 1.7, 1.2, 0, -0.3, 0, 0.7);
     const lamp = await this.model(ASSETS.lamp, 'approved antique lamp');
-    if (lamp) this.place(lamp, 0.45, 0.75, 0.7, -0.15, 0, 0.75);
+    if (lamp) this.place(lamp, 0.38, 0.65, 0.5, -0.3, 0, 0.75);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
       // Keep original rig and pose intact until the skeleton and animations are inspected.
-      this.place(piper, 0.9, 1.7, 1.55, -0.2, -Math.PI / 2);
+      this.place(piper, 0.9, 1.7, 1.25, -0.3, -Math.PI / 2);
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CONVERSATION STUDY 0.5")
+      document.createTextNode("HALLORAN'S OASIS · COMPOSITION STUDY 0.6")
     );
   }
 
