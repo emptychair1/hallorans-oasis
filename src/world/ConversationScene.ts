@@ -156,13 +156,13 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Forearm_/, 'x', Math.PI * 0.36);
       rotate(/^CC_Base_R_Forearm_/, 'x', Math.PI * 0.36);
       // Wrist-only study: turn palms toward thighs. Leave chair position unchanged.
-      rotate(/^CC_Base_L_Hand_/, 'z', -Math.PI / 2);
-      rotate(/^CC_Base_R_Hand_/, 'z', Math.PI / 2);
+      rotate(/^CC_Base_L_Hand_/, 'z', Math.PI / 2);
+      rotate(/^CC_Base_R_Hand_/, 'z', -Math.PI / 2);
       piper.updateMatrixWorld(true);
       this.place(piper, 1.25, 1.5494, 0.9476, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · WRIST ORIENTATION STUDY 2.6")
+      document.createTextNode("HALLORAN'S OASIS · WRIST ORIENTATION STUDY 2.7")
     );
   }
 
