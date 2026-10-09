@@ -107,11 +107,11 @@ export class OasisScene {
 
       this.roomRoot.add(room);
 
-      // First inspect the entire imported room from outside. Moving the
-      // camera indoors requires knowing which surfaces are walls/openings.
-      const framingDistance = Math.max(finalSize.x, finalSize.z, finalSize.y) * 1.3;
-      this.camera.position.set(framingDistance * 0.7, Math.max(3, finalSize.y * 0.65), framingDistance);
-      this.camera.lookAt(0, finalSize.y * 0.45, 0);
+      // The approved room's glass frontage faces +Z in the exterior study.
+      // Enter at eye level and face that frontage. No geometry is changed.
+      const eyeHeight = Math.min(1.65, Math.max(0.9, finalSize.y * 0.45));
+      this.camera.position.set(0, eyeHeight, -finalSize.z * 0.12);
+      this.camera.lookAt(0, eyeHeight, finalSize.z * 0.4);
       this.camera.updateProjectionMatrix();
 
       console.info('[Oasis] Room loaded', {
