@@ -47,6 +47,8 @@ export class ConversationScene {
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.015;
+    // FLOOR VISIBILITY TEST 3.5: temporarily hide the opaque floor to isolate the black horizon.
+    floor.visible = false;
     this.scene.add(floor);
     this.assets.push(floor);
 
@@ -180,7 +182,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · HORIZON STUDY 3.4")
+      document.createTextNode("HALLORAN'S OASIS · FLOOR VISIBILITY TEST 3.5")
     );
   }
 
