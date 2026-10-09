@@ -9,6 +9,8 @@ export class WalkControls {
   private readonly nub = document.createElement('div');
   private yaw = 0;
   private pitch = 0;
+  private targetYaw = 0;
+  private targetPitch = 0;
   private bounds: THREE.Box3 | null = null;
 
   constructor(private readonly mount: HTMLElement, private readonly camera: THREE.PerspectiveCamera) {
@@ -27,20 +29,24 @@ export class WalkControls {
 
   setBounds(bounds: THREE.Box3): void {
     this.bounds = bounds.clone();
-    this.yaw = 0;
-    this.pitch = 0;
     this.camera.rotation.order = 'YXZ';
-    this.camera.rotation.set(0, 0, 0);
+    this.yaw = this.targetYaw = this.camera.rotation.y;
+    this.pitch = this.targetPitch = this.camera.rotation.x;
   }
 
   tick(seconds: number): void {
     if (!this.bounds || seconds <= 0) return;
-    this.smoothed.lerp(this.stick, 1 - Math.exp(-12 * Math.min(seconds, 0.05)));
+    const dt = Math.min(seconds, 0.05);
+    this.yaw += (this.targetYaw - this.yaw) * (1 - Math.exp(-18 * dt));
+    this.pitch += (this.targetPitch - this.pitch) * (1 - Math.exp(-18 * dt));
+    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    this.smoothed.lerp(this.stick, 1 - Math.exp(-9 * dt));
     const x = this.smoothed.x + Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
     const y = this.smoothed.y + Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     const motion = new THREE.Vector2(x, y);
     if (motion.lengthSq() < 0.001) return;
-    motion.normalize().multiplyScalar(Math.min(seconds, 0.05) * 2.2);
+    const strength = Math.min(1, motion.length());
+    motion.normalize().multiplyScalar(dt * 2.8 * strength);
     const dx = Math.cos(this.yaw) * motion.x - Math.sin(this.yaw) * motion.y;
     const dz = -Math.sin(this.yaw) * motion.x - Math.cos(this.yaw) * motion.y;
     const margin = 1.2;
@@ -81,8 +87,8 @@ export class WalkControls {
     if (!this.bounds) return;
     e.preventDefault();
     const rect = this.pad.getBoundingClientRect();
-    const insidePad = e.clientX >= rect.left - 20 && e.clientX <= rect.right + 20 &&
-      e.clientY >= rect.top - 20 && e.clientY <= rect.bottom + 20;
+    const insidePad = e.clientX >= rect.left - 16 && e.clientX <= rect.right + 16 &&
+      e.clientY >= rect.top - 16 && e.clientY <= rect.bottom + 16;
     const mode = insidePad &&
       !Array.from(this.pointers.values()).some((p) => p.mode === 'walk') ? 'walk' : 'look';
     this.pointers.set(e.pointerId, { mode, x: e.clientX, y: e.clientY,
@@ -103,10 +109,8 @@ export class WalkControls {
       if (this.stick.length() > 1) this.stick.normalize();
       this.nub.style.transform = 'translate(' + this.stick.x * 28 + 'px,' + -this.stick.y * 28 + 'px)';
     } else {
-      this.yaw -= (e.clientX - p.x) * 0.0024;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - (e.clientY - p.y) * 0.0022, -1.0, 1.0);
-      this.camera.rotation.order = 'YXZ';
-      this.camera.rotation.set(this.pitch, this.yaw, 0);
+      this.targetYaw -= (e.clientX - p.x) * 0.004;
+      this.targetPitch = THREE.MathUtils.clamp(this.targetPitch - (e.clientY - p.y) * 0.004, -1.45, 1.45);
     }
     p.x = e.clientX;
     p.y = e.clientY;
