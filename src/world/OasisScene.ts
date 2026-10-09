@@ -1,18 +1,21 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const ROOM_URL = '/assets/models/white-room1.glb';
+const TARGET_ROOM_SPAN_METERS = 14;
 
 export class OasisScene {
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+  private readonly camera = new THREE.PerspectiveCamera(65, 1, 0.05, 500);
   private readonly renderer: THREE.WebGLRenderer;
-  private readonly calibrationCube: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
+  private readonly roomRoot = new THREE.Group();
+  private readonly loader = new GLTFLoader();
   private frameId: number | null = null;
   private disposed = false;
 
   constructor(private readonly mount: HTMLElement) {
-    this.scene.background = new THREE.Color(0x050608);
-
-    this.camera.position.set(0, 1.65, 5);
-    this.camera.lookAt(0, 1, 0);
+    this.scene.background = new THREE.Color(0x101114);
+    this.scene.add(this.roomRoot);
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -21,48 +24,29 @@ export class OasisScene {
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1;
+    this.renderer.toneMappingExposure = 1.15;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.mount.appendChild(this.renderer.domElement);
 
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
-      new THREE.MeshStandardMaterial({
-        color: 0x111319,
-        roughness: 0.96,
-        metalness: 0
-      })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x66616a, 2.2));
 
-    const grid = new THREE.GridHelper(20, 20, 0x41454d, 0x202229);
-    grid.position.y = 0.002;
-    this.scene.add(grid);
-
-    this.calibrationCube = new THREE.Mesh(
-      new THREE.BoxGeometry(1.25, 1.25, 1.25),
-      new THREE.MeshStandardMaterial({
-        color: 0x747881,
-        roughness: 0.68,
-        metalness: 0.04
-      })
-    );
-    this.calibrationCube.position.set(0, 0.625, 0);
-    this.calibrationCube.castShadow = true;
-    this.calibrationCube.receiveShadow = true;
-    this.scene.add(this.calibrationCube);
-
-    const hemisphere = new THREE.HemisphereLight(0xffffff, 0x171922, 1.35);
-    this.scene.add(hemisphere);
-
-    const key = new THREE.DirectionalLight(0xffffff, 2.6);
-    key.position.set(4, 8, 5);
+    const key = new THREE.DirectionalLight(0xffffff, 2.4);
+    key.position.set(4, 9, 5);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.left = -20;
+    key.shadow.camera.right = 20;
+    key.shadow.camera.top = 20;
+    key.shadow.camera.bottom = -20;
     this.scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xd9e5ff, 1.0);
+    fill.position.set(-5, 5, -4);
+    this.scene.add(fill);
+
+    this.camera.position.set(0, 2, 5);
+    this.camera.lookAt(0, 1.6, 0);
 
     this.resize();
     window.addEventListener('resize', this.resize, { passive: true });
@@ -70,50 +54,113 @@ export class OasisScene {
   }
 
   start(): void {
-    if (this.frameId !== null || this.disposed) return;
+    if (this.disposed || this.frameId !== null) return;
+    void this.loadRoom();
 
     const render = (): void => {
       if (this.disposed) return;
-
-      this.calibrationCube.rotation.y += 0.003;
       this.renderer.render(this.scene, this.camera);
       this.frameId = window.requestAnimationFrame(render);
     };
-
     render();
+  }
+
+  private async loadRoom(): Promise<void> {
+    try {
+      const gltf = await this.loader.loadAsync(ROOM_URL);
+      if (this.disposed) {
+        this.disposeObject(gltf.scene);
+        return;
+      }
+
+      const room = gltf.scene;
+      room.updateMatrixWorld(true);
+      const originalBounds = new THREE.Box3().setFromObject(room);
+      const originalSize = originalBounds.getSize(new THREE.Vector3());
+      const largestHorizontal = Math.max(originalSize.x, originalSize.z);
+
+      if (originalBounds.isEmpty() || !Number.isFinite(largestHorizontal) || largestHorizontal <= 0) {
+        throw new Error('Room model has invalid bounds');
+      }
+
+      // Normalize the source room to a generous real-world footprint.
+      // This is a provisional scale until its true measurements are confirmed.
+      const scale = TARGET_ROOM_SPAN_METERS / largestHorizontal;
+      room.scale.multiplyScalar(scale);
+      room.updateMatrixWorld(true);
+
+      const bounds = new THREE.Box3().setFromObject(room);
+      const center = bounds.getCenter(new THREE.Vector3());
+      room.position.x -= center.x;
+      room.position.z -= center.z;
+      room.position.y -= bounds.min.y;
+      room.updateMatrixWorld(true);
+
+      const finalBounds = new THREE.Box3().setFromObject(room);
+      const finalSize = finalBounds.getSize(new THREE.Vector3());
+
+      room.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.receiveShadow = true;
+        object.castShadow = false;
+      });
+
+      this.roomRoot.add(room);
+
+      // First inspect the entire imported room from outside. Moving the
+      // camera indoors requires knowing which surfaces are walls/openings.
+      const framingDistance = Math.max(finalSize.x, finalSize.z, finalSize.y) * 1.3;
+      this.camera.position.set(framingDistance * 0.7, Math.max(3, finalSize.y * 0.65), framingDistance);
+      this.camera.lookAt(0, finalSize.y * 0.45, 0);
+      this.camera.updateProjectionMatrix();
+
+      console.info('[Oasis] Room loaded', {
+        source: ROOM_URL,
+        originalSize: originalSize.toArray(),
+        scale,
+        normalizedSize: finalSize.toArray()
+      });
+
+      document.querySelector('.foundation-status span:last-child')?.replaceChildren(
+        document.createTextNode('HALLORAN\'S OASIS · ROOM STUDY 0.2')
+      );
+    } catch (error) {
+      console.error('[Oasis] Could not load approved room asset', error);
+      document.querySelector('.foundation-status span:last-child')?.replaceChildren(
+        document.createTextNode('ROOM ASSET FAILED TO LOAD')
+      );
+    }
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
 
-    if (this.frameId !== null) {
-      window.cancelAnimationFrame(this.frameId);
-      this.frameId = null;
-    }
+    if (this.frameId !== null) window.cancelAnimationFrame(this.frameId);
+    this.frameId = null;
 
     window.removeEventListener('resize', this.resize);
     window.visualViewport?.removeEventListener('resize', this.resize);
 
-    this.scene.traverse((object) => {
+    this.disposeObject(this.roomRoot);
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+  }
+
+  private disposeObject(root: THREE.Object3D): void {
+    root.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
       object.geometry.dispose();
-
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       for (const material of materials) material.dispose();
     });
-
-    this.renderer.dispose();
-    this.renderer.domElement.remove();
   }
 
   private readonly resize = (): void => {
     const width = Math.max(1, this.mount.clientWidth);
     const height = Math.max(1, this.mount.clientHeight);
-
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(width, height, false);
   };
