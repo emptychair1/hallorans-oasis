@@ -69,7 +69,7 @@ export class OasisScene {
       this.renderer.render(this.scene, this.camera);
       this.frameId = window.requestAnimationFrame(render);
     };
-    render();
+    this.frameId = window.requestAnimationFrame(render);
   }
 
   private async loadRoom(): Promise<void> {
