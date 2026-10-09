@@ -149,6 +149,9 @@ export class ConversationScene {
       // Relax arms from the T-pose.
       rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
       rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
+      // Ease both elbows forward from the shoulder; retain approved elbow bends.
+      rotate(/^CC_Base_L_Upperarm_/, 'x', -Math.PI * 0.12);
+      rotate(/^CC_Base_R_Upperarm_/, 'x', -Math.PI * 0.12);
       // Bring forearms forward toward the lap, without touching the approved leg pose.
       rotate(/^CC_Base_L_Forearm_/, 'x', Math.PI * 0.36);
       rotate(/^CC_Base_R_Forearm_/, 'x', Math.PI * 0.36);
@@ -156,7 +159,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.9476, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · ARM POSE STUDY 2.4")
+      document.createTextNode("HALLORAN'S OASIS · ARM POSE STUDY 2.5")
     );
   }
 
