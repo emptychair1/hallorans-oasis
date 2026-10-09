@@ -4,6 +4,7 @@ export class WalkControls {
   private readonly keys = new Set<string>();
   private readonly pointers = new Map<number, { mode: 'walk' | 'look'; x: number; y: number; ox: number; oy: number }>();
   private readonly stick = new THREE.Vector2();
+  private readonly smoothed = new THREE.Vector2();
   private readonly pad = document.createElement('div');
   private readonly nub = document.createElement('div');
   private yaw = 0;
@@ -34,8 +35,9 @@ export class WalkControls {
 
   tick(seconds: number): void {
     if (!this.bounds || seconds <= 0) return;
-    const x = this.stick.x + Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
-    const y = this.stick.y + Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
+    this.smoothed.lerp(this.stick, 1 - Math.exp(-12 * Math.min(seconds, 0.05)));
+    const x = this.smoothed.x + Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
+    const y = this.smoothed.y + Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     const motion = new THREE.Vector2(x, y);
     if (motion.lengthSq() < 0.001) return;
     motion.normalize().multiplyScalar(Math.min(seconds, 0.05) * 2.2);
@@ -72,14 +74,21 @@ export class WalkControls {
     this.keys.clear();
     this.pointers.clear();
     this.stick.set(0, 0);
+    this.smoothed.set(0, 0);
     this.nub.style.transform = '';
   };
   private readonly down = (e: PointerEvent): void => {
     if (!this.bounds) return;
     e.preventDefault();
-    const mode = e.clientX < this.mount.clientWidth * 0.48 &&
+    const rect = this.pad.getBoundingClientRect();
+    const insidePad = e.clientX >= rect.left - 20 && e.clientX <= rect.right + 20 &&
+      e.clientY >= rect.top - 20 && e.clientY <= rect.bottom + 20;
+    const mode = insidePad &&
       !Array.from(this.pointers.values()).some((p) => p.mode === 'walk') ? 'walk' : 'look';
-    this.pointers.set(e.pointerId, { mode, x: e.clientX, y: e.clientY, ox: e.clientX, oy: e.clientY });
+    this.pointers.set(e.pointerId, { mode, x: e.clientX, y: e.clientY,
+      ox: mode === 'walk' ? rect.left + rect.width / 2 : e.clientX,
+      oy: mode === 'walk' ? rect.top + rect.height / 2 : e.clientY });
+    if (mode === 'walk') this.drag(e);
     this.mount.setPointerCapture(e.pointerId);
   };
   private readonly drag = (e: PointerEvent): void => {
@@ -88,14 +97,14 @@ export class WalkControls {
     e.preventDefault();
     if (p.mode === 'walk') {
       this.stick.set(
-        THREE.MathUtils.clamp((e.clientX - p.ox) / 55, -1, 1),
+        THREE.MathUtils.clamp((e.clientX - p.ox) / 45, -1, 1),
         THREE.MathUtils.clamp((p.oy - e.clientY) / 55, -1, 1)
       );
       if (this.stick.length() > 1) this.stick.normalize();
       this.nub.style.transform = 'translate(' + this.stick.x * 28 + 'px,' + -this.stick.y * 28 + 'px)';
     } else {
-      this.yaw -= (e.clientX - p.x) * 0.0035;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - (e.clientY - p.y) * 0.003, -1.2, 1.2);
+      this.yaw -= (e.clientX - p.x) * 0.0024;
+      this.pitch = THREE.MathUtils.clamp(this.pitch - (e.clientY - p.y) * 0.0022, -1.0, 1.0);
       this.camera.rotation.order = 'YXZ';
       this.camera.rotation.set(this.pitch, this.yaw, 0);
     }
