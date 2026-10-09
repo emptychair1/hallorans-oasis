@@ -144,8 +144,8 @@ export class ConversationScene {
       // Hip flexion and bent knees. Keep the head and torso untouched.
       rotate(/^CC_Base_L_Thigh_04$/, 'x', -Math.PI * 0.46);
       rotate(/^CC_Base_R_Thigh_/, 'x', -Math.PI * 0.46);
-      rotate(/^CC_Base_L_Calf_05$/, 'x', Math.PI * 0.49);
-      rotate(/^CC_Base_R_Calf_/, 'x', Math.PI * 0.49);
+      rotate(/^CC_Base_L_Calf_05$/, 'x', -Math.PI * 0.49);
+      rotate(/^CC_Base_R_Calf_/, 'x', -Math.PI * 0.49);
       // Relax arms from the T-pose.
       rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
       rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
@@ -153,7 +153,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.9476, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · SEATED POSE STUDY 2.1")
+      document.createTextNode("HALLORAN'S OASIS · SEATED POSE STUDY 2.2")
     );
   }
 
