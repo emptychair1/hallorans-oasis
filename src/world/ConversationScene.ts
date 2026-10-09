@@ -138,7 +138,7 @@ export class ConversationScene {
       console.info('[Oasis] Piper model loaded; seated animation not yet verified');
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · CAMERA HEIGHT STUDY 1.2")
+      document.createTextNode("HALLORAN'S OASIS · NAVIGATION STUDY 1.3")
     );
   }
 
