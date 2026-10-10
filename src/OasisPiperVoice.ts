@@ -302,7 +302,7 @@ export class OasisPiperVoice {
     if (context && context.state !== 'closed') void context.close().catch(() => {});
   }
 
-  private dispose = (): void => {
+  dispose = (): void => {
     if (this.disposed) return;
     this.disposed = true;
     this.stop('Voice disconnected.');
