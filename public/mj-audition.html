@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MJ Facial Audition</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#100c17;color:#f8e9e5;font:15px -apple-system,BlinkMacSystemFont,sans-serif}header{padding:16px 18px 8px}h1{font-size:20px;margin:0 0 6px}p{margin:0;color:#cbbac8;line-height:1.4}#stage{height:58dvh;min-height:320px;position:relative;touch-action:none}canvas{display:block}#hint{position:absolute;bottom:8px;left:12px;font-size:12px;color:#cbbac8;pointer-events:none}.panel{padding:12px 16px 28px}label.upload{display:block;background:#c8946c;color:#1b1117;text-align:center;border-radius:12px;padding:13px;font-weight:700}input[type=file]{display:none}.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}button{background:#302535;border:1px solid #8b6575;border-radius:9px;color:#fff;padding:11px 13px;font-size:14px}button:disabled{opacity:.4}#status{margin-top:10px;font-size:13px;color:#e8d5d8}#names{font-size:12px;white-space:pre-wrap;color:#d2b5c2;margin-top:10px;max-height:150px;overflow:auto}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"}}</script></head>
+<body><header><h1>🌹 MJ · Facial Audition</h1><p>Private, on-device model preview. Your GLB stays on your phone and is never uploaded.</p></header>
+<div id="stage"><div id="hint">Drag to rotate · pinch to zoom</div></div>
+<section class="panel"><label class="upload" for="file">Choose mj_talking_audition.glb from Files</label><input id="file" type="file" accept=".glb,model/gltf-binary,application/octet-stream"><div id="status">Waiting for your exported GLB…</div>
+<div class="controls"><button data-key="Mouth_Smile" disabled>Smile 😊</button><button data-key="Eye_Blink" disabled>Blink 😉</button><button data-key="Mouth_Open" disabled>Open mouth</button><button data-key="Mouth_Pucker" disabled>Pucker 💋</button><button id="reset" disabled>Neutral</button></div><div id="names"></div></section>
+<script type="module">
+import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const stage=document.getElementById('stage'),status=document.getElementById('status'),names=document.getElementById('names');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#1a1323');
+const camera=new THREE.PerspectiveCamera(35,1,.01,500);camera.position.set(0,1.4,3);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;stage.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x6c4566,2.5));const key=new THREE.DirectionalLight(0xffe6d5,3);key.position.set(2,5,5);scene.add(key);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;
+const resize=()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()};window.addEventListener('resize',resize);resize();
+let current=null,meshes=[];
+function setMorph(term,value){let found=0;for(const m of meshes){for(const [name,index] of Object.entries(m.morphTargetDictionary||{})){if(name.toLowerCase()===term.toLowerCase()||name.toLowerCase().endsWith(term.toLowerCase())){m.morphTargetInfluences[index]=value;found++}}}return found}
+function reset(){for(const m of meshes)if(m.morphTargetInfluences)m.morphTargetInfluences.fill(0)}
+document.getElementById('reset').onclick=()=>{reset();status.textContent='Neutral expression'};
+for(const b of document.querySelectorAll('button[data-key]'))b.onclick=()=>{reset();const count=setMorph(b.dataset.key,1);status.textContent=count?b.dataset.key+' applied to '+count+' mesh(es)':'Shape key not found: '+b.dataset.key};
+document.getElementById('file').onchange=async e=>{const file=e.target.files[0];if(!file)return;status.textContent='Reading '+file.name+' ('+(file.size/1048576).toFixed(1)+' MB)…';try{const data=await file.arrayBuffer();status.textContent='Loading character…';const gltf=await new GLTFLoader().parseAsync(data,'');if(current)scene.remove(current);current=gltf.scene;scene.add(current);meshes=[];current.traverse(o=>{if(o.isMesh&&o.morphTargetDictionary)meshes.push(o)});
+const box=new THREE.Box3().setFromObject(current),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());if(box.isEmpty())throw Error('Empty model');orbit.target.copy(center);const radius=Math.max(size.x,size.y,size.z);camera.position.set(center.x,center.y+radius*.05,center.z+radius*1.65);camera.near=Math.max(.001,radius/1000);camera.far=Math.max(100,radius*100);camera.updateProjectionMatrix();orbit.update();const keys=[...new Set(meshes.flatMap(m=>Object.keys(m.morphTargetDictionary||{})))];names.textContent='Morph targets: '+keys.length+' unique names across '+meshes.length+' meshes\n'+keys.filter(k=>/mouth|eye|tongue|blink/i.test(k)).slice(0,35).join(' · ');
+for(const b of document.querySelectorAll('button'))b.disabled=false;status.textContent='Loaded! '+meshes.length+' morph-enabled meshes, '+keys.length+' unique morph names.'}catch(err){status.textContent='Could not open model: '+err.message;console.error(err)}};
+renderer.setAnimationLoop(()=>{orbit.update();renderer.render(scene,camera)});
+</script></body></html>
