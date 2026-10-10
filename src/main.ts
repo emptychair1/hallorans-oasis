@@ -19,6 +19,7 @@ faceToggle.textContent = 'FACE';
 faceToggle.setAttribute('aria-label', 'Switch to face close-up');
 faceToggle.addEventListener('click', () => {
   const face = oasis.toggleFaceCamera();
+  document.body.classList.toggle('oasis-face-mode', face);
   faceToggle.textContent = face ? 'ROOM' : 'FACE';
   faceToggle.setAttribute('aria-pressed', String(face));
   faceToggle.setAttribute('aria-label', face ? 'Return to room view' : 'Switch to face close-up');
