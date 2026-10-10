@@ -24,6 +24,14 @@ Standalone Vite + TypeScript + Three.js mobile-first 3D app, deployed to Cloudfl
 - Navigation: user said it 'blows soooooooooooooo much'. Latest navigation fix `ad965c6` pending review.
 - UI label remains 0.4. Do not imply a version bump.
 
+## Current work: Piper's black dress (Study 10.5)
+- Repo: `emptychair1/hallorans-oasis`, branch `main`.
+- Avatar pose, chair positions/rotations, table, camera and lighting are frozen for this pass.
+- `src/world/ConversationScene.ts` loads `public/assets/models/black_dress.glb` as a separate static GLB and fits it against the posed avatar's bounds.
+- The prior fitting used only 43% of avatar height and 62% of avatar width, which is overly restrictive and matches the user's report that the dress looks tiny.
+- Study 10.5 increases the fitting targets to 68% of avatar height and 90% of avatar width. This is a focused visual-fit adjustment only; the dress is **not skinned or attached to avatar bones**, and its appearance still needs visual confirmation in the deployed scene.
+- Build label is updated to Study 10.5 / Build 10.5.0. A GitHub commit does not prove deployment; confirm the live scene before claiming the visual fix is complete.
+
 ## Current files
 `src/world/OasisScene.ts`: scene, room GLB loader, provisional normalization, lighting, camera, requestAnimationFrame loop, WalkControls and addFurnishings.
 `src/world/WalkControls.ts`: movement/look.
