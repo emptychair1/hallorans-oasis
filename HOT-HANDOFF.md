@@ -191,3 +191,7 @@ Cloudflare failed compiling 10.11.3: TS2339 at ConversationScene.ts:441 because 
 
 ## Study 10.11.4 · live hair mesh repair
 Josh's screenshot of BUILD 10.11.3.1 showed Mesh / lambert10 with transparent=true, alphaTest=0, depthWrite=false, side=2, texture 2560x2048, 9176 triangles. Previous override targeted nonexistent old Object_35 name and did not affect the actual hair. Updated only the confirmed Mesh/lambert10 material: clone, depthWrite=true, depthTest=true, DoubleSide, transparent=false, alphaTest=0.08. Texture/geometry unchanged; diagnostic panel remains. Visible BUILD 10.11.4. Cloudflare and visual result unverified, Josh to test.
+
+
+## Study 10.12 · cinematic audition
+Josh approved a reversible realism test after verifying the hair repair in 10.11.4. Added CURRENT/CINEMATIC toggle, subtle supplementary lights and roughness variants on eligible opaque avatar materials. Hair material and geometry unchanged, face camera/voice intact. Visible BUILD 10.12.0. CSS write was blocked, so button reuses existing face-toggle style with an offset. Cloudflare and visual comparison not yet verified.
