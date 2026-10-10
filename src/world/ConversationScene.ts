@@ -42,10 +42,10 @@ export class ConversationScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
-    // Study 9.3: place the first-person camera at the actual opposite chair position.
-    // The previous coordinates landed inside the character. Use the west chair's scene coordinates.
-    this.camera.position.set(-0.9476, 1.18, -0.30);
-    this.camera.lookAt(0.6444, 1.22, -0.30);
+    // Study 9.4: sit at the opposite chair and aim down the table toward the character's face.
+    // Explicitly set the look target above table height so the view does not drift into the skybox.
+    this.camera.position.set(0.6444, 1.18, -0.30);
+    this.camera.lookAt(1.25, 1.90, 0.6444);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
@@ -353,7 +353,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.3 · OPPOSITE CHAIR · ARMS HIDDEN")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.4 · FACE AIM · ARMS HIDDEN")
     );
   }
 
