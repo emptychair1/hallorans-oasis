@@ -192,7 +192,7 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.1 · ROBOT ARM FRAMING · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
       this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE ERROR');
@@ -306,8 +306,9 @@ export class ConversationScene {
           arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-0.68 / maxExtent));
           const mount = new THREE.Group();
           mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
-          mount.position.set(side * 0.34, -0.43, -0.78);
-          mount.rotation.set(-0.65, 0, side * -0.12);
+          // Study 8.1: lift and bring the forearms inward into the visible lower foreground.
+          mount.position.set(side * 0.25, -0.12, -0.58);
+          mount.rotation.set(-0.22, 0, side * -0.08);
           mount.scale.x = side;
           mount.add(centered);
           this.camera.add(mount);
