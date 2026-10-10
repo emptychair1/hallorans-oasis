@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -14,7 +15,8 @@ const ASSETS = {
   chair: 'aeroshell_glide_chair_b.glb',
   table: 'elegant_dining_table_set.glb',
   lamp: 'old_table_lamp_v03.glb',
-  piper: 'free_stylized_cartoon_girl_rigged_character.glb'
+  piper: 'free_stylized_cartoon_girl_rigged_character.glb',
+  arm: 'robotic_prosthetic_arm.glb'
 } as const;
 
 export class ConversationScene {
@@ -190,10 +192,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.3 · SIDE FACE FILL · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.3 · SIDE FACE FILL · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE ERROR');
     }
   }
 
@@ -288,6 +290,32 @@ export class ConversationScene {
         this.assets.push(lowerSky);
       }
     }
+    // Study 8.0: audition the exact uploaded rigged prosthetic as a first-person pair.
+    // Both clones retain their independent bones; the left is mirrored at the mount.
+    const armSource = await this.model(ASSETS.arm, 'approved robotic prosthetic arm');
+    if (armSource) {
+      const bounds = new THREE.Box3().setFromObject(armSource);
+      const extent = bounds.getSize(new THREE.Vector3());
+      const maxExtent = Math.max(extent.x, extent.y, extent.z);
+      if (maxExtent > 0) {
+        for (const side of [-1, 1]) {
+          const arm = cloneSkeleton(armSource);
+          const centered = new THREE.Group();
+          centered.add(arm);
+          arm.scale.setScalar(0.68 / maxExtent);
+          arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-0.68 / maxExtent));
+          const mount = new THREE.Group();
+          mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
+          mount.position.set(side * 0.34, -0.43, -0.78);
+          mount.rotation.set(-0.65, 0, side * -0.12);
+          mount.scale.x = side;
+          mount.add(centered);
+          this.camera.add(mount);
+          this.assets.push(mount);
+        }
+        this.scene.add(this.camera);
+      }
+    }
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
       this.place(chair, 0.85, 0.95, -0.9476, -0.3, -Math.PI);
@@ -347,7 +375,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 7.3 · SIDE FACE FILL")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS")
     );
   }
 
