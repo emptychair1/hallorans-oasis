@@ -25,9 +25,24 @@ faceToggle.addEventListener('click', () => {
   faceToggle.setAttribute('aria-label', face ? 'Return to room view' : 'Switch to face close-up');
 });
 document.body.appendChild(faceToggle);
+const realismToggle = document.createElement('button');
+realismToggle.type = 'button';
+realismToggle.className = 'oasis-realism-toggle';
+realismToggle.textContent = 'CURRENT';
+realismToggle.setAttribute('aria-pressed', 'false');
+realismToggle.setAttribute('aria-label', 'Enable cinematic rendering');
+realismToggle.addEventListener('click', () => {
+  const cinematic = oasis.toggleCinematic();
+  realismToggle.textContent = cinematic ? 'CINEMATIC' : 'CURRENT';
+  realismToggle.setAttribute('aria-pressed', String(cinematic));
+  realismToggle.setAttribute('aria-label', cinematic ? 'Restore current rendering' : 'Enable cinematic rendering');
+});
+document.body.appendChild(realismToggle);
+
 
 window.addEventListener('pagehide', () => {
   faceToggle.remove();
+  realismToggle.remove();
   piperVoice.dispose();
   oasis.dispose();
 }, { once: true });
