@@ -14,7 +14,7 @@ const ASSETS = {
   chair: 'aeroshell_glide_chair_b.glb',
   table: 'elegant_dining_table_set.glb',
   lamp: 'old_table_lamp_v03.glb',
-  piper: 'free_stylized_cartoon_girl_rigged_character.glb',
+  piper: 'mj_talking_audition.glb',
   arm: 'robotic_prosthetic_arm.glb'
 } as const;
 
@@ -221,9 +221,31 @@ export class ConversationScene {
     this.frame = requestAnimationFrame(render);
   }
 
+  // Reconstruct the uploaded GLB from its two GitHub-hosted parts.
+  // Keep the source files intact and avoid a build-time binary dependency.
+  private async loadMJFromParts(): Promise<import('three/addons/loaders/GLTFLoader.js').GLTF> {
+    const parts = await Promise.all([1, 2].map(async number => {
+      const path = BASE + 'mj_talking_audition.part0' + number;
+      const response = await fetch(path);
+      if (!response.ok) throw new Error('MJ model part ' + number + ': HTTP ' + response.status);
+      return new Uint8Array(await response.arrayBuffer());
+    }));
+    const total = parts.reduce((sum, part) => sum + part.byteLength, 0);
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const part of parts) { bytes.set(part, offset); offset += part.byteLength; }
+    if (new TextDecoder().decode(bytes.subarray(0, 4)) !== 'glTF' ||
+        new DataView(bytes.buffer).getUint32(8, true) !== total) {
+      throw new Error('MJ model reconstruction failed GLB header validation');
+    }
+    return this.loader.parseAsync(bytes.buffer, BASE);
+  }
+
   private async model(file: string, label: string): Promise<THREE.Group | null> {
     try {
-      const gltf = await this.loader.loadAsync(BASE + file);
+      const gltf = file === ASSETS.piper
+        ? await this.loadMJFromParts()
+        : await this.loader.loadAsync(BASE + file);
       if (this.disposed) return null;
       gltf.scene.name = label;
       if (file === ASSETS.piper) {
