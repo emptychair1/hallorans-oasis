@@ -154,3 +154,9 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Made the voice controller dispose method public so main.ts can clean it up on pagehide.
 - Removed the obsolete movement bounds call from OasisScene.ts as well as the earlier stale call already removed from ConversationScene.ts. Preserve all camera/room setup.
 - Fixes committed to main; rerun Cloudflare build. Deployment and voice end-to-end still require verification.
+
+## Empty Piper reply: confirmed parser bug (2026-10-10)
+- User reported Oasis voice status: “Piper Home returned no reply.”
+- Compared Oasis `readReply()` against Piper Home's active `src/home-client.mjs` SSE parser. Oasis used `pending.split(/\\r?\\n/)`, which matches literal backslash sequences instead of actual newline characters. Home sends newline-delimited Server-Sent Events, so Oasis could read the stream without processing its `data:` packets and then falsely report an empty reply.
+- Fixed in commit `a2cdc744bfcc1956c96978a39fe7fccbbe24105a`: split on actual line endings with `/\r?\n/`, consume the final buffered line, and release the stream reader lock. The parser accepts Home's `response` chunks and the compatible `choices[0].delta.content` format.
+- This is a source-level root-cause fix, not proof of a successful build or live response. Cloudflare must deploy the commit; then retest one short voice turn. If it still fails, capture the exact status text and inspect the next failing stage. No Piper Home source or room/avatar layout was changed.
