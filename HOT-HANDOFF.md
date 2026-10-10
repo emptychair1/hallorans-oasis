@@ -1,3 +1,31 @@
+# CURRENT HANDOFF UPDATE — 2026-10-10
+
+## Current verified state
+- User confirmed the Cloudflare build succeeded after the missing-brace repair.
+- User checked the live Oasis model and confirmed it looks good. Preserve the existing avatar, its clothing, seated pose, approved furniture, and scene layout.
+- Piper Home production origin supplied by the user: `https://piper-home.daniels-joshua100.workers.dev/`.
+- Oasis remains a separate app; Piper Home remains the mind. No changes were made to Piper Home or THE IMPOSSIBLE ATLAS.
+
+## Oasis-to-Home chat bridge (new, not yet build/deploy verified)
+Commits on `main`:
+- `52613e86e5bd192eeb1c4305cd1a3bf628b77a6c` — add the compact Piper chat panel.
+- `a5e58f032e48cd96c38666b1127ff87ededd30a5` — mount it in the Oasis shell.
+- `3f3af0c0cfe984a12267feee8acb46ffa61a3e57` — style the panel for mobile.
+- `d403d0dfc0558c1cafd3a7750a480d7750bbae57` — add the same-origin Worker proxy for `POST /api/oasis/chat`.
+- `4e72917f9c419f42260afea4c03d371e6fc1541a` — configure Wrangler to run the Worker for `/api/oasis/*` while serving the static assets normally.
+
+Implementation details:
+- New UI: `src/OasisPiperChat.ts`; appended styles in `src/style.css`; mounted by `src/main.ts`.
+- New Worker entry: `src/worker.ts`. It forwards the chat payload to Piper Home's production `/api/chat`, preserves the response stream/JSON response, limits body and message sizes, and never sends Home secrets to the browser.
+- `wrangler.jsonc` now sets `main: src/worker.ts`, binds static assets as `ASSETS`, and uses `run_worker_first: ["/api/oasis/*"]`.
+- Chat context is held in the current page session and capped to Home's latest eight messages. No browser persistence was added.
+- These commits were made through GitHub's API. A local TypeScript/Vite build could not be run in this environment because the runtime could not resolve `github.com`. **Do not claim the new bridge is built or deployed yet.** Trigger/inspect the Cloudflare build next and fix any errors before testing the chat UI.
+
+## Voice status / next step
+- This first bridge pass connects text chat to the active Home `/api/chat` handler.
+- Do not claim voice is connected. The currently active Home Worker entry chain exposes the production chat route and voice-lab experiment clips, but does not show active `/api/piper-transcribe` or `/api/piper-speak-fast` handlers. The older `src/home-client.mjs` references those paths, but their live route availability is unverified.
+- After the new Oasis build succeeds, test text chat from the live Oasis. Then inspect/confirm a real production transcription endpoint and arbitrary-text TTS endpoint before adding voice controls. Do not substitute generic browser speech and call it Piper's voice.
+
 # Halloran's Oasis | HOT HANDOFF
 
 ## Build blocker repair (2026-10-10)
@@ -5,7 +33,7 @@
 - Root cause found in the current source: the `if (piper)` block in `populate()` was missing its closing brace after `this.place(...)`. The scene status-label update was accidentally left inside the block, and the class method then closed with unbalanced structure.
 - Fixed by closing the `if (piper)` block immediately after placing the avatar. No scene positions, model assets, camera, lighting, pose, or Piper Home integration changed.
 - Fix commit: `c3a416d58f6584904156f7c26eab1358b3ddb733`.
-- The source-level syntax fix is committed to `main`; a fresh Cloudflare build/deployment has **not yet been verified**. Check the next build log before claiming the blocker is cleared.
+- The user confirmed the Cloudflare build succeeded after this fix. The user has also confirmed Piper's model looks right in the live Oasis. The new chat-bridge commits below are a separate change and still need their own build/deployment verification.
 
 Updated 2026-10-09. Source of truth: `emptychair1/hallorans-oasis`, branch `main`.
 
