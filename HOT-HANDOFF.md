@@ -1,4 +1,12 @@
 # Halloran's Oasis | HOT HANDOFF
+
+## Build blocker repair (2026-10-10)
+- Cloudflare build log reported `src/world/ConversationScene.ts(387,3): error TS1128: Declaration or statement expected`.
+- Root cause found in the current source: the `if (piper)` block in `populate()` was missing its closing brace after `this.place(...)`. The scene status-label update was accidentally left inside the block, and the class method then closed with unbalanced structure.
+- Fixed by closing the `if (piper)` block immediately after placing the avatar. No scene positions, model assets, camera, lighting, pose, or Piper Home integration changed.
+- Fix commit: `c3a416d58f6584904156f7c26eab1358b3ddb733`.
+- The source-level syntax fix is committed to `main`; a fresh Cloudflare build/deployment has **not yet been verified**. Check the next build log before claiming the blocker is cleared.
+
 Updated 2026-10-09. Source of truth: `emptychair1/hallorans-oasis`, branch `main`.
 
 ## Resume immediately
