@@ -165,3 +165,9 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Following user-verified live BUILD 10.9.0 speech-driven mouth animation, added emoji/stage-direction recognition to the existing Oasis voice reply path. Smile, blink and surprise cues are selected when present, otherwise neutral.
 - Scene binds only morph targets actually present in exported Piper GLB; logs available expression kinds. Unsupported cues do nothing rather than deform the rig. Existing speech-driven Mouth_Open morph remains independent.
 - Visible label: STUDY 10.10 · BUILD 10.10.0 · FACIAL EXPRESSIONS. Source change committed; Cloudflare deploy and iPhone expression test belong to Josh and are NOT yet verified. Note: expression is applied for the reply playback, not timed to individual words. No model, voice, room, or furniture changes.
+
+
+## Study 10.11 · face audition camera · 2026-10-10
+- Josh confirmed Cloudflare green for 10.10 and observed smirk partially working, surprise eyes widening without mouth dropping, and frightening teeth during speaking/expressions only. Resting face looks fine. Facial rig diagnostics are next, but do not change morphs before close-up.
+- Implemented FACE/ROOM toggle with 35-degree FOV and eye-height camera close-up. ROOM restores exact captured camera position, quaternion and FOV; controls are paused while FACE is active. Existing avatar, room, facial morphs, lip sync and voice untouched.
+- Visible BUILD 10.11.0. Source commits are not proof of live Cloudflare deployment or framing quality. Josh to verify on iPhone.
