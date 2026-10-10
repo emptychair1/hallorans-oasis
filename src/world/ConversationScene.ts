@@ -27,6 +27,9 @@ export class ConversationScene {
   private loader = new GLTFLoader();
   private frame: number | null = null;
   private disposed = false;
+  private mouthTargets: Array<{ mesh: THREE.Mesh; index: number; baseline: number }> = [];
+  private mouthLevel = 0;
+  private mouthCurrent = 0;
   private readonly controls: WalkControls;
   private assets: THREE.Object3D[] = [];
   private readonly onResize = () => this.resize();
@@ -207,6 +210,18 @@ export class ConversationScene {
     );
   }
 
+  setSpeechLevel(level: number): void {
+    this.mouthLevel = THREE.MathUtils.clamp(level, 0, 1);
+  }
+
+  private updateMouth(): void {
+    this.mouthCurrent += (this.mouthLevel - this.mouthCurrent) * 0.38;
+    for (const target of this.mouthTargets) {
+      if (!target.mesh.morphTargetInfluences) continue;
+      target.mesh.morphTargetInfluences[target.index] = THREE.MathUtils.lerp(target.baseline, 1, this.mouthCurrent);
+    }
+  }
+
   start(): void {
     if (this.frame !== null) return;
     void this.populate().catch(error => { console.error('[Oasis] Startup failed', error); document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.4 · STARTUP FAILED')); });
@@ -215,6 +230,7 @@ export class ConversationScene {
       if (this.disposed) return;
       this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
       previous = now;
+      this.updateMouth();
       this.composer.render();
       this.frame = requestAnimationFrame(render);
     };
@@ -347,6 +363,16 @@ export class ConversationScene {
           ? node.material.map(adjust)
           : adjust(node.material);
       });
+      // Bind only the verified mouth-open morph; preserve all other facial controls.
+      this.mouthTargets = [];
+      piper.traverse(node => {
+        if (!(node instanceof THREE.Mesh) || !node.morphTargetDictionary || !node.morphTargetInfluences) return;
+        for (const [name, index] of Object.entries(node.morphTargetDictionary)) {
+          if (!/(?:^|[_ .])mouth[_ .]?open(?:$|[_ .])/i.test(name)) continue;
+          this.mouthTargets.push({ mesh: node, index, baseline: node.morphTargetInfluences[index] || 0 });
+        }
+      });
+      console.info('[Oasis] Voice mouth targets:', this.mouthTargets.length);
       document.getElementById('oasis-mesh-inspector')?.remove();
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
@@ -398,6 +424,7 @@ export class ConversationScene {
 
   dispose(): void {
     this.disposed = true;
+    this.mouthTargets = [];
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     window.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('resize', this.onResize);
