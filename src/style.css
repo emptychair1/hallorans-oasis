@@ -146,3 +146,14 @@ canvas {
   cursor: pointer;
   touch-action: manipulation;
 }
+
+/* Keep microphone and status below the inspected face in portrait close-up. */
+.oasis-face-mode .oasis-voice {
+  align-items: flex-start;
+  padding-left: calc(env(safe-area-inset-left, 0px) + 14px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  gap: 6px;
+}
+.oasis-face-mode .oasis-voice__button { width: 48px; height: 48px; }
+.oasis-face-mode .oasis-voice__button svg { width: 22px; height: 22px; }
+.oasis-face-mode .oasis-voice__status { font-size: 10px; max-width: 190px; }
