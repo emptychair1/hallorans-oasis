@@ -387,34 +387,28 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 10.11.2: reduce aggressive hair alpha clipping on the identified mesh.
-      // Keep depth writing enabled so overlapping hair cards remain stable.
+      // Study 10.11.4: apply the hair cutout repair to the mesh actually found
+      // in the live diagnostic (Mesh / lambert10), not the old Object_35 name.
       const hairAudit: string[] = [];
       piper.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
-        const materials = Array.isArray(node.material) ? node.material : [node.material];
-        for (const material of materials) {
-          if (/hair|lambert10/i.test(material.name) || node.name === 'Object_35') {
-            hairAudit.push(node.name + ':' + material.name + ':alpha=' + material.alphaTest);
-          }
-        }
-        if (node.name !== 'Object_35') return;
         const adjust = (material: THREE.Material): THREE.Material => {
-          if (material.name !== 'lambert10') return material;
+          if (node.name !== 'Mesh' || material.name !== 'lambert10') return material;
           const copy = material.clone();
-          copy.depthWrite = true;
           copy.depthTest = true;
+          copy.depthWrite = true;
           copy.side = THREE.DoubleSide;
           copy.transparent = false;
           copy.alphaTest = 0.08;
           copy.needsUpdate = true;
+          hairAudit.push(node.name + ':' + material.name + ':cutout=0.08:depthWrite=true');
           return copy;
         };
         node.material = Array.isArray(node.material)
           ? node.material.map(adjust)
           : adjust(node.material);
       });
-      console.info('[Oasis] Hair material audit:', hairAudit);
+      console.info('[Oasis] Hair repair audit:', hairAudit);
       // Non-invasive diagnostic inventory. No changes to hair rendering.
       const diagnostics: string[] = [];
       piper.traverse(node => {
@@ -518,7 +512,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.3 · BUILD 10.11.3.1 · HAIR DIAGNOSTICS FIX")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.4 · BUILD 10.11.4 · HAIR MATERIAL REPAIR")
     );
   }
 
