@@ -129,3 +129,20 @@ canvas {
 @media (prefers-reduced-motion: reduce) {
   .oasis-voice[data-state="listening"] .oasis-voice__button { animation: none; }
 }
+
+/* Study 10.11 facial audition control */
+.oasis-face-toggle {
+  position: fixed;
+  z-index: 40;
+  top: calc(env(safe-area-inset-top, 0px) + 65px);
+  right: calc(env(safe-area-inset-right, 0px) + 14px);
+  padding: 11px 16px;
+  border: 1px solid rgba(240, 184, 120, .55);
+  border-radius: 999px;
+  background: rgba(12, 9, 15, .86);
+  color: #f7ddbc;
+  font: 700 12px/1 Inter, sans-serif;
+  letter-spacing: .12em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
