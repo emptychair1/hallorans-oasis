@@ -37,8 +37,8 @@ export class WalkControls {
   tick(seconds: number): void {
     if (!this.bounds || seconds <= 0) return;
     const dt = Math.min(seconds, 0.05);
-    this.yaw += (this.targetYaw - this.yaw) * (1 - Math.exp(-18 * dt));
-    this.pitch += (this.targetPitch - this.pitch) * (1 - Math.exp(-18 * dt));
+    this.yaw += (this.targetYaw - this.yaw) * (1 - Math.exp(-25 * dt));
+    this.pitch += (this.targetPitch - this.pitch) * (1 - Math.exp(-25 * dt));
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
     this.smoothed.lerp(this.stick, 1 - Math.exp(-9 * dt));
     const x = this.smoothed.x + Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
@@ -46,7 +46,7 @@ export class WalkControls {
     const motion = new THREE.Vector2(x, y);
     if (motion.lengthSq() < 0.001) return;
     const strength = Math.min(1, motion.length());
-    motion.normalize().multiplyScalar(dt * 2.8 * strength);
+    motion.normalize().multiplyScalar(dt * 3.6 * strength);
     const dx = Math.cos(this.yaw) * motion.x - Math.sin(this.yaw) * motion.y;
     const dz = -Math.sin(this.yaw) * motion.x - Math.cos(this.yaw) * motion.y;
     const margin = 1.2;
@@ -109,8 +109,8 @@ export class WalkControls {
       if (this.stick.length() > 1) this.stick.normalize();
       this.nub.style.transform = 'translate(' + this.stick.x * 28 + 'px,' + -this.stick.y * 28 + 'px)';
     } else {
-      this.targetYaw -= (e.clientX - p.x) * 0.004;
-      this.targetPitch = THREE.MathUtils.clamp(this.targetPitch - (e.clientY - p.y) * 0.004, -1.45, 1.45);
+      this.targetYaw -= (e.clientX - p.x) * 0.006;
+      this.targetPitch = THREE.MathUtils.clamp(this.targetPitch - (e.clientY - p.y) * 0.006, -1.45, 1.45);
     }
     p.x = e.clientX;
     p.y = e.clientY;
