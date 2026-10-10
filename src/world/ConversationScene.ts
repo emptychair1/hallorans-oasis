@@ -34,6 +34,8 @@ export class ConversationScene {
   private mouthLevel = 0;
   private mouthCurrent = 0;
   private readonly controls: WalkControls;
+  private faceMode = false;
+  private savedCamera: { position: THREE.Vector3; quaternion: THREE.Quaternion; fov: number } | null = null;
   private assets: THREE.Object3D[] = [];
   private readonly onResize = () => this.resize();
 
@@ -213,6 +215,26 @@ export class ConversationScene {
     );
   }
 
+  toggleFaceCamera(): boolean {
+    if (!this.faceMode) {
+      this.savedCamera = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.camera.fov };
+      this.camera.position.set(-0.13, 1.69, -0.30);
+      this.camera.fov = 35;
+      this.camera.lookAt(0.6444, 1.69, -0.30);
+      this.faceMode = true;
+    } else {
+      if (this.savedCamera) {
+        this.camera.position.copy(this.savedCamera.position);
+        this.camera.quaternion.copy(this.savedCamera.quaternion);
+        this.camera.fov = this.savedCamera.fov;
+      }
+      this.savedCamera = null;
+      this.faceMode = false;
+    }
+    this.camera.updateProjectionMatrix();
+    return this.faceMode;
+  }
+
   setSpeechLevel(level: number): void {
     this.mouthLevel = THREE.MathUtils.clamp(level, 0, 1);
   }
@@ -245,7 +267,7 @@ export class ConversationScene {
     let previous = 0;
     const render = (now: number) => {
       if (this.disposed) return;
-      this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
+      if (!this.faceMode) this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
       previous = now;
       this.updateExpression();
       this.updateMouth();
@@ -437,7 +459,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.10 · BUILD 10.10.0 · FACIAL EXPRESSIONS")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11 · BUILD 10.11.0 · FACE CAMERA")
     );
   }
 
