@@ -183,3 +183,7 @@ Josh's close-up screenshot showed missing sections of Piper's auburn hair. Exist
 
 ## Study 10.11.3 hair diagnostics
 Josh verified 10.11.2 live screenshot: missing auburn hair persists after alphaTest changed from 0.5 to 0.08. No further guesswork on alpha. Added read-only collapsible HAIR DIAGNOSTICS panel and console inventory for identified hair meshes, material names, visibility, triangle counts, opacity, alphaTest, sidedness, depth test/write, render order, texture dimensions, alpha map. No visual material modifications in this bite. Visible BUILD 10.11.3. Cloudflare and diagnostic results await Josh's verification. Ask for screenshot of expanded panel; if no named hair meshes found, inspect full mesh inventory next.
+
+
+## Build correction 10.11.3.1
+Cloudflare failed compiling 10.11.3: TS2339 at ConversationScene.ts:441 because texture image has unknown type and width/height were accessed directly. Replaced with guarded source.data object property checks; diagnostic falls back to 'present' when dimensions are unavailable. Visible BUILD 10.11.3.1. Commit c14d2dc. Await Cloudflare rebuild; do not claim success until confirmed. Hair materials unchanged.
