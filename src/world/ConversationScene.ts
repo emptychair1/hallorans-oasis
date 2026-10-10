@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.7 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.8 · HAIR VISIBILITY · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.7 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.8 · HAIR VISIBILITY · TEXTURE ERROR');
     }
   }
 
@@ -269,6 +269,19 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
+      // Hair visibility study: render both sides of hair cards to prevent
+      // view-dependent disappearance. Do not alter the mesh, rig, or pose.
+      piper.traverse(node => {
+        if (!(node instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        const hair = /hair|bang|fringe|strand/i.test(node.name) ||
+          materials.some(m => /hair|bang|fringe|strand/i.test(m.name));
+        if (!hair) return;
+        node.material = Array.isArray(node.material)
+          ? materials.map(m => { const copy = m.clone(); copy.side = THREE.DoubleSide; return copy; })
+          : (() => { const copy = node.material.clone(); copy.side = THREE.DoubleSide; return copy; })();
+        console.info('[Oasis] Hair double-sided:', node.name);
+      });
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
       piper.traverse(node => {
@@ -300,7 +313,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.7")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.8 · HAIR VISIBILITY")
     );
   }
 
