@@ -367,8 +367,8 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Upperarm(?:_|$)/, 'z', -Math.PI * 0.32);
       rotate(/^CC_Base_R_Upperarm(?:_|$)/, 'z', Math.PI * 0.32);
       // Ease both elbows forward from the shoulder; retain approved elbow bends.
-      rotate(/^CC_Base_L_Upperarm_/, 'x', -Math.PI * 0.12);
-      rotate(/^CC_Base_R_Upperarm_/, 'x', -Math.PI * 0.12);
+      rotate(/^CC_Base_L_Upperarm(?:_|$)/, 'x', -Math.PI * 0.12);
+      rotate(/^CC_Base_R_Upperarm(?:_|$)/, 'x', -Math.PI * 0.12);
       // Bring forearms forward toward the lap, without touching the approved leg pose.
       rotate(/^CC_Base_L_Forearm(?:_|$)/, 'x', Math.PI * 0.36);
       rotate(/^CC_Base_R_Forearm(?:_|$)/, 'x', Math.PI * 0.36);
