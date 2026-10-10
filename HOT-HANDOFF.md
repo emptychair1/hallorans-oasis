@@ -171,3 +171,7 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Josh confirmed Cloudflare green for 10.10 and observed smirk partially working, surprise eyes widening without mouth dropping, and frightening teeth during speaking/expressions only. Resting face looks fine. Facial rig diagnostics are next, but do not change morphs before close-up.
 - Implemented FACE/ROOM toggle with 35-degree FOV and eye-height camera close-up. ROOM restores exact captured camera position, quaternion and FOV; controls are paused while FACE is active. Existing avatar, room, facial morphs, lip sync and voice untouched.
 - Visible BUILD 10.11.0. Source commits are not proof of live Cloudflare deployment or framing quality. Josh to verify on iPhone.
+
+
+## Study 10.11.1 face framing
+User screenshot showed forehead at bottom and sky filling the close-up. Camera now targets 87 percent height of the placed avatar bounding box rather than guessed height. The microphone controls are smaller and bottom-left in FACE mode. Room restore preserved. Source committed, live visual verification pending.
