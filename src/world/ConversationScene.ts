@@ -43,8 +43,10 @@ export class ConversationScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
-    this.camera.position.set(-1.25, 1.70, 0.65);
-    this.camera.lookAt(1.25, 1.12, -0.3);
+    // Study 8.9: begin seated in the west lounge chair, looking across the table.
+    // Keep the first-person prosthetics camera-relative so arm auditions remain natural from the seat.
+    this.camera.position.set(-0.98, 1.18, -0.30);
+    this.camera.lookAt(0.70, 1.08, -0.30);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
@@ -192,10 +194,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.9 · SEATED VIEW · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.9 · SEATED VIEW · TEXTURE ERROR');
     }
   }
 
@@ -378,7 +380,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.9 · SEATED VIEW")
     );
   }
 
