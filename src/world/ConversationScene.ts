@@ -28,6 +28,9 @@ export class ConversationScene {
   private frame: number | null = null;
   private disposed = false;
   private mouthTargets: Array<{ mesh: THREE.Mesh; index: number; baseline: number }> = [];
+  private expressionTargets: Array<{ mesh: THREE.Mesh; index: number; baseline: number; kind: 'smile' | 'blink' | 'surprise' }> = [];
+  private expression: 'neutral' | 'smile' | 'blink' | 'surprise' = 'neutral';
+  private expressionCurrent = 0;
   private mouthLevel = 0;
   private mouthCurrent = 0;
   private readonly controls: WalkControls;
@@ -214,6 +217,20 @@ export class ConversationScene {
     this.mouthLevel = THREE.MathUtils.clamp(level, 0, 1);
   }
 
+  setExpression(expression: 'neutral' | 'smile' | 'blink' | 'surprise'): void {
+    this.expression = expression;
+  }
+
+  private updateExpression(): void {
+    const active = this.expression !== 'neutral';
+    this.expressionCurrent += ((active ? 0.65 : 0) - this.expressionCurrent) * 0.12;
+    for (const target of this.expressionTargets) {
+      const influences = target.mesh.morphTargetInfluences;
+      if (!influences) continue;
+      influences[target.index] = THREE.MathUtils.clamp(target.baseline + (target.kind === this.expression ? this.expressionCurrent : 0), 0, 1);
+    }
+  }
+
   private updateMouth(): void {
     this.mouthCurrent += (this.mouthLevel - this.mouthCurrent) * 0.38;
     for (const target of this.mouthTargets) {
@@ -230,6 +247,7 @@ export class ConversationScene {
       if (this.disposed) return;
       this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
       previous = now;
+      this.updateExpression();
       this.updateMouth();
       this.composer.render();
       this.frame = requestAnimationFrame(render);
@@ -372,7 +390,20 @@ export class ConversationScene {
           this.mouthTargets.push({ mesh: node, index, baseline: node.morphTargetInfluences[index] || 0 });
         }
       });
+      // Inspect the actual exported GLB morph names; unsupported cues remain neutral.
+      this.expressionTargets = [];
+      piper.traverse(node => {
+        if (!(node instanceof THREE.Mesh) || !node.morphTargetDictionary || !node.morphTargetInfluences) return;
+        for (const [name, index] of Object.entries(node.morphTargetDictionary)) {
+          const normalized = name.toLowerCase().replace(/[^a-z]/g, '');
+          const kind = /smile|happy|grin/.test(normalized) ? 'smile'
+            : /blink|eyesclosed/.test(normalized) ? 'blink'
+            : /surprise|eyeswide|eyewide/.test(normalized) ? 'surprise' : null;
+          if (kind) this.expressionTargets.push({ mesh: node, index, baseline: node.morphTargetInfluences[index] || 0, kind });
+        }
+      });
       console.info('[Oasis] Voice mouth targets:', this.mouthTargets.length);
+      console.info('[Oasis] Available expression morphs:', this.expressionTargets.map(target => target.kind));
       document.getElementById('oasis-mesh-inspector')?.remove();
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
@@ -406,7 +437,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.9 · BUILD 10.9.0 · VOICE ANIMATION")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.10 · BUILD 10.10.0 · FACIAL EXPRESSIONS")
     );
   }
 
@@ -425,6 +456,7 @@ export class ConversationScene {
   dispose(): void {
     this.disposed = true;
     this.mouthTargets = [];
+    this.expressionTargets = [];
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     window.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('resize', this.onResize);
