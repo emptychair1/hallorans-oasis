@@ -83,11 +83,11 @@ export class ConversationScene {
     // Fade only the distant reflection toward the existing sky.
     reflectionMaterial.vertexShader = reflectionMaterial.vertexShader.replace(
       'void main() {',
-      'varying vec3 vOasisFloorWorld;\\nvoid main() {\\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
+      'varying vec3 vOasisFloorWorld;\nvoid main() {\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
     );
     reflectionMaterial.fragmentShader = reflectionMaterial.fragmentShader.replace(
       'void main() {',
-      'varying vec3 vOasisFloorWorld;\\nvoid main() {'
+      'varying vec3 vOasisFloorWorld;\nvoid main() {'
     ).replace(
       'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 );',
       'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 * (1.0 - smoothstep(140.0, 260.0, distance(vOasisFloorWorld.xz, cameraPosition.xz))));'
@@ -150,14 +150,14 @@ export class ConversationScene {
       material.onBeforeCompile = shader => {
         shader.vertexShader = shader.vertexShader.replace(
           'void main() {',
-          'varying vec3 vOasisFloorWorld;\\nvoid main() {\\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
+          'varying vec3 vOasisFloorWorld;\nvoid main() {\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
         );
         shader.fragmentShader = shader.fragmentShader.replace(
           'void main() {',
-          'varying vec3 vOasisFloorWorld;\\nvoid main() {'
+          'varying vec3 vOasisFloorWorld;\nvoid main() {'
         ).replace(
           '#include <color_fragment>',
-          '#include <color_fragment>\\n diffuseColor.a *= 1.0 - smoothstep(140.0, 260.0, distance(vOasisFloorWorld.xz, cameraPosition.xz));'
+          '#include <color_fragment>\n diffuseColor.a *= 1.0 - smoothstep(140.0, 260.0, distance(vOasisFloorWorld.xz, cameraPosition.xz));'
         );
       };
       floor.material = material;
