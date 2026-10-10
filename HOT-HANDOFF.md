@@ -70,3 +70,10 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Visible status label bumped to Study 10.7 / Build 10.7.0.
 - Scene placement commit: 98f252c7c81b8a72a88bc84a30f4ae59fcd568b3. Label commit: 1dfd33500eeee5b86dd0b11668069ba146f38146.
 - This is still a static prop, not skinned clothing. Confirm the rendered result before claiming the fit is complete. Do not alter the approved avatar pose, chair, table, camera, or lighting.
+
+## Study 10.8: stop overlaying the separate dress
+- User clarified: use the clothes already on Piper's avatar. Do not create a T-shirt or other new outfit.
+- Removed the separate static `black_dress.glb` fitting/overlay from `ConversationScene.ts`; Piper now renders with the clothing already included in her avatar model.
+- Visible label: Study 10.8 / Build 10.8.0.
+- Commit: afe0460e2b09266cfd1df9beac1ae60b9f43866e.
+- This removes the failed dress experiment without changing the approved pose, chair, table, camera, or lighting. Deployment/render verification is still pending.
