@@ -1,4 +1,5 @@
 import './style.css';
+import portraitUrl from '../IMG_4604.jpeg?url';
 import { OasisPiperVoice } from './OasisPiperVoice';
 
 // Portrait-only Oasis. Keep the existing Home-backed voice pipeline unchanged.
@@ -10,7 +11,7 @@ document.body.classList.add('oasis-portrait-mode');
 mount.setAttribute('aria-label', 'Piper portrait conversation');
 const portrait = document.createElement('img');
 portrait.className = 'oasis-portrait-image';
-portrait.src = '/IMG_4604.jpeg';
+portrait.src = portraitUrl;
 portrait.alt = 'Piper';
 portrait.decoding = 'async';
 portrait.addEventListener('error', () => {
