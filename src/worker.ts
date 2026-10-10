@@ -75,7 +75,7 @@ async function proxyPiperChat(request: Request): Promise<Response> {
           : 'application/json'
       },
       body: JSON.stringify(upstreamBody),
-      redirect: 'error'
+      redirect: 'follow'
     });
 
     const headers = new Headers({
@@ -103,8 +103,12 @@ async function proxyPiperChat(request: Request): Promise<Response> {
       statusText: upstream.statusText,
       headers
     });
-  } catch {
-    return jsonError('Piper Home could not be reached. Please try again.', 502);
+  } catch (error) {
+    const detail = String(error instanceof Error ? error.message : error).slice(0, 240);
+    return Response.json({
+      error: 'Piper Home could not be reached. Please try again.',
+      detail
+    }, { status: 502, headers: { 'cache-control': 'no-store', 'x-oasis-piper-bridge': 'piper-home-chat-v1' } });
   }
 }
 
