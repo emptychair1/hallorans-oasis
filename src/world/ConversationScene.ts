@@ -210,7 +210,7 @@ export class ConversationScene {
 
   start(): void {
     if (this.frame !== null) return;
-    void this.populate().catch(error => { console.error('[Oasis] Startup failed', error); document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.3 · STARTUP FAILED')); });
+    void this.populate().catch(error => { console.error('[Oasis] Startup failed', error); document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.4 · STARTUP FAILED')); });
     let previous = 0;
     const render = (now: number) => {
       if (this.disposed) return;
@@ -419,7 +419,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.3 · BUILD 10.3.0 · ROOM READY")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.4 · BUILD 10.4.0 · ROOM READY")
     );
   }
 
