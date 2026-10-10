@@ -376,7 +376,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 10.1 · THREE MORE INCHES CLOSER · ARMS HIDDEN")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.2 · MJ SEATED POSE · RIG REPORT REMOVED · BUILD 10.2.1")
     );
   }
 
