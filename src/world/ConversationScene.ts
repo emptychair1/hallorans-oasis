@@ -387,10 +387,18 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 6.0: retain opaque rendering and test alpha cutout for hair texture
-      // on the positively identified hair mesh only.
+      // Study 10.11.2: reduce aggressive hair alpha clipping on the identified mesh.
+      // Keep depth writing enabled so overlapping hair cards remain stable.
+      const hairAudit: string[] = [];
       piper.traverse(node => {
-        if (!(node instanceof THREE.Mesh) || node.name !== 'Object_35') return;
+        if (!(node instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) {
+          if (/hair|lambert10/i.test(material.name) || node.name === 'Object_35') {
+            hairAudit.push(node.name + ':' + material.name + ':alpha=' + material.alphaTest);
+          }
+        }
+        if (node.name !== 'Object_35') return;
         const adjust = (material: THREE.Material): THREE.Material => {
           if (material.name !== 'lambert10') return material;
           const copy = material.clone();
@@ -398,7 +406,7 @@ export class ConversationScene {
           copy.depthTest = true;
           copy.side = THREE.DoubleSide;
           copy.transparent = false;
-          copy.alphaTest = 0.5;
+          copy.alphaTest = 0.08;
           copy.needsUpdate = true;
           return copy;
         };
@@ -406,6 +414,7 @@ export class ConversationScene {
           ? node.material.map(adjust)
           : adjust(node.material);
       });
+      console.info('[Oasis] Hair material audit:', hairAudit);
       // Bind only the verified mouth-open morph; preserve all other facial controls.
       this.mouthTargets = [];
       piper.traverse(node => {
@@ -472,7 +481,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.1 · BUILD 10.11.1 · FACE FRAMING")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.2 · BUILD 10.11.2 · HAIR CUTOUT TEST")
     );
   }
 
