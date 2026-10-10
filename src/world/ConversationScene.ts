@@ -49,7 +49,6 @@ export class ConversationScene {
     this.camera.position.set(-1.0644, 1.18, -0.30);
     this.camera.lookAt(0.6444, 1.58, -0.30);
     this.controls = new WalkControls(this.mount, this.camera);
-    this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
     this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 0.28));
     // Study 6.2: soften the existing warm point light without moving or recoloring it.
