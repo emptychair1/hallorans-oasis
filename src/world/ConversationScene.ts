@@ -42,10 +42,11 @@ export class ConversationScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
-    // Study 9.5: restore the proven 9.1 chair position. Only correct the viewing direction.
-    // Keep the original seated position and aim across the table instead of changing places.
-    this.camera.position.set(-1.25, 1.18, 0.65);
-    this.camera.lookAt(0.70, 1.08, -0.30);
+    // Study 9.6: place Josh at the actual left-hand chair, opposite the character.
+    // Set YXZ BEFORE lookAt; WalkControls uses YXZ for yaw/pitch, so this preserves the intended forward view.
+    this.camera.rotation.order = 'YXZ';
+    this.camera.position.set(-0.9476, 1.18, -0.30);
+    this.camera.lookAt(0.6444, 1.68, -0.30);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
@@ -353,7 +354,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.5 · RESTORED CHAIR POSITION · ARMS HIDDEN")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.6 · ACTUAL CHAIR · FORWARD VIEW · ARMS HIDDEN")
     );
   }
 
