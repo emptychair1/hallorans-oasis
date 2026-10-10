@@ -438,7 +438,7 @@ export class ConversationScene {
             'depthWrite=' + material.depthWrite,
             'depthTest=' + material.depthTest,
             'renderOrder=' + node.renderOrder,
-            'map=' + (map ? map.image?.width + 'x' + map.image?.height : 'none'),
+            'map=' + (map ? (map.source.data && typeof map.source.data === 'object' && 'width' in map.source.data && 'height' in map.source.data ? String(map.source.data.width) + 'x' + String(map.source.data.height) : 'present') : 'none'),
             'alphaMap=' + (alphaMap ? 'yes' : 'no')
           ].join(' | '));
         }
@@ -518,7 +518,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.3 · BUILD 10.11.3 · HAIR DIAGNOSTICS")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.3 · BUILD 10.11.3.1 · HAIR DIAGNOSTICS FIX")
     );
   }
 
