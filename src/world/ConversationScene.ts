@@ -39,7 +39,7 @@ export class ConversationScene {
     // Study 6.7: restrained HDR bloom for candle and metallic highlights.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.45));
+    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
     this.camera.position.set(-1.25, 1.70, 0.65);
     this.camera.lookAt(1.25, 1.12, -0.3);
@@ -185,10 +185,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION · TEXTURE ERROR');
     }
   }
 
@@ -342,7 +342,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION")
     );
   }
 
@@ -353,7 +353,8 @@ export class ConversationScene {
     this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     this.renderer.setSize(w, h, false);
-    this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    // Keep bloom/postprocessing at native CSS resolution on phones to restore responsive navigation.
+    this.composer.setPixelRatio(1);
     this.composer.setSize(w, h);
   }
 
