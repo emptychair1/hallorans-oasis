@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.9 · HAIR DIAGNOSTIC · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.0 · HAIR DIAGNOSTIC · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.9 · HAIR DIAGNOSTIC · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.0 · HAIR DIAGNOSTIC · TEXTURE ERROR');
     }
   }
 
@@ -293,7 +293,20 @@ export class ConversationScene {
         }
       });
       console.info('[Oasis] Piper hair diagnostics:', hairReport);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.9 · HAIR DIAGNOSTIC · ' +
+      // iPhone-readable diagnostic, using actual runtime mesh/material data.
+      const previousPanel = document.getElementById('oasis-hair-diagnostics');
+      previousPanel?.remove();
+      const panel = document.createElement('details');
+      panel.id = 'oasis-hair-diagnostics';
+      panel.style.cssText = 'position:fixed;z-index:99999;right:8px;bottom:90px;width:min(92vw,370px);max-height:45vh;overflow:auto;background:rgba(7,8,17,.94);color:#fff;border:1px solid #b99b70;border-radius:10px;padding:10px;font:11px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;';
+      const heading = document.createElement('summary');
+      heading.textContent = 'PIPER HAIR DIAGNOSTIC · ' + hairReport.length + ' MATCHES · TAP TO EXPAND';
+      panel.appendChild(heading);
+      const body = document.createElement('div');
+      body.textContent = hairReport.length ? hairReport.join('\\n\\n') : 'No mesh/material names matched hair, bang, fringe, strand, scalp, or head. Full mesh list in console.';
+      panel.appendChild(body);
+      document.body.appendChild(panel);
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.0 · HAIR DIAGNOSTIC · ' +
         hairReport.length + ' MATCHES');
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
@@ -326,7 +339,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.9 · HAIR DIAGNOSTIC")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.0 · HAIR DIAGNOSTIC")
     );
   }
 
