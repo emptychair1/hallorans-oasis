@@ -419,7 +419,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.5 · BUILD 10.5.0 · ROOM READY")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.6 · BUILD 10.6.0 · ROOM READY")
     );
   }
 
