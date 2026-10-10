@@ -147,3 +147,10 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Commits for this voice-first pass: `876e716714677b3415477f18fdd0e524966b10d6` (voice controller), `47330ce6f3fb7879a891f76685584841f658dcd6` (mount voice instead of chat), `609a9345dcb7e2c4f106422c0bede69945efe20a` (voice proxy routes), `da56ac9035b9b3625f11adacf31bcf881191ecb8` (voice control styling), with follow-up commits for Safari audio support, stale bounds removal, and deleting the chat module.
 - **Not yet verified:** Cloudflare build/deployment and live microphone -> transcription -> Piper response -> spoken TTS. The Piper Home client source uses these same three endpoints, but end-to-end availability and browser playback must be tested in live Oasis. Do not call voice live until this succeeds.
 - Live acceptance test on iPhone: load Oasis, tap microphone, allow microphone permission, speak one short sentence, pause, confirm Piper answers aloud, then confirm it returns to listening. Tap the microphone during listening/speaking to stop voice. If the service returns an error, record the status text; don't substitute browser-native speech and claim it is Piper.
+
+
+## Cloudflare build failure fixes (2026-10-10)
+- User supplied Cloudflare build log showing two TypeScript failures: src/main.ts(16,14) could not call private OasisPiperVoice.dispose(), and src/world/OasisScene.ts(124,21) still called removed WalkControls.setBounds().
+- Made the voice controller dispose method public so main.ts can clean it up on pagehide.
+- Removed the obsolete movement bounds call from OasisScene.ts as well as the earlier stale call already removed from ConversationScene.ts. Preserve all camera/room setup.
+- Fixes committed to main; rerun Cloudflare build. Deployment and voice end-to-end still require verification.
