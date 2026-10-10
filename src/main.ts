@@ -1,5 +1,6 @@
 import './style.css';
 import { ConversationScene } from './world/ConversationScene';
+import { OasisPiperChat } from './OasisPiperChat';
 
 const mount = document.querySelector<HTMLElement>('#app');
 
@@ -8,6 +9,10 @@ if (!mount) {
 }
 
 const oasis = new ConversationScene(mount);
+const piperChat = new OasisPiperChat();
 oasis.start();
 
-window.addEventListener('pagehide', () => oasis.dispose(), { once: true });
+window.addEventListener('pagehide', () => {
+  piperChat.dispose();
+  oasis.dispose();
+}, { once: true });
