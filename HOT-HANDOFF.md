@@ -1,3 +1,11 @@
+## Portrait-only Oasis switch (2026-10-10)
+- User explicitly requested replace the visual Oasis experience with the exact supplied still portrait while preserving existing voice conversation.
+- Updated src/main.ts to render only /assets/piper-presence-portrait.jpg, without starting ConversationScene or Three.js. OasisPiperVoice is mounted unchanged, so microphone/transcription/Home chat/TTS remain on the existing pipeline. src/style.css provides full-screen image with voice control overlay.
+- Commits: ab67f940ba75d87ca60d452e6107c2006ddd5a6f (shell), a28594815f060b367373ee7b27e6775ea0b22df0 (CSS).
+- **BLOCKER:** Binary image not yet added to GitHub. User's approved portrait must be uploaded exactly to public/assets/piper-presence-portrait.jpg. Source image in chat: IMG_4604(1).jpeg. Do not substitute another face. Until the asset exists, page shows a missing-portrait notice.
+- This is a static portrait, not animated or lip-synced. Voice is retained but live end-to-end test after deploy is pending. Old 3D code/assets remain intact and can be restored.
+- GitHub commits do not prove Cloudflare deployment. Verify after binary asset upload.
+
 # CURRENT HANDOFF UPDATE — 2026-10-10
 
 ## Current verified state
