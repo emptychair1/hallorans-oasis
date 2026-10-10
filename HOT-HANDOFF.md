@@ -63,3 +63,10 @@ Production: https://hallorans-oasis.daniels-joshua100.workers.dev/
 Repo: https://github.com/emptychair1/hallorans-oasis
 
 User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped changes, accurate commit/version/deploy reporting, minimal needless questions. ❤️‍🔥
+
+## Current work: dress laid across Piper's lap (Study 10.7)
+- User reports the correctly sized dress remains upright in Piper's lap and blocks her face.
+- Study 10.7 rotates the already-sized static dress down onto its side and places its center at seated-lap height, shifted forward over the thighs. This addresses the upright-in-front-of-face failure rather than another small depth nudge.
+- Visible status label bumped to Study 10.7 / Build 10.7.0.
+- Scene placement commit: 98f252c7c81b8a72a88bc84a30f4ae59fcd568b3. Label commit: 1dfd33500eeee5b86dd0b11668069ba146f38146.
+- This is still a static prop, not skinned clothing. Confirm the rendered result before claiming the fit is complete. Do not alter the approved avatar pose, chair, table, camera, or lighting.
