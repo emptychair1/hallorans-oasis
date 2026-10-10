@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.4 · DEPTH TEST · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.5 · DEPTH RESET · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.4 · DEPTH TEST · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.5 · DEPTH RESET · TEXTURE ERROR');
     }
   }
 
@@ -269,25 +269,6 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 5.4: temporary depth-order test on generic imported materials.
-      const candidates = new Set(['lambert13', 'lambert10', 'lambert4', 'lambert12', 'Default_OBJ.003']);
-      piper.traverse(node => {
-        if (!(node instanceof THREE.Mesh)) return;
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        if (!mats.some(m => candidates.has(m.name))) return;
-        node.renderOrder = 50;
-        node.material = Array.isArray(node.material) ? mats.map(m => {
-          const copy = m.clone();
-          copy.depthTest = false;
-          copy.depthWrite = false;
-          return copy;
-        }) : (() => {
-          const copy = node.material.clone();
-          copy.depthTest = false;
-          copy.depthWrite = false;
-          return copy;
-        })();
-      });
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
       piper.traverse(node => {
@@ -319,7 +300,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.4 · DEPTH TEST")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.5 · DEPTH RESET")
     );
   }
 
