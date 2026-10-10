@@ -9,7 +9,7 @@ if (!mount) {
 }
 
 const oasis = new ConversationScene(mount);
-const piperVoice = new OasisPiperVoice(level => oasis.setSpeechLevel(level));
+const piperVoice = new OasisPiperVoice(level => oasis.setSpeechLevel(level), expression => oasis.setExpression(expression));
 oasis.start();
 
 window.addEventListener('pagehide', () => {
