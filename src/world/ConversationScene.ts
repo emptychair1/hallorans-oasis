@@ -379,9 +379,9 @@ export class ConversationScene {
       piper.updateMatrixWorld(true);
       const piperPivot = this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
       if (piperPivot) {
-        // Study 10.5: enlarge the dress fit for the seated torso and lap.
-        // Keep the approved avatar pose, chair, table, camera, and lighting untouched.
-        // This is still a static garment GLB, not a skinned garment bound to avatar bones.
+        // Study 10.7: lay the correctly sized dress across Piper's seated lap,
+        // rather than leaving it upright in front of her face. Preserve the approved
+        // avatar pose, chair, table, camera, and lighting. The dress remains a static prop.
         const dress = await this.model(ASSETS.dress, 'black satin dress');
         if (dress) {
           dress.rotation.y = -Math.PI / 2;
@@ -396,18 +396,20 @@ export class ConversationScene {
             const garmentWidth = Math.max(garmentSize.x, garmentSize.z);
             const scale = Math.min(targetHeight / garmentSize.y, targetWidth / Math.max(0.001, garmentWidth));
             dress.scale.setScalar(scale);
+            // Rotate the long axis down onto the lap only after sizing it upright.
+            dress.rotation.z = Math.PI / 2;
             dress.updateMatrixWorld(true);
             const fittedBounds = new THREE.Box3().setFromObject(dress);
             const fittedCenter = fittedBounds.getCenter(new THREE.Vector3());
             const avatarCenter = avatarBounds.getCenter(new THREE.Vector3());
-            // The avatar faces the camera along -X. Place the garment's front
-            // surface slightly toward the camera and its hem over the seated lap.
-            dress.position.x += avatarCenter.x - fittedCenter.x + avatarSize.x * 0.015;
-            dress.position.y += avatarBounds.min.y + avatarSize.y * 0.33 - fittedBounds.min.y;
+            // Piper faces the camera along -X; move the laid-down garment forward
+            // over the thighs and center its thickness at seated-lap height.
+            dress.position.x += avatarCenter.x - fittedCenter.x - avatarSize.x * 0.18;
+            dress.position.y += avatarBounds.min.y + avatarSize.y * 0.36 - fittedCenter.y;
             dress.position.z += avatarCenter.z - fittedCenter.z;
             this.scene.add(dress);
             this.assets.push(dress);
-            console.info('[Oasis] Black dress fitting bounds', {
+            console.info('[Oasis] Black dress lap placement', {
               avatar: avatarSize.toArray(),
               garment: garmentSize.toArray(),
               scale
