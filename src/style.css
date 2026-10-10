@@ -4,20 +4,15 @@
   background: #050608;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body,
-#app {
+html, body, #app {
   width: 100%;
   height: 100%;
   margin: 0;
 }
 
-html,
-body {
+html, body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #050608;
@@ -31,10 +26,7 @@ body {
   user-select: none;
 }
 
-#app {
-  position: absolute;
-  inset: 0;
-}
+#app { position: absolute; inset: 0; }
 
 canvas {
   display: block;
@@ -65,157 +57,75 @@ canvas {
   backdrop-filter: blur(10px);
 }
 
-.foundation-status__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #d2b36f;
-  box-shadow: 0 0 12px rgba(210, 179, 111, 0.6);
-}
-
-/* Piper Home bridge: a compact chat surface that stays separate from the 3D controls. */
-.oasis-piper {
+/* Voice-first Piper control. The room stays unobstructed; only one small mic control floats above it. */
+.oasis-voice {
   position: fixed;
   inset: 0;
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
   pointer-events: none;
   color: #f8f1e8;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-.oasis-piper button,
-.oasis-piper textarea {
-  font: inherit;
+.oasis-voice__button {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(240, 184, 120, .62);
+  border-radius: 50%;
+  color: #20140c;
+  background: radial-gradient(circle at 32% 25%, #ffe4b7, #d39a57 72%, #98643b);
+  box-shadow: 0 0 0 7px rgba(221, 171, 108, .09), 0 8px 32px rgba(0, 0, 0, .4), 0 0 28px rgba(231, 183, 126, .18);
   pointer-events: auto;
-  touch-action: auto;
-}
-.oasis-piper__toggle {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  right: calc(env(safe-area-inset-right, 0px) + 12px);
-  border: 1px solid rgba(240, 184, 120, .38);
-  border-radius: 999px;
-  padding: 10px 14px;
-  color: #f8e6d2;
-  background: rgba(18, 13, 12, .9);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
-  font-size: 12px;
-  font-weight: 700;
+  touch-action: manipulation;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.oasis-piper__panel {
-  position: absolute;
-  right: calc(env(safe-area-inset-right, 0px) + 12px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: min(370px, calc(100vw - 24px));
-  max-height: min(58dvh, 480px);
-  padding: 14px;
-  border: 1px solid rgba(240, 184, 120, .22);
-  border-radius: 18px;
-  background: rgba(9, 8, 10, .96);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
-  pointer-events: auto;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.oasis-voice__button svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.oasis-piper__panel[hidden] {
-  display: none;
-}
-.oasis-piper__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #f3d2ac;
-  font-size: 14px;
-}
-.oasis-piper__close {
-  border: 0;
-  padding: 5px 7px;
-  color: rgba(248, 241, 232, .7);
-  background: transparent;
-  font-size: 11px;
-  cursor: pointer;
-}
-.oasis-piper__transcript {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 72px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 2px 1px;
-  touch-action: pan-y;
-}
-.oasis-piper__message {
-  max-width: 94%;
-  padding: 9px 11px;
-  border: 1px solid rgba(255, 255, 255, .08);
-  border-radius: 12px;
-  color: #f8f1e8;
-  font-size: 13px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.oasis-piper__message--user {
-  align-self: flex-end;
-  background: rgba(130, 84, 57, .3);
-}
-.oasis-piper__message--assistant {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, .055);
-}
-.oasis-piper__status {
+.oasis-voice__status {
+  max-width: min(340px, calc(100vw - 40px));
   margin: 0;
-  min-height: 14px;
-  color: rgba(248, 241, 232, .5);
-  font-size: 10px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-.oasis-piper__form {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-.oasis-piper__input {
-  flex: 1;
-  min-width: 0;
-  min-height: 42px;
-  max-height: 96px;
-  resize: vertical;
-  border: 1px solid rgba(255, 255, 255, .14);
-  border-radius: 12px;
-  padding: 10px 11px;
-  color: #f8f1e8;
-  background: rgba(255, 255, 255, .06);
-  font-size: 16px;
-  line-height: 1.35;
-  outline: none;
-}
-.oasis-piper__input:focus {
-  border-color: rgba(240, 184, 120, .65);
-}
-.oasis-piper__send {
-  align-self: stretch;
-  border: 1px solid rgba(240, 184, 120, .3);
-  border-radius: 12px;
-  padding: 0 13px;
-  color: #1a100b;
-  background: #e7b77e;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  color: rgba(255, 246, 235, .84);
+  background: rgba(7, 6, 8, .66);
   font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
-.oasis-piper__send:disabled {
-  opacity: .55;
-  cursor: wait;
+.oasis-voice[data-state="listening"] .oasis-voice__button,
+.oasis-voice[data-state="speaking"] .oasis-voice__button {
+  box-shadow: 0 0 0 9px rgba(221, 171, 108, .16), 0 0 36px rgba(231, 183, 126, .38);
 }
-@media (max-width: 480px) {
-  .oasis-piper__panel {
-    max-height: min(52dvh, 420px);
-    padding: 12px;
-  }
+.oasis-voice[data-state="listening"] .oasis-voice__button {
+  animation: oasis-voice-pulse 1.8s ease-in-out infinite;
+}
+.oasis-voice[data-state="error"] .oasis-voice__button {
+  border-color: rgba(220, 126, 111, .75);
+}
+@keyframes oasis-voice-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oasis-voice[data-state="listening"] .oasis-voice__button { animation: none; }
 }
