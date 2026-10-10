@@ -192,10 +192,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.6 · ARM ORIENTATION · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT · TEXTURE ERROR');
     }
   }
 
@@ -378,7 +378,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT")
     );
   }
 
