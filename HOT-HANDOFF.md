@@ -21,6 +21,11 @@ Implementation details:
 - Chat context is held in the current page session and capped to Home's latest eight messages. No browser persistence was added.
 - These commits were made through GitHub's API. A local TypeScript/Vite build could not be run in this environment because the runtime could not resolve `github.com`. **Do not claim the new bridge is built or deployed yet.** Trigger/inspect the Cloudflare build next and fix any errors before testing the chat UI.
 
+## Live error reported after first bridge attempt (2026-10-10)
+- User saw: “Piper Home couldn’t be reached, try again.” This is emitted only when the Oasis Worker’s outbound fetch throws, not when Home returns an HTTP error response.
+- Commit `7f408a0d0773d8e14f811b2f89b75e29b5d368ae` changes upstream redirect handling from `error` to `follow` and returns a short `detail` field from the caught exception, so the next attempt can reveal the actual fetch failure.
+- This is diagnostic only, not proof the route works. After Cloudflare deploys, retry chat and capture `detail` if it still fails. Do not claim end-to-end chat works until a real reply arrives.
+
 ## Voice status / next step
 - This first bridge pass connects text chat to the active Home `/api/chat` handler.
 - Do not claim voice is connected. The currently active Home Worker entry chain exposes the production chat route and voice-lab experiment clips, but does not show active `/api/piper-transcribe` or `/api/piper-speak-fast` handlers. The older `src/home-client.mjs` references those paths, but their live route availability is unverified.
