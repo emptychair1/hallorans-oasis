@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.3 · CULLING TEST · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.3 · CULLING TEST · TEXTURE ERROR');
     }
   }
 
@@ -269,20 +269,10 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 5.2: repair backface visibility across Piper's imported materials.
-      // Keep each material's original transparency, textures and appearance.
-      // Use cloned materials so the source GLB remains untouched.
+      // Study 5.3: isolate camera-frustum culling as the possible cause
+      // of angle-dependent hair disappearance. Preserve all GLB materials.
       piper.traverse(node => {
-        if (!(node instanceof THREE.Mesh)) return;
-        const repair = (material: THREE.Material): THREE.Material => {
-          const copy = material.clone();
-          copy.side = THREE.DoubleSide;
-          copy.needsUpdate = true;
-          return copy;
-        };
-        node.material = Array.isArray(node.material)
-          ? node.material.map(repair)
-          : repair(node.material);
+        if (node instanceof THREE.Mesh) node.frustumCulled = false;
       });
       document.getElementById('oasis-hair-diagnostics')?.remove();
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
@@ -316,7 +306,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.3 · CULLING TEST")
     );
   }
 
