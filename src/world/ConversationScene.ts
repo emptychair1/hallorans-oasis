@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { unzipSync } from 'fflate';
 import { WalkControls } from './WalkControls';
 
@@ -17,6 +21,7 @@ export class ConversationScene {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(64, 1, 0.05, 2000);
   private renderer: THREE.WebGLRenderer;
+  private composer: EffectComposer;
   private loader = new GLTFLoader();
   private frame: number | null = null;
   private disposed = false;
@@ -31,6 +36,11 @@ export class ConversationScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     mount.appendChild(this.renderer.domElement);
+    // Study 6.7: restrained HDR bloom for candle and metallic highlights.
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.45));
+    this.composer.addPass(new OutputPass());
     this.camera.position.set(-1.25, 1.70, 0.65);
     this.camera.lookAt(1.25, 1.12, -0.3);
     this.controls = new WalkControls(this.mount, this.camera);
@@ -175,10 +185,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.6 · ROSE-VIOLET ACCENT · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.6 · ROSE-VIOLET ACCENT · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM · TEXTURE ERROR');
     }
   }
 
@@ -196,7 +206,7 @@ export class ConversationScene {
       if (this.disposed) return;
       this.controls.tick(previous ? Math.min((now - previous) / 1000, 0.05) : 0);
       previous = now;
-      this.renderer.render(this.scene, this.camera);
+      this.composer.render();
       this.frame = requestAnimationFrame(render);
     };
     this.frame = requestAnimationFrame(render);
@@ -332,7 +342,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.6 · ROSE-VIOLET ACCENT")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.7 · SOFT BLOOM")
     );
   }
 
@@ -343,6 +353,8 @@ export class ConversationScene {
     this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     this.renderer.setSize(w, h, false);
+    this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    this.composer.setSize(w, h);
   }
 
   dispose(): void {
@@ -362,6 +374,7 @@ export class ConversationScene {
     });
     geometries.forEach(g => g.dispose());
     materials.forEach(m => m.dispose());
+    this.composer.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
