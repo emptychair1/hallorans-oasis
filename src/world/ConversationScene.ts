@@ -42,10 +42,10 @@ export class ConversationScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
-    // Study 10.0: move Josh another three inches closer along the established chair-to-table axis.
+    // Study 10.1: move Josh another three inches closer along the established chair-to-table axis.
     // Three inches = 0.0762 scene units; preserve height, viewing target, rotation order, and all other scene settings.
     this.camera.rotation.order = 'YXZ';
-    this.camera.position.set(-1.1406, 1.18, -0.30);
+    this.camera.position.set(-1.0644, 1.18, -0.30);
     this.camera.lookAt(0.6444, 1.58, -0.30);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
@@ -354,7 +354,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 10.0 · THREE MORE INCHES CLOSER · ARMS HIDDEN")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 10.1 · THREE MORE INCHES CLOSER · ARMS HIDDEN")
     );
   }
 
