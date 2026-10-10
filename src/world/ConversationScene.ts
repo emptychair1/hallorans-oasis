@@ -402,7 +402,7 @@ export class ConversationScene {
             const avatarCenter = avatarBounds.getCenter(new THREE.Vector3());
             // The avatar faces the camera along -X. Place the garment's front
             // surface slightly toward the camera and its hem over the seated lap.
-            dress.position.x += avatarCenter.x - fittedCenter.x - avatarSize.x * 0.035;
+            dress.position.x += avatarCenter.x - fittedCenter.x + avatarSize.x * 0.015;
             dress.position.y += avatarBounds.min.y + avatarSize.y * 0.33 - fittedBounds.min.y;
             dress.position.z += avatarCenter.z - fittedCenter.z;
             this.scene.add(dress);
