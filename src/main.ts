@@ -10,7 +10,7 @@ document.body.classList.add('oasis-portrait-mode');
 mount.setAttribute('aria-label', 'Piper portrait conversation');
 const portrait = document.createElement('img');
 portrait.className = 'oasis-portrait-image';
-portrait.src = '/assets/piper-presence-portrait.jpg';
+portrait.src = '/IMG_4604.jpeg';
 portrait.alt = 'Piper';
 portrait.decoding = 'async';
 portrait.addEventListener('error', () => {
