@@ -6,7 +6,10 @@ export class WalkControls {
   private targetPitch = 0;
 
   constructor(private readonly mount: HTMLElement, private readonly camera: import('three').PerspectiveCamera) {
-    // Seated-view controls: drag to look around. There is deliberately no locomotion.
+    // Preserve the approved initial seated view; drag to look around, never to walk.
+    this.camera.rotation.order = 'YXZ';
+    this.yaw = this.targetYaw = this.camera.rotation.y;
+    this.pitch = this.targetPitch = this.camera.rotation.x;
     this.mount.addEventListener('pointerdown', this.down);
     this.mount.addEventListener('pointermove', this.drag);
     this.mount.addEventListener('pointerup', this.up);
