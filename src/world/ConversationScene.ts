@@ -15,7 +15,8 @@ const ASSETS = {
   table: 'elegant_dining_table_set.glb',
   lamp: 'old_table_lamp_v03.glb',
   piper: 'mj_talking_audition.glb',
-  arm: 'robotic_prosthetic_arm.glb'
+  arm: 'robotic_prosthetic_arm.glb',
+  dress: 'black_dress.glb'
 } as const;
 
 export class ConversationScene {
@@ -376,7 +377,46 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Hand(?:_|$)/, 'x', Math.PI * 0.12);
       rotate(/^CC_Base_R_Hand(?:_|$)/, 'x', -Math.PI * 0.12);
       piper.updateMatrixWorld(true);
-      this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
+      const piperPivot = this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
+      if (piperPivot) {
+        // Study 10.4: first dress-fitting pass. Keep the approved avatar pose,
+        // chair, table, camera, and lighting untouched. The garment is a separate
+        // static GLB, fitted by bounds over the seated torso/lap for visual review.
+        const dress = await this.model(ASSETS.dress, 'black satin dress');
+        if (dress) {
+          dress.rotation.y = -Math.PI / 2;
+          dress.updateMatrixWorld(true);
+          const garmentBounds = new THREE.Box3().setFromObject(dress);
+          const avatarBounds = new THREE.Box3().setFromObject(piperPivot);
+          const garmentSize = garmentBounds.getSize(new THREE.Vector3());
+          const avatarSize = avatarBounds.getSize(new THREE.Vector3());
+          if (!garmentBounds.isEmpty() && garmentSize.y > 0 && avatarSize.y > 0) {
+            const targetHeight = avatarSize.y * 0.43;
+            const targetWidth = Math.max(0.01, avatarSize.x * 0.62);
+            const garmentWidth = Math.max(garmentSize.x, garmentSize.z);
+            const scale = Math.min(targetHeight / garmentSize.y, targetWidth / Math.max(0.001, garmentWidth));
+            dress.scale.setScalar(scale);
+            dress.updateMatrixWorld(true);
+            const fittedBounds = new THREE.Box3().setFromObject(dress);
+            const fittedCenter = fittedBounds.getCenter(new THREE.Vector3());
+            const avatarCenter = avatarBounds.getCenter(new THREE.Vector3());
+            // The avatar faces the camera along -X. Place the garment's front
+            // surface slightly toward the camera and its hem over the seated lap.
+            dress.position.x += avatarCenter.x - fittedCenter.x - avatarSize.x * 0.035;
+            dress.position.y += avatarBounds.min.y + avatarSize.y * 0.33 - fittedBounds.min.y;
+            dress.position.z += avatarCenter.z - fittedCenter.z;
+            this.scene.add(dress);
+            this.assets.push(dress);
+            console.info('[Oasis] Black dress fitting bounds', {
+              avatar: avatarSize.toArray(),
+              garment: garmentSize.toArray(),
+              scale
+            });
+          } else {
+            console.warn('[Oasis] Black dress has empty or invalid geometry; skipped fitting');
+          }
+        }
+      }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
       document.createTextNode("HALLORAN'S OASIS · STUDY 10.3 · BUILD 10.3.0 · ROOM READY")
