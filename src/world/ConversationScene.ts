@@ -84,7 +84,7 @@ export class ConversationScene {
         try {
           const texture = await loader.loadAsync(url);
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-          texture.repeat.set(18, 18);
+          texture.repeat.set(4, 4);
           texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
           if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
           return texture;
@@ -95,17 +95,17 @@ export class ConversationScene {
         normalMap: normal ? await load(normal) : null,
         roughnessMap: rough ? await load(rough) : null,
         aoMap: ao ? await load(ao) : null,
-        color: 0xffffff,
-        roughness: 0.24,
-        metalness: 0.06,
+        color: 0x858585,
+        roughness: 0.065,
+        metalness: 0.08,
       });
       if (this.disposed) { material.dispose(); return; }
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.2 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.3 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.2 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.3 · TEXTURE ERROR');
     }
   }
 
@@ -240,7 +240,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.2")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.3")
     );
   }
 
