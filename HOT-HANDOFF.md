@@ -21,6 +21,13 @@ Implementation details:
 - Chat context is held in the current page session and capped to Home's latest eight messages. No browser persistence was added.
 - These commits were made through GitHub's API. A local TypeScript/Vite build could not be run in this environment because the runtime could not resolve `github.com`. **Do not claim the new bridge is built or deployed yet.** Trigger/inspect the Cloudflare build next and fix any errors before testing the chat UI.
 
+## Seated-view controls: remove locomotion (2026-10-10)
+- User confirmed they are already seated, the starting view is correct, and they do not need movement controls. They want only to look around.
+- Reworked `src/world/WalkControls.ts` into look-only drag controls: removed joystick, WASD/arrow movement, all camera translation, and keyboard listeners. The initial approved camera orientation is preserved; dragging on the 3D canvas rotates view. Chat UI is excluded because only canvas-originated pointer gestures start a look drag.
+- Removed the unused `.walk-pad` / `.walk-nub` CSS from `src/style.css`.
+- Commits: `27cbe1306f449ec81b062b4a3cf431e879350d17` (look-only controls), `1d2036d3b73967352832387b3f89e1980d189b58` (preserve starting view), `b796b05095a92ec39ce5fb2a2b9ee099fbea4ede` (remove joystick styling).
+- Await Cloudflare build/deploy and user verification. Test: scene starts in the approved chair view; dragging the 3D scene looks around; no joystick appears; typing in Piper chat is unaffected. Do not change room/avatar/furniture.
+
 ## Chat typing intercepted by movement controls (2026-10-10)
 - User reported that typing `S` in Piper's chat would not insert the character and appeared to trigger a background action.
 - Root cause found in `src/world/WalkControls.ts`: a global `window` keydown handler captures WASD and calls `preventDefault()` without checking whether focus is in a text field. The `S` key therefore gets intercepted and may move the camera backward instead of being typed.
