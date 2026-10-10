@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.6 · MESH INSPECTOR · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.7 · HAIR DEPTH · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.6 · MESH INSPECTOR · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.7 · HAIR DEPTH · TEXTURE ERROR');
     }
   }
 
@@ -269,44 +269,23 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 5.6: inspect candidate mesh identity with a reversible highlight.
-      // No geometry, pose, or floor material changes.
-      const candidates = new Set(['lambert13', 'lambert10', 'lambert4', 'lambert12', 'Default_OBJ.003']);
-      const inspectMeshes: THREE.Mesh[] = [];
+      // Study 5.7: restore the original hair color and isolate depth handling
+      // on the positively identified hair mesh only.
       piper.traverse(node => {
-        if (!(node instanceof THREE.Mesh)) return;
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        if (mats.some(m => candidates.has(m.name))) inspectMeshes.push(node);
-      });
-      const originalMaterials = inspectMeshes.map(mesh => mesh.material);
-      const oldPanel = document.getElementById('oasis-mesh-inspector');
-      oldPanel?.remove();
-      const inspector = document.createElement('div');
-      inspector.id = 'oasis-mesh-inspector';
-      inspector.style.cssText = 'position:fixed;z-index:9999;bottom:95px;right:8px;max-width:90vw;padding:10px;background:#101018ed;color:white;border:1px solid #d6aa6d;border-radius:10px;font:12px sans-serif;';
-      const label = document.createElement('span');
-      const button = document.createElement('button');
-      button.textContent = 'NEXT MESH';
-      button.style.cssText = 'margin-left:8px;padding:8px;background:#d6aa6d;border:0;border-radius:5px;color:#111;';
-      let active = -1;
-      const show = () => {
-        inspectMeshes.forEach((mesh, i) => { mesh.material = originalMaterials[i]; });
-        if (active < 0) { label.textContent = 'Hair mesh search: ' + inspectMeshes.length + ' candidates'; return; }
-        const mesh = inspectMeshes[active];
-        const source = originalMaterials[active];
-        const highlight = (material: THREE.Material) => {
+        if (!(node instanceof THREE.Mesh) || node.name !== 'Object_35') return;
+        const adjust = (material: THREE.Material): THREE.Material => {
+          if (material.name !== 'lambert10') return material;
           const copy = material.clone();
-          if ('color' in copy && copy.color instanceof THREE.Color) copy.color.set(0x00ff44);
-          if ('emissive' in copy && copy.emissive instanceof THREE.Color) copy.emissive.set(0x00ff44);
+          copy.depthWrite = true;
+          copy.depthTest = true;
+          copy.needsUpdate = true;
           return copy;
         };
-        mesh.material = Array.isArray(source) ? source.map(highlight) : highlight(source);
-        label.textContent = mesh.name + ' · ' + (Array.isArray(source) ? source.map(m => m.name).join(', ') : source.name);
-      };
-      button.addEventListener('click', () => { active = (active + 1) % inspectMeshes.length; show(); });
-      inspector.append(label, button);
-      document.body.appendChild(inspector);
-      show();
+        node.material = Array.isArray(node.material)
+          ? node.material.map(adjust)
+          : adjust(node.material);
+      });
+      document.getElementById('oasis-mesh-inspector')?.remove();
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
       piper.traverse(node => {
@@ -338,7 +317,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.6 · MESH INSPECTOR")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.7 · HAIR DEPTH")
     );
   }
 
