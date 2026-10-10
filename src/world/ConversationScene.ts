@@ -248,72 +248,6 @@ export class ConversationScene {
         : await this.loader.loadAsync(BASE + file);
       if (this.disposed) return null;
       gltf.scene.name = label;
-      if (file === ASSETS.piper) {
-        const facial: Array<{ mesh: string; targets: string[] }> = [];
-        const bones: string[] = [];
-        gltf.scene.traverse(node => {
-          if (node instanceof THREE.Mesh && node.morphTargetDictionary) {
-            facial.push({ mesh: node.name, targets: Object.keys(node.morphTargetDictionary) });
-          }
-          if (node instanceof THREE.Bone && /head|jaw|tongue|neck|eye|teeth|lip/i.test(node.name)) {
-            bones.push(node.name);
-          }
-        });
-        const report = {
-          character: 'Piper',
-          inspectedAt: new Date().toISOString(),
-          animationClips: gltf.animations.map(clip => ({
-            name: clip.name,
-            durationSeconds: Number(clip.duration.toFixed(3)),
-            tracks: clip.tracks.map(track => track.name),
-          })),
-          facialMorphTargets: facial,
-          facialBones: bones,
-        };
-        // Show the audit inside the experience; no browser-console access required.
-        document.getElementById('oasis-piper-rig-audit')?.remove();
-        const panel = document.createElement('section');
-        panel.id = 'oasis-piper-rig-audit';
-        Object.assign(panel.style, {
-          position: 'fixed', zIndex: '9999', right: '12px', bottom: '12px',
-          width: 'min(420px, calc(100vw - 24px))', maxHeight: '48dvh',
-          overflow: 'auto', padding: '12px', borderRadius: '12px',
-          background: 'rgba(10, 9, 16, 0.96)', color: '#f5e9d6',
-          border: '1px solid rgba(218, 174, 116, 0.7)',
-          font: '12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace',
-          boxShadow: '0 8px 30px rgba(0,0,0,.45)',
-        });
-        const title = document.createElement('strong');
-        title.textContent = 'PIPER · RIG REPORT';
-        title.style.cssText = 'display:block;font:600 14px/1.4 system-ui;margin-bottom:8px';
-        const summary = document.createElement('div');
-        summary.textContent = facial.length
-          ? facial.map(m => m.mesh + ': ' + m.targets.length + ' morph target(s)').join(' · ')
-          : 'No facial morph targets found.';
-        summary.style.cssText = 'margin-bottom:8px;color:#e5c79f';
-        const details = document.createElement('pre');
-        details.textContent = JSON.stringify(report, null, 2);
-        details.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px';
-        const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
-        const download = document.createElement('button');
-        download.textContent = 'Download report';
-        download.style.cssText = 'padding:8px 10px;border-radius:7px;border:1px solid #cda878;background:#30251e;color:#fff3df';
-        download.onclick = () => {
-          const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url; link.download = 'piper-rig-report.json'; link.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        };
-        const close = document.createElement('button');
-        close.textContent = 'Close';
-        close.style.cssText = 'padding:8px 10px;border-radius:7px;border:1px solid #8d8174;background:#211e25;color:#f5e9d6';
-        close.onclick = () => panel.remove();
-        actions.append(download, close);
-        panel.append(title, summary, details, actions);
-        document.body.appendChild(panel);
-      }
       return gltf.scene;
     } catch (e) {
       console.error('[Oasis] Failed to load', file, e);
@@ -422,10 +356,10 @@ export class ConversationScene {
         else console.warn('[Oasis] Pose bone not found:', pattern.source);
       };
       // Hip flexion and bent knees. Keep the head and torso untouched.
-      rotate(/^CC_Base_L_Thigh_04$/, 'x', -Math.PI * 0.46);
-      rotate(/^CC_Base_R_Thigh_/, 'x', -Math.PI * 0.46);
-      rotate(/^CC_Base_L_Calf_05$/, 'x', -Math.PI * 0.49);
-      rotate(/^CC_Base_R_Calf_/, 'x', -Math.PI * 0.49);
+      rotate(/^CC_Base_L_Thigh$/, 'x', -Math.PI * 0.46);
+      rotate(/^CC_Base_R_Thigh$/, 'x', -Math.PI * 0.46);
+      rotate(/^CC_Base_L_Calf$/, 'x', -Math.PI * 0.49);
+      rotate(/^CC_Base_R_Calf$/, 'x', -Math.PI * 0.49);
       // Relax arms from the T-pose.
       rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
       rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
