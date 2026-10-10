@@ -35,6 +35,7 @@ export class ConversationScene {
   private mouthCurrent = 0;
   private readonly controls: WalkControls;
   private faceMode = false;
+  private faceTarget: THREE.Vector3 | null = null;
   private savedCamera: { position: THREE.Vector3; quaternion: THREE.Quaternion; fov: number } | null = null;
   private assets: THREE.Object3D[] = [];
   private readonly onResize = () => this.resize();
@@ -218,9 +219,11 @@ export class ConversationScene {
   toggleFaceCamera(): boolean {
     if (!this.faceMode) {
       this.savedCamera = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.camera.fov };
-      this.camera.position.set(-0.13, 1.69, -0.30);
+      // Aim at the loaded avatar's actual upper-face region, not a guessed world height.
+      const target = this.faceTarget ?? new THREE.Vector3(0.6444, 1.35, -0.30);
+      this.camera.position.copy(target).add(new THREE.Vector3(-0.85, 0.025, 0));
       this.camera.fov = 35;
-      this.camera.lookAt(0.6444, 1.69, -0.30);
+      this.camera.lookAt(target);
       this.faceMode = true;
     } else {
       if (this.savedCamera) {
@@ -456,10 +459,20 @@ export class ConversationScene {
       rotate(/^CC_Base_R_Hand(?:_|$)/, 'x', -Math.PI * 0.12);
       piper.updateMatrixWorld(true);
       // Study 10.8: use Piper's existing avatar clothing. Do not overlay the separate static dress prop.
-      this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
+      const placedPiper = this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
+      if (placedPiper) {
+        placedPiper.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(placedPiper);
+        if (!bounds.isEmpty()) {
+          const size = bounds.getSize(new THREE.Vector3());
+          const center = bounds.getCenter(new THREE.Vector3());
+          this.faceTarget = new THREE.Vector3(center.x, bounds.min.y + size.y * 0.87, center.z);
+          console.info('[Oasis] Facial audition target:', this.faceTarget.toArray());
+        }
+      }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11 · BUILD 10.11.0 · FACE CAMERA")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.1 · BUILD 10.11.1 · FACE FRAMING")
     );
   }
 
