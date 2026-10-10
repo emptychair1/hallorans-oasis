@@ -42,11 +42,12 @@ export class ConversationScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.18, 0.28, 1.8));
     this.composer.addPass(new OutputPass());
-    // Study 9.6: place Josh at the actual left-hand chair, opposite the character.
-    // Set YXZ BEFORE lookAt; WalkControls uses YXZ for yaw/pitch, so this preserves the intended forward view.
+    // Study 9.7: keep Josh on the opposite-chair side, but pull back from the table edge.
+    // The 9.6 screenshot showed the correct forward direction but an overly close, table-dominated frame.
+    // Set YXZ BEFORE lookAt; preserve the established chair-to-character sightline.
     this.camera.rotation.order = 'YXZ';
-    this.camera.position.set(-0.9476, 1.18, -0.30);
-    this.camera.lookAt(0.6444, 1.68, -0.30);
+    this.camera.position.set(-1.42, 1.18, -0.30);
+    this.camera.lookAt(0.6444, 1.58, -0.30);
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
@@ -354,7 +355,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.6 · ACTUAL CHAIR · FORWARD VIEW · ARMS HIDDEN")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.7 · SEATED FRAMING · FORWARD VIEW · ARMS HIDDEN")
     );
   }
 
