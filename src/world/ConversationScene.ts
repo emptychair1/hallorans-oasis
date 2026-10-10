@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { unzipSync } from 'fflate';
 import { WalkControls } from './WalkControls';
 
@@ -53,6 +54,29 @@ export class ConversationScene {
     this.scene.add(floor);
     this.assets.push(floor);
     void this.loadTilesFloor(floor);
+    // Study 4.4: subtle planar reflections over the existing marble.
+    // The marble remains opaque and unchanged; only this overlay reflects.
+    const reflectionSize = Math.min(512, Math.max(256, Math.floor(Math.min(window.innerWidth, window.innerHeight) * 0.65)));
+    const reflection = new Reflector(new THREE.PlaneGeometry(200, 200), {
+      textureWidth: reflectionSize,
+      textureHeight: reflectionSize,
+      color: 0x777777,
+      clipBias: 0.004,
+    });
+    reflection.rotation.x = -Math.PI / 2;
+    reflection.position.y = -0.009;
+    // Reflector uses ShaderMaterial; alter its actual output, not an unused
+    // onBeforeCompile chunk. Preserve the stone beneath via transparency.
+    const reflectionMaterial = reflection.material as THREE.ShaderMaterial;
+    reflectionMaterial.fragmentShader = reflectionMaterial.fragmentShader.replace(
+      /gl_FragColor\\s*=\\s*vec4\\s*\\(\\s*blendOverlay\\(\\s*base\\.rgb\\s*,\\s*color\\s*\\)\\s*,\\s*1\\.0\\s*\\)\\s*;/,
+      'gl_FragColor = vec4( blendOverlay( base.rgb, color ) * 0.20, 0.28 );'
+    );
+    reflectionMaterial.transparent = true;
+    reflectionMaterial.depthWrite = false;
+    reflectionMaterial.needsUpdate = true;
+    this.scene.add(reflection);
+    this.assets.push(reflection);
     // Neutral floor-only light to reveal dark tile without altering the room.
     const floorLight = new THREE.DirectionalLight(0xffffff, 2.2);
     floorLight.position.set(-2, 5, 3);
@@ -102,10 +126,10 @@ export class ConversationScene {
       if (this.disposed) { material.dispose(); return; }
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.3 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.4 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.3 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.4 · TEXTURE ERROR');
     }
   }
 
@@ -240,7 +264,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.3")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.4")
     );
   }
 
