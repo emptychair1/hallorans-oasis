@@ -21,6 +21,11 @@ Implementation details:
 - Chat context is held in the current page session and capped to Home's latest eight messages. No browser persistence was added.
 - These commits were made through GitHub's API. A local TypeScript/Vite build could not be run in this environment because the runtime could not resolve `github.com`. **Do not claim the new bridge is built or deployed yet.** Trigger/inspect the Cloudflare build next and fix any errors before testing the chat UI.
 
+## Chat typing intercepted by movement controls (2026-10-10)
+- User reported that typing `S` in Piper's chat would not insert the character and appeared to trigger a background action.
+- Root cause found in `src/world/WalkControls.ts`: a global `window` keydown handler captures WASD and calls `preventDefault()` without checking whether focus is in a text field. The `S` key therefore gets intercepted and may move the camera backward instead of being typed.
+- Fixed in commit `b176c7dee53c283d9ff247445d87ff22fc38f959`: movement shortcuts now ignore input, textarea, select, and contenteditable/textbox targets. Wait for Cloudflare deployment, then test ordinary typing including S, W, A, D and arrow keys in Piper chat; movement controls should still work when the scene itself has focus.
+
 ## Error 1042 root cause and fix (2026-10-10)
 - User reported Cloudflare error code `1042` from the Oasis-to-Home request. Cloudflare documents this as a Worker trying to fetch another Worker in the same Cloudflare zone/account without `global_fetch_strictly_public` enabled.
 - Fixed in `wrangler.jsonc` by adding `"compatibility_flags": ["global_fetch_strictly_public"]`. Commit: `2d73456b958e858fb7664ce5ffd8403899e713d5`.
