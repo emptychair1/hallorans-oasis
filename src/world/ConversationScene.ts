@@ -80,6 +80,18 @@ export class ConversationScene {
       console.error('[Oasis] Reflector shader output changed; reflection overlay disabled');
       reflection.visible = false;
     }
+    // Fade only the distant reflection toward the existing sky.
+    reflectionMaterial.vertexShader = reflectionMaterial.vertexShader.replace(
+      'void main() {',
+      'varying vec3 vOasisFloorWorld;\\nvoid main() {\\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
+    );
+    reflectionMaterial.fragmentShader = reflectionMaterial.fragmentShader.replace(
+      'void main() {',
+      'varying vec3 vOasisFloorWorld;\\nvoid main() {'
+    ).replace(
+      'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 );',
+      'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 * (1.0 - smoothstep(22.0, 75.0, distance(vOasisFloorWorld.xz, cameraPosition.xz))));'
+    );
     reflectionMaterial.transparent = true;
     reflectionMaterial.depthWrite = false;
     reflectionMaterial.needsUpdate = true;
@@ -132,12 +144,28 @@ export class ConversationScene {
         metalness: 0.08,
       });
       if (this.disposed) { material.dispose(); return; }
+      // Only the distant floor fades. Its colors, scale, and polish stay fixed.
+      material.transparent = true;
+      material.depthWrite = false;
+      material.onBeforeCompile = shader => {
+        shader.vertexShader = shader.vertexShader.replace(
+          'void main() {',
+          'varying vec3 vOasisFloorWorld;\\nvoid main() {\\n  vOasisFloorWorld = (modelMatrix * vec4(position, 1.0)).xyz;'
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          'void main() {',
+          'varying vec3 vOasisFloorWorld;\\nvoid main() {'
+        ).replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\\n diffuseColor.a *= 1.0 - smoothstep(22.0, 75.0, distance(vOasisFloorWorld.xz, cameraPosition.xz));'
+        );
+      };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.5 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.6 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.5 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.6 · TEXTURE ERROR');
     }
   }
 
@@ -272,7 +300,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.5")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.6")
     );
   }
 
