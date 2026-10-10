@@ -226,6 +226,27 @@ export class ConversationScene {
       const gltf = await this.loader.loadAsync(BASE + file);
       if (this.disposed) return null;
       gltf.scene.name = label;
+      if (file === ASSETS.piper) {
+        const facial: Array<{ mesh: string; targets: string[] }> = [];
+        const bones: string[] = [];
+        gltf.scene.traverse(node => {
+          if (node instanceof THREE.Mesh && node.morphTargetDictionary) {
+            facial.push({ mesh: node.name, targets: Object.keys(node.morphTargetDictionary) });
+          }
+          if (node instanceof THREE.Bone && /head|jaw|tongue|neck|eye|teeth|lip/i.test(node.name)) {
+            bones.push(node.name);
+          }
+        });
+        console.info('[Oasis][Piper Rig Audit]', {
+          animationClips: gltf.animations.map(clip => ({
+            name: clip.name,
+            duration: clip.duration,
+            tracks: clip.tracks.map(track => track.name),
+          })),
+          facialMorphTargets: facial,
+          facialBones: bones,
+        });
+      }
       return gltf.scene;
     } catch (e) {
       console.error('[Oasis] Failed to load', file, e);
