@@ -179,3 +179,7 @@ User screenshot showed forehead at bottom and sky filling the close-up. Camera n
 
 ## Study 10.11.2 · hair cutout test
 Josh's close-up screenshot showed missing sections of Piper's auburn hair. Existing Object_35/lambert10 override used alphaTest 0.5, potentially discarding thin strands. Lowered that threshold to 0.08 only on the identified material, preserving depth write, double-sided rendering and opaque mode. Added hair material audit logs for investigation. No geometry, camera, face, voice or room changes. Visible BUILD 10.11.2. This is an unverified test; Josh must confirm Cloudflare and visual outcome. If still missing, inspect actual mesh/material assignments rather than guess further.
+
+
+## Study 10.11.3 hair diagnostics
+Josh verified 10.11.2 live screenshot: missing auburn hair persists after alphaTest changed from 0.5 to 0.08. No further guesswork on alpha. Added read-only collapsible HAIR DIAGNOSTICS panel and console inventory for identified hair meshes, material names, visibility, triangle counts, opacity, alphaTest, sidedness, depth test/write, render order, texture dimensions, alpha map. No visual material modifications in this bite. Visible BUILD 10.11.3. Cloudflare and diagnostic results await Josh's verification. Ask for screenshot of expanded panel; if no named hair meshes found, inspect full mesh inventory next.
