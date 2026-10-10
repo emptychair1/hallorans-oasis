@@ -157,3 +157,20 @@ canvas {
 .oasis-face-mode .oasis-voice__button { width: 48px; height: 48px; }
 .oasis-face-mode .oasis-voice__button svg { width: 22px; height: 22px; }
 .oasis-face-mode .oasis-voice__status { font-size: 10px; max-width: 190px; }
+
+/* Study 10.11.3: collapsible, read-only hair material audit. */
+.oasis-hair-diagnostics {
+  position: fixed;
+  z-index: 45;
+  top: calc(env(safe-area-inset-top, 0px) + 124px);
+  left: 12px;
+  max-width: calc(100vw - 24px);
+  color: #f5e6d6;
+  background: rgba(8, 8, 13, .9);
+  border: 1px solid rgba(240, 184, 120, .5);
+  border-radius: 10px;
+  padding: 8px;
+  font: 11px/1.4 monospace;
+}
+.oasis-hair-diagnostics summary { cursor: pointer; touch-action: manipulation; }
+.oasis-hair-diagnostics pre { max-height: 35vh; max-width: calc(100vw - 48px); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
