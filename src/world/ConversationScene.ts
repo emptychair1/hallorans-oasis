@@ -68,10 +68,18 @@ export class ConversationScene {
     // Reflector uses ShaderMaterial; alter its actual output, not an unused
     // onBeforeCompile chunk. Preserve the stone beneath via transparency.
     const reflectionMaterial = reflection.material as THREE.ShaderMaterial;
-    reflectionMaterial.fragmentShader = reflectionMaterial.fragmentShader.replace(
-      /gl_FragColor\\s*=\\s*vec4\\s*\\(\\s*blendOverlay\\(\\s*base\\.rgb\\s*,\\s*color\\s*\\)\\s*,\\s*1\\.0\\s*\\)\\s*;/,
-      'gl_FragColor = vec4( blendOverlay( base.rgb, color ) * 0.20, 0.28 );'
-    );
+    // ReflectorShader outputs an opaque vec4 by default. Replace that exact
+    // output expression so the marble underneath remains visible.
+    const opaqueOutput = 'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );';
+    if (reflectionMaterial.fragmentShader.includes(opaqueOutput)) {
+      reflectionMaterial.fragmentShader = reflectionMaterial.fragmentShader.replace(
+        opaqueOutput,
+        'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 );'
+      );
+    } else {
+      console.error('[Oasis] Reflector shader output changed; reflection overlay disabled');
+      reflection.visible = false;
+    }
     reflectionMaterial.transparent = true;
     reflectionMaterial.depthWrite = false;
     reflectionMaterial.needsUpdate = true;
@@ -126,10 +134,10 @@ export class ConversationScene {
       if (this.disposed) { material.dispose(); return; }
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.4 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.5 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.4 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.5 · TEXTURE ERROR');
     }
   }
 
@@ -264,7 +272,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.4")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.5")
     );
   }
 
