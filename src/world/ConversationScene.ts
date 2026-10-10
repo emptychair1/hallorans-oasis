@@ -35,6 +35,9 @@ export class ConversationScene {
   private mouthCurrent = 0;
   private readonly controls: WalkControls;
   private faceMode = false;
+  private cinematicMode = false;
+  private cinematicLights: THREE.Light[] = [];
+  private cinematicMaterials: Array<{ mesh: THREE.Mesh; original: THREE.Material | THREE.Material[]; cinematic: THREE.Material | THREE.Material[] }> = [];
   private faceTarget: THREE.Vector3 | null = null;
   private savedCamera: { position: THREE.Vector3; quaternion: THREE.Quaternion; fov: number } | null = null;
   private assets: THREE.Object3D[] = [];
@@ -236,6 +239,15 @@ export class ConversationScene {
     }
     this.camera.updateProjectionMatrix();
     return this.faceMode;
+  }
+
+  toggleCinematic(): boolean {
+    this.cinematicMode = !this.cinematicMode;
+    for (const light of this.cinematicLights) light.visible = this.cinematicMode;
+    for (const item of this.cinematicMaterials) {
+      item.mesh.material = this.cinematicMode ? item.cinematic : item.original;
+    }
+    return this.cinematicMode;
   }
 
   setSpeechLevel(level: number): void {
@@ -446,6 +458,35 @@ export class ConversationScene {
       panel.appendChild(output);
       document.body.appendChild(panel);
 
+      // Reversible cinematic audition: preserve hair and morph targets unchanged.
+      // Clone only opaque, non-hair avatar materials. Do not edit mesh normals or geometry.
+      piper.traverse(node => {
+        if (!(node instanceof THREE.Mesh)) return;
+        const originals = Array.isArray(node.material) ? node.material : [node.material];
+        if (originals.some(m => /lambert10|hair/i.test(m.name)) || node.name === 'Mesh') return;
+        let changed = false;
+        const variants = originals.map(material => {
+          if (!(material instanceof THREE.MeshStandardMaterial) || material.transparent || material.alphaTest > 0) return material;
+          const copy = material.clone();
+          copy.roughness = Math.max(0.68, Math.min(0.86, copy.roughness));
+          copy.metalness = 0;
+          changed = true;
+          return copy;
+        });
+        if (changed) this.cinematicMaterials.push({
+          mesh: node,
+          original: node.material,
+          cinematic: Array.isArray(node.material) ? variants : variants[0]
+        });
+      });
+      const key = new THREE.DirectionalLight(0xfff2e8, 0.7);
+      key.position.set(-0.6, 2.8, 1.0);
+      const soft = new THREE.HemisphereLight(0xf4edff, 0x392a36, 0.32);
+      key.visible = false;
+      soft.visible = false;
+      this.scene.add(key, soft);
+      this.cinematicLights.push(key, soft);
+      console.info('[Oasis] Cinematic material variants:', this.cinematicMaterials.length);
       // Bind only the verified mouth-open morph; preserve all other facial controls.
       this.mouthTargets = [];
       piper.traverse(node => {
@@ -512,7 +553,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.4 · BUILD 10.11.4 · HAIR MATERIAL REPAIR")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.12 · BUILD 10.12.0 · CINEMATIC AUDITION")
     );
   }
 
@@ -537,6 +578,12 @@ export class ConversationScene {
     window.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('resize', this.onResize);
     this.controls.dispose();
+    for (const item of this.cinematicMaterials) {
+      const mats = Array.isArray(item.cinematic) ? item.cinematic : [item.cinematic];
+      const originals = Array.isArray(item.original) ? item.original : [item.original];
+      for (const mat of mats) if (!originals.includes(mat)) mat.dispose();
+    }
+    this.cinematicMaterials = [];
     // Shared geometry/materials from cloned chairs are disposed only once.
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
