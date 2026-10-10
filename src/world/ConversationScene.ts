@@ -194,10 +194,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 9.0 · SEATED CAMERA CLEARANCE · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 9.1 · SEATED VIEW · ARMS HIDDEN · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 9.0 · SEATED CAMERA CLEARANCE · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 9.1 · SEATED VIEW · ARMS HIDDEN · TEXTURE ERROR');
     }
   }
 
@@ -292,35 +292,9 @@ export class ConversationScene {
         this.assets.push(lowerSky);
       }
     }
-    // Study 8.0: audition the exact uploaded rigged prosthetic as a first-person pair.
-    // Both clones retain their independent bones; the left is mirrored at the mount.
-    const armSource = await this.model(ASSETS.arm, 'approved robotic prosthetic arm');
-    if (armSource) {
-      const bounds = new THREE.Box3().setFromObject(armSource);
-      const extent = bounds.getSize(new THREE.Vector3());
-      const maxExtent = Math.max(extent.x, extent.y, extent.z);
-      if (maxExtent > 0) {
-        for (const side of [-1, 1]) {
-          const arm = cloneSkeleton(armSource);
-          const centered = new THREE.Group();
-          centered.add(arm);
-          const armScale = 0.44 / maxExtent;
-          arm.scale.setScalar(armScale);
-          arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-armScale));
-          const mount = new THREE.Group();
-          mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
-          // Study 8.8: keep forearms aligned with the body and yaw each palm gently inward.
-          // Opposing yaw angles turn the palms toward one another without changing scale or framing.
-          mount.position.set(side * 0.13, -0.28, -0.48);
-          mount.rotation.set(-0.30, -side * 0.42, 0);
-          mount.scale.x = -side;
-          mount.add(centered);
-          this.camera.add(mount);
-          this.assets.push(mount);
-        }
-        this.scene.add(this.camera);
-      }
-    }
+    // Study 9.1: temporarily remove first-person prosthetic arms for a clean seated-view audition.
+    // Keep the camera in the scene independently of the arm asset.
+    this.scene.add(this.camera);
     const chair = await this.model(ASSETS.chair, 'approved lounge chair');
     if (chair) {
       this.place(chair, 0.85, 0.95, -0.9476, -0.3, -Math.PI);
@@ -380,7 +354,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.0 · SEATED CAMERA CLEARANCE")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 9.1 · SEATED VIEW · ARMS HIDDEN")
     );
   }
 
