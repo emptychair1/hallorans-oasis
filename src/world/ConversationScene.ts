@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.8 · HAIR ALPHA · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.9 · HAIR OPAQUE TEST · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.8 · HAIR ALPHA · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.9 · HAIR OPAQUE TEST · TEXTURE ERROR');
     }
   }
 
@@ -269,16 +269,17 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 5.8: restore original hair depth writing and test a modest alpha cutoff
+      // Study 5.9: test opaque hair rendering to isolate transparency sorting
       // on the positively identified hair mesh only.
       piper.traverse(node => {
         if (!(node instanceof THREE.Mesh) || node.name !== 'Object_35') return;
         const adjust = (material: THREE.Material): THREE.Material => {
           if (material.name !== 'lambert10') return material;
           const copy = material.clone();
-          copy.depthWrite = false;
+          copy.depthWrite = true;
           copy.depthTest = true;
-          copy.alphaTest = 0.12;
+          copy.transparent = false;
+          copy.alphaTest = 0;
           copy.needsUpdate = true;
           return copy;
         };
@@ -318,7 +319,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.8 · HAIR ALPHA")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.9 · HAIR OPAQUE TEST")
     );
   }
 
