@@ -23,7 +23,10 @@ export class OasisPiperVoice {
   private speechLevel = 0;
   private readonly messages: VoiceMessage[] = [];
 
-  constructor(private readonly onSpeechLevel: (level: number) => void = () => {}) {
+  constructor(
+    private readonly onSpeechLevel: (level: number) => void = () => {},
+    private readonly onExpression: (expression: 'neutral' | 'smile' | 'blink' | 'surprise') => void = () => {}
+  ) {
     this.root.className = 'oasis-voice';
     this.button.className = 'oasis-voice__button';
     this.button.type = 'button';
@@ -193,6 +196,11 @@ export class OasisPiperVoice {
       this.messages.push({ role: 'user', content: transcript }, { role: 'assistant', content: reply });
       while (this.messages.length > 8) this.messages.shift();
 
+      // Stage directions and emojis are cues, not words to speak.
+      const expression = /😳|😮|😲|\*(?:gasps|looks surprised)\*/i.test(reply) ? 'surprise'
+        : /😉|\*(?:winks?|blinks?)\*/i.test(reply) ? 'blink'
+        : /😏|😂|🤣|😊|🥰|❤️|\*(?:smirks?|smiles?|grins?|laughs?)\*/i.test(reply) ? 'smile' : 'neutral';
+      this.onExpression(expression);
       this.setState('speaking', 'Piper is speaking…');
       const speech = await fetch('/api/oasis/speak-fast', {
         method: 'POST',
@@ -331,6 +339,7 @@ export class OasisPiperVoice {
     this.speechFrame = 0;
     this.speechLevel = 0;
     this.onSpeechLevel(0);
+    this.onExpression('neutral');
     try { this.speechAnalyser?.disconnect(); } catch {}
     this.speechAnalyser = null;
   }
