@@ -46,13 +46,13 @@ export class ConversationScene {
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
-    this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 0.08));
+    this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 0.28));
     // Study 6.2: soften the existing warm point light without moving or recoloring it.
-    const warm = new THREE.PointLight(0xffc28a, 22, 9);
+    const warm = new THREE.PointLight(0xffc28a, 8, 9);
     warm.position.set(1.2, 2.5, 0.5);
     this.scene.add(warm);
     // Study 6.3: reduce only the cool directional fill; warm accent and bloom follow separately.
-    const fill = new THREE.DirectionalLight(0xb6c7ff, 1.5);
+    const fill = new THREE.DirectionalLight(0xb6c7ff, 0.55);
     fill.position.set(-4, 6, 4);
     this.scene.add(fill);
 
@@ -185,10 +185,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.0 · DEEP AMBIENT · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.1 · SOFT LOW LIGHT · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.0 · DEEP AMBIENT · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 7.1 · SOFT LOW LIGHT · TEXTURE ERROR');
     }
   }
 
@@ -342,7 +342,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 7.0 · DEEP AMBIENT")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 7.1 · SOFT LOW LIGHT")
     );
   }
 
