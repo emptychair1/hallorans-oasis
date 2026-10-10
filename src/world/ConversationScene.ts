@@ -307,9 +307,10 @@ export class ConversationScene {
           arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-armScale));
           const mount = new THREE.Group();
           mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
-          // Study 8.6: swap the mirrored left/right arm assignment and align the forearms more closely with the body.
+          // Study 8.7: retain the corrected mirrored left/right assignment and remove outward wrist cant.
+          // A shared roll keeps both forearms aligned with the body's vertical axis.
           mount.position.set(side * 0.13, -0.28, -0.48);
-          mount.rotation.set(-0.42, 0, side * -0.08);
+          mount.rotation.set(-0.30, 0, 0);
           mount.scale.x = -side;
           mount.add(centered);
           this.camera.add(mount);
