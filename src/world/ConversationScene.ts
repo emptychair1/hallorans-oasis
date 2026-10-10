@@ -192,10 +192,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS · TEXTURE ERROR');
     }
   }
 
@@ -307,10 +307,10 @@ export class ConversationScene {
           arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-armScale));
           const mount = new THREE.Group();
           mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
-          // Study 8.7: retain the corrected mirrored left/right assignment and remove outward wrist cant.
-          // A shared roll keeps both forearms aligned with the body's vertical axis.
+          // Study 8.8: keep forearms aligned with the body and yaw each palm gently inward.
+          // Opposing yaw angles turn the palms toward one another without changing scale or framing.
           mount.position.set(side * 0.13, -0.28, -0.48);
-          mount.rotation.set(-0.30, 0, 0);
+          mount.rotation.set(-0.30, -side * 0.42, 0);
           mount.scale.x = -side;
           mount.add(centered);
           this.camera.add(mount);
@@ -378,7 +378,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.7 · WRIST ALIGNMENT")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 8.8 · NATURAL PALMS")
     );
   }
 
