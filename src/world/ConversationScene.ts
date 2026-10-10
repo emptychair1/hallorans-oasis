@@ -192,7 +192,7 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.5 · ARM SCALE · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 8.6 · ARM ORIENTATION · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
       this.setFloorStatus('MARBLE016 FLOOR STUDY 8.0 · ROBOT ARMS · TEXTURE ERROR');
@@ -307,10 +307,10 @@ export class ConversationScene {
           arm.position.copy(bounds.getCenter(new THREE.Vector3()).multiplyScalar(-armScale));
           const mount = new THREE.Group();
           mount.name = side < 0 ? 'Josh left prosthetic' : 'Josh right prosthetic';
-          // Study 8.5: keep both hands visible but reduce their visual dominance in the foreground.
+          // Study 8.6: swap the mirrored left/right arm assignment and align the forearms more closely with the body.
           mount.position.set(side * 0.13, -0.28, -0.48);
-          mount.rotation.set(-0.28, 0, side * -0.25);
-          mount.scale.x = side;
+          mount.rotation.set(-0.42, 0, side * -0.08);
+          mount.scale.x = -side;
           mount.add(centered);
           this.camera.add(mount);
           this.assets.push(mount);
