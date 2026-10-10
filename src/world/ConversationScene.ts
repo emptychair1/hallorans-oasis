@@ -46,7 +46,7 @@ export class ConversationScene {
     this.controls = new WalkControls(this.mount, this.camera);
     this.controls.setBounds(new THREE.Box3(new THREE.Vector3(-8, 0, -8), new THREE.Vector3(8, 4, 8)));
     // Study 6.1: lower only the global hemisphere fill for more directional contrast.
-    this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 1.4));
+    this.scene.add(new THREE.HemisphereLight(0xdce5ff, 0x17101a, 0.45));
     // Study 6.2: soften the existing warm point light without moving or recoloring it.
     const warm = new THREE.PointLight(0xffc28a, 22, 9);
     warm.position.set(1.2, 2.5, 0.5);
@@ -185,10 +185,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.9 · LOW GLOBAL LIGHT · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.9 · LOW GLOBAL LIGHT · TEXTURE ERROR');
     }
   }
 
@@ -342,7 +342,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.8 · BLOOM + NAVIGATION")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.9 · LOW GLOBAL LIGHT")
     );
   }
 
