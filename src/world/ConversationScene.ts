@@ -379,9 +379,9 @@ export class ConversationScene {
       piper.updateMatrixWorld(true);
       const piperPivot = this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
       if (piperPivot) {
-        // Study 10.4: first dress-fitting pass. Keep the approved avatar pose,
-        // chair, table, camera, and lighting untouched. The garment is a separate
-        // static GLB, fitted by bounds over the seated torso/lap for visual review.
+        // Study 10.5: enlarge the dress fit for the seated torso and lap.
+        // Keep the approved avatar pose, chair, table, camera, and lighting untouched.
+        // This is still a static garment GLB, not a skinned garment bound to avatar bones.
         const dress = await this.model(ASSETS.dress, 'black satin dress');
         if (dress) {
           dress.rotation.y = -Math.PI / 2;
@@ -391,8 +391,8 @@ export class ConversationScene {
           const garmentSize = garmentBounds.getSize(new THREE.Vector3());
           const avatarSize = avatarBounds.getSize(new THREE.Vector3());
           if (!garmentBounds.isEmpty() && garmentSize.y > 0 && avatarSize.y > 0) {
-            const targetHeight = avatarSize.y * 0.43;
-            const targetWidth = Math.max(0.01, avatarSize.x * 0.62);
+            const targetHeight = avatarSize.y * 0.68;
+            const targetWidth = Math.max(0.01, avatarSize.x * 0.90);
             const garmentWidth = Math.max(garmentSize.x, garmentSize.z);
             const scale = Math.min(targetHeight / garmentSize.y, targetWidth / Math.max(0.001, garmentWidth));
             dress.scale.setScalar(scale);
@@ -419,7 +419,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.4 · BUILD 10.4.0 · ROOM READY")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.5 · BUILD 10.5.0 · ROOM READY")
     );
   }
 
