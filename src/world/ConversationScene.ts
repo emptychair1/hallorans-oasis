@@ -337,6 +337,7 @@ export class ConversationScene {
           const copy = material.clone();
           copy.depthWrite = true;
           copy.depthTest = true;
+          copy.side = THREE.DoubleSide;
           copy.transparent = false;
           copy.alphaTest = 0.5;
           copy.needsUpdate = true;
@@ -363,17 +364,17 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Calf$/, 'x', -Math.PI * 0.49);
       rotate(/^CC_Base_R_Calf$/, 'x', -Math.PI * 0.49);
       // Relax arms from the T-pose.
-      rotate(/^CC_Base_L_Upperarm_/, 'z', -Math.PI * 0.32);
-      rotate(/^CC_Base_R_Upperarm_/, 'z', Math.PI * 0.32);
+      rotate(/^CC_Base_L_Upperarm(?:_|$)/, 'z', -Math.PI * 0.32);
+      rotate(/^CC_Base_R_Upperarm(?:_|$)/, 'z', Math.PI * 0.32);
       // Ease both elbows forward from the shoulder; retain approved elbow bends.
       rotate(/^CC_Base_L_Upperarm_/, 'x', -Math.PI * 0.12);
       rotate(/^CC_Base_R_Upperarm_/, 'x', -Math.PI * 0.12);
       // Bring forearms forward toward the lap, without touching the approved leg pose.
-      rotate(/^CC_Base_L_Forearm_/, 'x', Math.PI * 0.36);
-      rotate(/^CC_Base_R_Forearm_/, 'x', Math.PI * 0.36);
+      rotate(/^CC_Base_L_Forearm(?:_|$)/, 'x', Math.PI * 0.36);
+      rotate(/^CC_Base_R_Forearm(?:_|$)/, 'x', Math.PI * 0.36);
       // Wrist-only study: turn palms toward thighs. Leave chair position unchanged.
-      rotate(/^CC_Base_L_Hand_/, 'x', Math.PI * 0.12);
-      rotate(/^CC_Base_R_Hand_/, 'x', -Math.PI * 0.12);
+      rotate(/^CC_Base_L_Hand(?:_|$)/, 'x', Math.PI * 0.12);
+      rotate(/^CC_Base_R_Hand(?:_|$)/, 'x', -Math.PI * 0.12);
       piper.updateMatrixWorld(true);
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
