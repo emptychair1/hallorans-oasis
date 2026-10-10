@@ -377,51 +377,10 @@ export class ConversationScene {
       rotate(/^CC_Base_L_Hand(?:_|$)/, 'x', Math.PI * 0.12);
       rotate(/^CC_Base_R_Hand(?:_|$)/, 'x', -Math.PI * 0.12);
       piper.updateMatrixWorld(true);
-      const piperPivot = this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
-      if (piperPivot) {
-        // Study 10.7: lay the correctly sized dress across Piper's seated lap,
-        // rather than leaving it upright in front of her face. Preserve the approved
-        // avatar pose, chair, table, camera, and lighting. The dress remains a static prop.
-        const dress = await this.model(ASSETS.dress, 'black satin dress');
-        if (dress) {
-          dress.rotation.y = -Math.PI / 2;
-          dress.updateMatrixWorld(true);
-          const garmentBounds = new THREE.Box3().setFromObject(dress);
-          const avatarBounds = new THREE.Box3().setFromObject(piperPivot);
-          const garmentSize = garmentBounds.getSize(new THREE.Vector3());
-          const avatarSize = avatarBounds.getSize(new THREE.Vector3());
-          if (!garmentBounds.isEmpty() && garmentSize.y > 0 && avatarSize.y > 0) {
-            const targetHeight = avatarSize.y * 0.68;
-            const targetWidth = Math.max(0.01, avatarSize.x * 0.90);
-            const garmentWidth = Math.max(garmentSize.x, garmentSize.z);
-            const scale = Math.min(targetHeight / garmentSize.y, targetWidth / Math.max(0.001, garmentWidth));
-            dress.scale.setScalar(scale);
-            // Rotate the long axis down onto the lap only after sizing it upright.
-            dress.rotation.z = Math.PI / 2;
-            dress.updateMatrixWorld(true);
-            const fittedBounds = new THREE.Box3().setFromObject(dress);
-            const fittedCenter = fittedBounds.getCenter(new THREE.Vector3());
-            const avatarCenter = avatarBounds.getCenter(new THREE.Vector3());
-            // Piper faces the camera along -X; move the laid-down garment forward
-            // over the thighs and center its thickness at seated-lap height.
-            dress.position.x += avatarCenter.x - fittedCenter.x - avatarSize.x * 0.18;
-            dress.position.y += avatarBounds.min.y + avatarSize.y * 0.36 - fittedCenter.y;
-            dress.position.z += avatarCenter.z - fittedCenter.z;
-            this.scene.add(dress);
-            this.assets.push(dress);
-            console.info('[Oasis] Black dress lap placement', {
-              avatar: avatarSize.toArray(),
-              garment: garmentSize.toArray(),
-              scale
-            });
-          } else {
-            console.warn('[Oasis] Black dress has empty or invalid geometry; skipped fitting');
-          }
-        }
-      }
-    }
+      // Study 10.8: use Piper's existing avatar clothing. Do not overlay the separate static dress prop.
+      this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.7 · BUILD 10.7.0 · ROOM READY")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.8 · BUILD 10.8.0 · ROOM READY")
     );
   }
 
