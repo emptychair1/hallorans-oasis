@@ -27,7 +27,8 @@ faceToggle.addEventListener('click', () => {
 document.body.appendChild(faceToggle);
 const realismToggle = document.createElement('button');
 realismToggle.type = 'button';
-realismToggle.className = 'oasis-realism-toggle';
+realismToggle.className = 'oasis-face-toggle';
+realismToggle.style.top = 'calc(env(safe-area-inset-top, 0px) + 116px)';
 realismToggle.textContent = 'CURRENT';
 realismToggle.setAttribute('aria-pressed', 'false');
 realismToggle.setAttribute('aria-label', 'Enable cinematic rendering');
