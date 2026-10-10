@@ -21,6 +21,11 @@ Implementation details:
 - Chat context is held in the current page session and capped to Home's latest eight messages. No browser persistence was added.
 - These commits were made through GitHub's API. A local TypeScript/Vite build could not be run in this environment because the runtime could not resolve `github.com`. **Do not claim the new bridge is built or deployed yet.** Trigger/inspect the Cloudflare build next and fix any errors before testing the chat UI.
 
+## Error 1042 root cause and fix (2026-10-10)
+- User reported Cloudflare error code `1042` from the Oasis-to-Home request. Cloudflare documents this as a Worker trying to fetch another Worker in the same Cloudflare zone/account without `global_fetch_strictly_public` enabled.
+- Fixed in `wrangler.jsonc` by adding `"compatibility_flags": ["global_fetch_strictly_public"]`. Commit: `2d73456b958e858fb7664ce5ffd8403899e713d5`.
+- This is the direct fix for the reported error. It must deploy before retesting; end-to-end chat remains unverified until the user receives a real Piper reply.
+
 ## Live error reported after first bridge attempt (2026-10-10)
 - User saw: “Piper Home couldn’t be reached, try again.” This is emitted only when the Oasis Worker’s outbound fetch throws, not when Home returns an HTTP error response.
 - Commit `7f408a0d0773d8e14f811b2f89b75e29b5d368ae` changes upstream redirect handling from `error` to `follow` and returns a short `detail` field from the caught exception, so the next attempt can reveal the actual fetch failure.
