@@ -121,7 +121,6 @@ export class OasisScene {
       this.camera.position.set(0, eyeHeight, -finalSize.z * 0.12);
       this.camera.lookAt(0, eyeHeight, finalSize.z * 0.4);
       this.camera.updateProjectionMatrix();
-      this.controls.setBounds(finalBounds);
       void addFurnishings(this.roomRoot, finalBounds, this.loader, () => this.disposed);
 
       console.info('[Oasis] Room loaded', {
