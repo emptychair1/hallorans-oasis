@@ -162,10 +162,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.1 · HAIR DIAGNOSTIC · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.1 · HAIR DIAGNOSTIC · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC · TEXTURE ERROR');
     }
   }
 
@@ -269,64 +269,22 @@ export class ConversationScene {
     if (table) this.place(table, 1.4, 1.2, 0, -0.3, 0, 0.76);
     const piper = await this.model(ASSETS.piper, 'approved Piper character');
     if (piper) {
-      // Study 4.9: inspect actual hair mesh/material metadata before altering it.
-      // No hair geometry, material, or pose is modified in this diagnostic.
-      const hairReport: string[] = [];
+      // Study 5.2: repair backface visibility across Piper's imported materials.
+      // Keep each material's original transparency, textures and appearance.
+      // Use cloned materials so the source GLB remains untouched.
       piper.traverse(node => {
         if (!(node instanceof THREE.Mesh)) return;
-        const materials = Array.isArray(node.material) ? node.material : [node.material];
-        for (const material of materials) {
-          const description = [
-            'mesh=' + (node.name || '(unnamed)'),
-            'material=' + (material.name || '(unnamed)'),
-            'type=' + material.type,
-            'side=' + material.side,
-            'transparent=' + material.transparent,
-            'opacity=' + material.opacity,
-            'depthWrite=' + material.depthWrite,
-            'alphaTest=' + material.alphaTest,
-          ].join(' | ');
-          console.info('[Oasis] Piper mesh material:', description);
-          if (/hair|bang|fringe|strand|scalp|head/i.test(node.name + ' ' + material.name)) {
-            hairReport.push(description);
-          }
-        }
+        const repair = (material: THREE.Material): THREE.Material => {
+          const copy = material.clone();
+          copy.side = THREE.DoubleSide;
+          copy.needsUpdate = true;
+          return copy;
+        };
+        node.material = Array.isArray(node.material)
+          ? node.material.map(repair)
+          : repair(node.material);
       });
-      console.info('[Oasis] Piper hair diagnostics:', hairReport);
-      // iPhone-readable diagnostic, using actual runtime mesh/material data.
-      const previousPanel = document.getElementById('oasis-hair-diagnostics');
-      previousPanel?.remove();
-      const panel = document.createElement('details');
-      panel.id = 'oasis-hair-diagnostics';
-      panel.style.cssText = 'position:fixed;z-index:99999;right:8px;bottom:90px;width:min(92vw,370px);max-height:45vh;overflow:auto;background:rgba(7,8,17,.94);color:#fff;border:1px solid #b99b70;border-radius:10px;padding:10px;font:11px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;';
-      const heading = document.createElement('summary');
-      heading.textContent = 'PIPER HAIR DIAGNOSTIC · ' + hairReport.length + ' MATCHES · TAP TO EXPAND';
-      panel.appendChild(heading);
-      const body = document.createElement('div');
-      const allMeshes: string[] = [];
-      piper.traverse(node => {
-        if (!(node instanceof THREE.Mesh)) return;
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        for (const m of mats) {
-          allMeshes.push([
-            'mesh=' + (node.name || '(unnamed)'),
-            'material=' + (m.name || '(unnamed)'),
-            'type=' + m.type,
-            'side=' + m.side,
-            'transparent=' + m.transparent,
-            'opacity=' + m.opacity,
-            'depthWrite=' + m.depthWrite,
-            'alphaTest=' + m.alphaTest,
-            'visible=' + node.visible,
-          ].join(' | '));
-        }
-      });
-      heading.textContent = 'PIPER MESH INVENTORY · ' + allMeshes.length + ' MATERIALS · TAP';
-      body.textContent = allMeshes.join('\\n\\n');
-      panel.appendChild(body);
-      document.body.appendChild(panel);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 5.1 · HAIR DIAGNOSTIC · ' +
-        hairReport.length + ' MATCHES');
+      document.getElementById('oasis-hair-diagnostics')?.remove();
       // Non-destructive first seated-pose study. Original GLB stays unchanged.
       const bones = new Map<string, THREE.Bone>();
       piper.traverse(node => {
@@ -358,7 +316,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.1 · HAIR DIAGNOSTIC")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 5.2 · MATERIAL VISIBILITY · HAIR DIAGNOSTIC")
     );
   }
 
