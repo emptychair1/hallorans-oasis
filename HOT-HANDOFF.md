@@ -175,3 +175,7 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 
 ## Study 10.11.1 face framing
 User screenshot showed forehead at bottom and sky filling the close-up. Camera now targets 87 percent height of the placed avatar bounding box rather than guessed height. The microphone controls are smaller and bottom-left in FACE mode. Room restore preserved. Source committed, live visual verification pending.
+
+
+## Study 10.11.2 · hair cutout test
+Josh's close-up screenshot showed missing sections of Piper's auburn hair. Existing Object_35/lambert10 override used alphaTest 0.5, potentially discarding thin strands. Lowered that threshold to 0.08 only on the identified material, preserving depth write, double-sided rendering and opaque mode. Added hair material audit logs for investigation. No geometry, camera, face, voice or room changes. Visible BUILD 10.11.2. This is an unverified test; Josh must confirm Cloudflare and visual outcome. If still missing, inspect actual mesh/material assignments rather than guess further.
