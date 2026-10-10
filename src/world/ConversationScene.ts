@@ -415,6 +415,43 @@ export class ConversationScene {
           : adjust(node.material);
       });
       console.info('[Oasis] Hair material audit:', hairAudit);
+      // Non-invasive diagnostic inventory. No changes to hair rendering.
+      const diagnostics: string[] = [];
+      piper.traverse(node => {
+        if (!(node instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) {
+          const mat = material as THREE.MeshStandardMaterial;
+          const map = mat.map;
+          const alphaMap = mat.alphaMap;
+          const likelyHair = /hair|scalp|bang|fringe|lambert10/i.test(node.name + ' ' + material.name) || node.name === 'Object_35';
+          if (!likelyHair) continue;
+          const geometry = node.geometry;
+          diagnostics.push([
+            node.name, material.name || '(unnamed)',
+            'visible=' + node.visible,
+            'triangles=' + (geometry.index ? geometry.index.count / 3 : (geometry.attributes.position?.count || 0) / 3),
+            'transparent=' + material.transparent,
+            'alphaTest=' + material.alphaTest,
+            'opacity=' + material.opacity,
+            'side=' + material.side,
+            'depthWrite=' + material.depthWrite,
+            'depthTest=' + material.depthTest,
+            'renderOrder=' + node.renderOrder,
+            'map=' + (map ? map.image?.width + 'x' + map.image?.height : 'none'),
+            'alphaMap=' + (alphaMap ? 'yes' : 'no')
+          ].join(' | '));
+        }
+      });
+      console.info('[Oasis] Hair diagnostics:', diagnostics);
+      const panel = document.createElement('details');
+      panel.className = 'oasis-hair-diagnostics';
+      panel.innerHTML = '<summary>HAIR DIAGNOSTICS</summary>';
+      const output = document.createElement('pre');
+      output.textContent = diagnostics.length ? diagnostics.join('\\n') : 'No named hair meshes found. Inspect full mesh inventory.';
+      panel.appendChild(output);
+      document.body.appendChild(panel);
+
       // Bind only the verified mouth-open morph; preserve all other facial controls.
       this.mouthTargets = [];
       piper.traverse(node => {
@@ -481,7 +518,7 @@ export class ConversationScene {
       }
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.2 · BUILD 10.11.2 · HAIR CUTOUT TEST")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.11.3 · BUILD 10.11.3 · HAIR DIAGNOSTICS")
     );
   }
 
@@ -501,6 +538,7 @@ export class ConversationScene {
     this.disposed = true;
     this.mouthTargets = [];
     this.expressionTargets = [];
+    document.querySelector('.oasis-hair-diagnostics')?.remove();
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     window.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('resize', this.onResize);
