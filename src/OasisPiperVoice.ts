@@ -7,7 +7,6 @@ export class OasisPiperVoice {
   private readonly root = document.createElement('div');
   private readonly button = document.createElement('button');
   private readonly status = document.createElement('p');
-  private state: VoiceState = 'idle';
   private wanted = false;
   private disposed = false;
   private busy = false;
@@ -39,7 +38,6 @@ export class OasisPiperVoice {
   }
 
   private setState(state: VoiceState, message: string): void {
-    this.state = state;
     this.root.dataset.state = state;
     this.status.textContent = message;
     const label = state === 'listening' ? 'Listening. Tap to pause Piper'
@@ -67,7 +65,7 @@ export class OasisPiperVoice {
     const generation = ++this.generation;
     this.setState('opening', 'Opening microphone…');
     try {
-      const AudioContextClass = window.AudioContext;
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass || !navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
         throw new Error('Voice recording is not supported in this browser.');
       }
