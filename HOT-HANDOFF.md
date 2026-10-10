@@ -187,3 +187,7 @@ Josh verified 10.11.2 live screenshot: missing auburn hair persists after alphaT
 
 ## Build correction 10.11.3.1
 Cloudflare failed compiling 10.11.3: TS2339 at ConversationScene.ts:441 because texture image has unknown type and width/height were accessed directly. Replaced with guarded source.data object property checks; diagnostic falls back to 'present' when dimensions are unavailable. Visible BUILD 10.11.3.1. Commit c14d2dc. Await Cloudflare rebuild; do not claim success until confirmed. Hair materials unchanged.
+
+
+## Study 10.11.4 · live hair mesh repair
+Josh's screenshot of BUILD 10.11.3.1 showed Mesh / lambert10 with transparent=true, alphaTest=0, depthWrite=false, side=2, texture 2560x2048, 9176 triangles. Previous override targeted nonexistent old Object_35 name and did not affect the actual hair. Updated only the confirmed Mesh/lambert10 material: clone, depthWrite=true, depthTest=true, DoubleSide, transparent=false, alphaTest=0.08. Texture/geometry unchanged; diagnostic panel remains. Visible BUILD 10.11.4. Cloudflare and visual result unverified, Josh to test.
