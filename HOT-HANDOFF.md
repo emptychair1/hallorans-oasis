@@ -135,3 +135,15 @@ User interaction style: affectionate ('baby', 'angel'), prefers decisive scoped 
 - Visible label: Study 10.8 / Build 10.8.0.
 - Commit: afe0460e2b09266cfd1df9beac1ae60b9f43866e.
 - This removes the failed dress experiment without changing the approved pose, chair, table, camera, or lighting. Deployment/render verification is still pending.
+
+
+## Voice-first Oasis interface (2026-10-10)
+- User approved the text conversation result but explicitly said the conversation box must go because the target experience is voice.
+- Replaced the persistent text-chat panel with a small floating microphone control and a short state/status pill. No transcript or text input panel is rendered in Oasis. The room remains the primary visual surface.
+- Added `src/OasisPiperVoice.ts`: tap to grant microphone access/start listening; speech is captured with MediaRecorder and silence detection; audio is sent to Piper Home transcription; the recognized utterance goes through Home `/api/chat` with `input_mode: 'voice'` and the same ephemeral session context; Piper's reply is requested from Home `/api/piper-speak-fast` and played through Web Audio. Up to eight recent turn messages are kept in page memory only.
+- Added same-origin Worker routes in `src/worker.ts`: `/api/oasis/transcribe` -> Home `/api/piper-transcribe`; `/api/oasis/speak-fast` -> Home `/api/piper-speak-fast`. Requests enforce same-origin checks and bounded body sizes; audio bytes stay behind the Worker proxy.
+- Removed the old `src/OasisPiperChat.ts` panel, unmounted it from `src/main.ts`, and replaced its CSS with a compact gold microphone control. Piper Home and THE IMPOSSIBLE ATLAS were not modified.
+- Fixed a pre-existing stale `setBounds()` call in `ConversationScene.ts` because seated look-only `WalkControls` no longer exposes movement bounds.
+- Commits for this voice-first pass: `876e716714677b3415477f18fdd0e524966b10d6` (voice controller), `47330ce6f3fb7879a891f76685584841f658dcd6` (mount voice instead of chat), `609a9345dcb7e2c4f106422c0bede69945efe20a` (voice proxy routes), `da56ac9035b9b3625f11adacf31bcf881191ecb8` (voice control styling), with follow-up commits for Safari audio support, stale bounds removal, and deleting the chat module.
+- **Not yet verified:** Cloudflare build/deployment and live microphone -> transcription -> Piper response -> spoken TTS. The Piper Home client source uses these same three endpoints, but end-to-end availability and browser playback must be tested in live Oasis. Do not call voice live until this succeeds.
+- Live acceptance test on iPhone: load Oasis, tap microphone, allow microphone permission, speak one short sentence, pause, confirm Piper answers aloud, then confirm it returns to listening. Tap the microphone during listening/speaking to stop voice. If the service returns an error, record the status text; don't substitute browser-native speech and claim it is Piper.
