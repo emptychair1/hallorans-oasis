@@ -379,6 +379,7 @@ export class ConversationScene {
       piper.updateMatrixWorld(true);
       // Study 10.8: use Piper's existing avatar clothing. Do not overlay the separate static dress prop.
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
+    }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
       document.createTextNode("HALLORAN'S OASIS · STUDY 10.8 · BUILD 10.8.0 · ROOM READY")
     );
