@@ -47,7 +47,7 @@ export class ConversationScene {
     this.scene.add(fill);
 
     // Study 6.4: local candlelight pool, without changing existing lighting or assets.
-    const candleGlow = new THREE.PointLight(0xffa65c, 4.5, 2.8, 2);
+    const candleGlow = new THREE.PointLight(0xffa65c, 2.8, 2.8, 2);
     candleGlow.position.set(0.42, 1.63, 0.12);
     this.scene.add(candleGlow);
 
@@ -170,10 +170,10 @@ export class ConversationScene {
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.4 · CANDLELIGHT · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.5 · CANDLELIGHT BALANCE · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.4 · CANDLELIGHT · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 6.5 · CANDLELIGHT BALANCE · TEXTURE ERROR');
     }
   }
 
@@ -327,7 +327,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.4 · CANDLELIGHT")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 6.5 · CANDLELIGHT BALANCE")
     );
   }
 
