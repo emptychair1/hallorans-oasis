@@ -90,7 +90,7 @@ export class ConversationScene {
       'varying vec3 vOasisFloorWorld;\\nvoid main() {'
     ).replace(
       'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 );',
-      'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 * (1.0 - smoothstep(22.0, 75.0, distance(vOasisFloorWorld.xz, cameraPosition.xz))));'
+      'gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.15 * (1.0 - smoothstep(140.0, 260.0, distance(vOasisFloorWorld.xz, cameraPosition.xz))));'
     );
     reflectionMaterial.transparent = true;
     reflectionMaterial.depthWrite = false;
@@ -157,15 +157,15 @@ export class ConversationScene {
           'varying vec3 vOasisFloorWorld;\\nvoid main() {'
         ).replace(
           '#include <color_fragment>',
-          '#include <color_fragment>\\n diffuseColor.a *= 1.0 - smoothstep(22.0, 75.0, distance(vOasisFloorWorld.xz, cameraPosition.xz));'
+          '#include <color_fragment>\\n diffuseColor.a *= 1.0 - smoothstep(140.0, 260.0, distance(vOasisFloorWorld.xz, cameraPosition.xz));'
         );
       };
       floor.material = material;
       console.info('[Oasis] Marble016 material loaded from ZIP', entries.map(([n]) => n));
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.6 · TEXTURE LOADED');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.7 · TEXTURE LOADED');
     } catch (error) {
       console.error('[Oasis] Marble016 floor audition failed:', error);
-      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.6 · TEXTURE ERROR');
+      this.setFloorStatus('MARBLE016 FLOOR STUDY 4.7 · TEXTURE ERROR');
     }
   }
 
@@ -300,7 +300,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.6")
+      document.createTextNode("HALLORAN'S OASIS · MARBLE016 FLOOR STUDY 4.7")
     );
   }
 
