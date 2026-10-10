@@ -18,9 +18,12 @@ export class OasisPiperVoice {
   private recorder: MediaRecorder | null = null;
   private raf = 0;
   private activeSource: AudioBufferSourceNode | null = null;
+  private speechAnalyser: AnalyserNode | null = null;
+  private speechFrame = 0;
+  private speechLevel = 0;
   private readonly messages: VoiceMessage[] = [];
 
-  constructor() {
+  constructor(private readonly onSpeechLevel: (level: number) => void = () => {}) {
     this.root.className = 'oasis-voice';
     this.button.className = 'oasis-voice__button';
     this.button.type = 'button';
@@ -204,15 +207,35 @@ export class OasisPiperVoice {
       const source = this.context.createBufferSource();
       this.activeSource = source;
       source.buffer = audioBuffer;
-      source.connect(this.context.destination);
+      const speechAnalyser = this.context.createAnalyser();
+      speechAnalyser.fftSize = 1024;
+      this.speechAnalyser = speechAnalyser;
+      source.connect(speechAnalyser);
+      speechAnalyser.connect(this.context.destination);
+      const samples = new Float32Array(speechAnalyser.fftSize);
+      const animateSpeech = () => {
+        if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
+        speechAnalyser.getFloatTimeDomainData(samples);
+        let sum = 0;
+        for (const sample of samples) sum += sample * sample;
+        const rms = Math.sqrt(sum / samples.length);
+        const target = Math.min(1, Math.max(0, (rms - 0.012) * 8));
+        this.speechLevel += (target - this.speechLevel) * (target > this.speechLevel ? 0.45 : 0.22);
+        this.onSpeechLevel(this.speechLevel);
+        this.speechFrame = requestAnimationFrame(animateSpeech);
+      };
       source.onended = () => {
-        if (this.activeSource === source) this.activeSource = null;
+        if (this.activeSource === source) {
+          this.activeSource = null;
+          this.resetSpeechAnimation();
+        }
         if (this.wanted && generation === this.generation) {
           this.busy = false;
           this.listen(generation);
         }
       };
       source.start();
+      this.speechFrame = requestAnimationFrame(animateSpeech);
     } catch (error) {
       if (this.wanted && generation === this.generation) {
         this.setState('error', error instanceof Error ? error.message : 'Voice conversation failed. Tap to retry.');
@@ -303,7 +326,17 @@ export class OasisPiperVoice {
     this.setState('idle', message);
   }
 
+  private resetSpeechAnimation(): void {
+    cancelAnimationFrame(this.speechFrame);
+    this.speechFrame = 0;
+    this.speechLevel = 0;
+    this.onSpeechLevel(0);
+    try { this.speechAnalyser?.disconnect(); } catch {}
+    this.speechAnalyser = null;
+  }
+
   private cleanupAudio(): void {
+    this.resetSpeechAnimation();
     try { this.source?.disconnect(); this.analyser?.disconnect(); } catch {}
     this.source = null;
     this.analyser = null;
