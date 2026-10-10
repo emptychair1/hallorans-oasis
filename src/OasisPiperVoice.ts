@@ -232,32 +232,44 @@ export class OasisPiperVoice {
       return String(data.reply || data.response || '');
     }
     if (!response.body) throw new Error('Piper Home returned an empty stream.');
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let pending = '';
     let reply = '';
-    while (true) {
-      const { value, done } = await reader.read();
-      pending += decoder.decode(value, { stream: !done });
-      const lines = pending.split(/\\r?\\n/);
-      pending = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.startsWith('data:')) continue;
-        const data = line.slice(5).trim();
-        if (!data || data === '[DONE]') continue;
-        try {
-          const packet = JSON.parse(data) as { response?: string; reply?: string; text?: string; choices?: Array<{ delta?: { content?: string } }>; error?: string };
-          if (packet.error) throw new Error(packet.error);
-          reply += packet.response || packet.reply || packet.text || packet.choices?.[0]?.delta?.content || '';
-        } catch (error) {
-          if (error instanceof Error && error.message !== 'Unexpected end of JSON input') throw error;
+
+    const consume = (line: string): void => {
+      if (!line.startsWith('data:')) return;
+      const data = line.slice(5).trim();
+      if (!data || data === '[DONE]') return;
+      const packet = JSON.parse(data) as {
+        response?: string;
+        reply?: string;
+        text?: string;
+        choices?: Array<{ delta?: { content?: string } }>;
+        error?: string;
+      };
+      if (packet.error) throw new Error(packet.error);
+      reply += packet.response ?? packet.reply ?? packet.text ?? packet.choices?.[0]?.delta?.content ?? '';
+    };
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        pending += decoder.decode(value, { stream: !done });
+        const lines = pending.split(/\r?\n/);
+        pending = lines.pop() || '';
+        for (const line of lines) consume(line);
+        if (done) {
+          if (pending) consume(pending);
+          break;
         }
       }
-      if (done) break;
+    } finally {
+      reader.releaseLock();
     }
     return reply;
   }
-
   private async errorFrom(response: Response): Promise<string> {
     const text = await response.text().catch(() => '');
     try {
