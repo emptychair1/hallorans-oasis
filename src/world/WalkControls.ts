@@ -70,6 +70,12 @@ export class WalkControls {
   }
 
   private readonly keyDown = (e: KeyboardEvent): void => {
+    const target = e.target;
+    if (target instanceof HTMLElement && (
+      target.isContentEditable ||
+      target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')
+    )) return;
+
     if (/^(Key[WASD]|Arrow(Up|Down|Left|Right))$/.test(e.code)) {
       e.preventDefault();
       this.keys.add(e.code);
