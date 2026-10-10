@@ -32,6 +32,11 @@ Standalone Vite + TypeScript + Three.js mobile-first 3D app, deployed to Cloudfl
 - Study 10.5 increases the fitting targets to 68% of avatar height and 90% of avatar width. This is a focused visual-fit adjustment only; the dress is **not skinned or attached to avatar bones**, and its appearance still needs visual confirmation in the deployed scene.
 - Build label is updated to Study 10.5 / Build 10.5.0. A GitHub commit does not prove deployment; confirm the live scene before claiming the visual fix is complete.
 
+## Current work: dress depth fit (Study 10.6)
+- User reports the dress size now looks right, but it still appears to sit in Piper's lap rather than on her torso.
+- Study 10.6 moves the static dress 5% of avatar width back toward Piper's body by changing the camera-facing depth offset from `-avatarSize.x * 0.035` to `+avatarSize.x * 0.015`.
+- This is a placement adjustment only. The dress is still a separate static GLB and will not deform with the seated skeleton; visual verification is still required. Do not alter approved pose, chair, table, camera, or lighting.
+
 ## Current files
 `src/world/OasisScene.ts`: scene, room GLB loader, provisional normalization, lighting, camera, requestAnimationFrame loop, WalkControls and addFurnishings.
 `src/world/WalkControls.ts`: movement/look.
