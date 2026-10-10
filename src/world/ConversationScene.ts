@@ -209,7 +209,7 @@ export class ConversationScene {
 
   start(): void {
     if (this.frame !== null) return;
-    void this.populate();
+    void this.populate().catch(error => { console.error('[Oasis] Startup failed', error); document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.3 · STARTUP FAILED')); });
     let previous = 0;
     const render = (now: number) => {
       if (this.disposed) return;
@@ -243,6 +243,7 @@ export class ConversationScene {
 
   private async model(file: string, label: string): Promise<THREE.Group | null> {
     try {
+      document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.3 · LOADING ' + label.toUpperCase()));
       const gltf = file === ASSETS.piper
         ? await this.loadMJFromParts()
         : await this.loader.loadAsync(BASE + file);
@@ -251,6 +252,7 @@ export class ConversationScene {
       return gltf.scene;
     } catch (e) {
       console.error('[Oasis] Failed to load', file, e);
+      document.querySelector('.foundation-status span:last-child')?.replaceChildren(document.createTextNode('STUDY 10.3 · FAILED ' + label.toUpperCase()));
       return null;
     }
   }
@@ -376,7 +378,7 @@ export class ConversationScene {
       this.place(piper, 1.25, 1.5494, 0.6444, -0.3, -Math.PI / 2);
     }
     document.querySelector('.foundation-status span:last-child')?.replaceChildren(
-      document.createTextNode("HALLORAN'S OASIS · STUDY 10.2 · MJ SEATED POSE · RIG REPORT REMOVED · BUILD 10.2.1")
+      document.createTextNode("HALLORAN'S OASIS · STUDY 10.3 · BUILD 10.3.0 · ROOM READY")
     );
   }
 
