@@ -2,10 +2,11 @@ import portraitUrl from '../IMG_4604.jpeg?url';
 type Point = {x:number;y:number};
 type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight';
 const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorner','lowerRight','lowerCenter','lowerLeft'];
-const defaults:Record<Key,Point>={leftCorner:{x:.425,y:.705},cupidLeft:{x:.477,y:.691},upperCenter:{x:.5,y:.692},cupidRight:{x:.524,y:.691},rightCorner:{x:.576,y:.705},lowerRight:{x:.534,y:.724},lowerCenter:{x:.5,y:.731},lowerLeft:{x:.465,y:.724}};
+// Calibrated by Josh on the original IMG_4604.jpeg; do not overwrite with estimates.
+const defaults:Record<Key,Point>={"leftCorner":{"x":0.3986245916494381,"y":0.7050609113015908},"cupidLeft":{"x":0.46311136622667515,"y":0.6756980154704966},"upperCenter":{"x":0.48169230039692007,"y":0.6873323763636608},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5942709472242101,"y":0.698966737256825},"lowerRight":{"x":0.5407141247879559,"y":0.7288836202842863},"lowerCenter":{"x":0.4991802445299247,"y":0.735531834006207},"lowerLeft":{"x":0.43578645998992793,"y":0.7316537137084856}};
 const svg=document.querySelector<SVGSVGElement>('#overlay')!;
 const output=document.querySelector<HTMLElement>('#output')!;
-const storeKey='piper-mouth-lab-01';
+const storeKey='piper-mouth-lab-02-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
