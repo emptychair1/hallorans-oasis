@@ -27,9 +27,10 @@ for(const [a,neighbors] of adjacency)for(const b of neighbors)for(const c of nei
 function bounds(points:Point[]){const x=points.map(p=>p.x),y=points.map(p=>p.y);return {minX:Math.min(...x),minY:Math.min(...y),w:Math.max(...x)-Math.min(...x),h:Math.max(...y)-Math.min(...y)};}
 function affine(a:Point,b:Point,c:Point,d:Point,e:Point,f:Point){const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);if(Math.abs(det)<1e-7)return null;const u=(e.x-d.x),v=(f.x-d.x),w=(e.y-d.y),z=(f.y-d.y);const A=(u*(c.y-a.y)-v*(b.y-a.y))/det,B=(w*(c.y-a.y)-z*(b.y-a.y))/det,C=(v*(b.x-a.x)-u*(c.x-a.x))/det,D=(z*(b.x-a.x)-w*(c.x-a.x))/det;return [A,B,C,D,d.x-A*a.x-C*a.y,d.y-B*a.x-D*a.y] as const;}
 function paint(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,overlap=0){if(!alpha)return;ctx.save();ctx.globalAlpha=alpha;for(const ids of triangles){const [i,j,k]=ids;const a=from[i],b=from[j],c=from[k],d=to[i],e=to[j],f=to[k];const matrix=affine(a,b,c,d,e,f);if(!matrix)continue;ctx.save();ctx.beginPath();const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;const expand=(p:Point)=>{const dx=p.x-mx,dy=p.y-my,len=Math.hypot(dx,dy)||1;return {x:p.x+overlap*dx/len,y:p.y+overlap*dy/len};};const da=expand(d),ea=expand(e),fa=expand(f);ctx.moveTo(da.x,da.y);ctx.lineTo(ea.x,ea.y);ctx.lineTo(fa.x,fa.y);ctx.closePath();ctx.clip();ctx.setTransform(...matrix);ctx.drawImage(source,0,0);ctx.restore();}ctx.restore();}
+let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
-const g=Number(geometry.value)/100,t=Number(texture.value)/100,f=Number(flush.value)/100;
+const g=Number(geometry.value)/100*expressionBlend,t=Number(texture.value)/100*expressionBlend,f=Number(flush.value)/100*expressionBlend;
 for(const [id,input] of [['geometry-value',geometry],['texture-value',texture],['flush-value',flush]] as const)$(id).textContent=input.value+'%';
 if(!g&&!t&&!f)return;
 const sb=bounds(src),tb=bounds(target),ratioX=sb.w/Math.max(tb.w,.001),ratioY=sb.h/Math.max(tb.h,.001);
@@ -46,18 +47,29 @@ original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>s
 
 const playButton=$<HTMLButtonElement>('play-animation'),speed=$<HTMLSelectElement>('animation-speed');
 const playable=entries.map(([path])=>path).filter(path=>Boolean(savedPresets[path.split('/').pop()||'']));
-let playing=false,animationTimer:number|undefined;
-function stopAnimation(){playing=false;window.clearTimeout(animationTimer);playButton.textContent='▶ Animate expressions';}
-function advanceAnimation(){
+let playing=false,frame=0,cycleStart=0,cycleIndex=-1;
+const ease=(x:number)=>x*x*(3-2*x);
+function stopAnimation(){playing=false;cancelAnimationFrame(frame);expressionBlend=1;playButton.textContent='▶ Animate expressions';render();}
+function nextExpression(){
+ cycleIndex=(cycleIndex+1)%playable.length;
+ select.value=playable[cycleIndex];applyPreset();loadReference();
+ cycleStart=performance.now();expressionBlend=0;render();
+}
+function animate(now:number){
  if(!playing)return;
- const index=playable.indexOf(select.value);
- select.value=playable[(index+1+playable.length)%playable.length];
- applyPreset();loadReference();
- animationTimer=window.setTimeout(advanceAnimation,Number(speed.value)+550);
+ const duration=Number(speed.value);
+ const elapsed=now-cycleStart;
+ // Rest -> expression -> hold -> rest, with the original portrait as resting.
+ const rise=duration,hold=duration*.65,fall=duration;
+ if(elapsed<rise)expressionBlend=ease(Math.min(1,elapsed/rise));
+ else if(elapsed<rise+hold)expressionBlend=1;
+ else if(elapsed<rise+hold+fall)expressionBlend=1-ease(Math.min(1,(elapsed-rise-hold)/fall));
+ else {nextExpression();frame=requestAnimationFrame(animate);return;}
+ render();frame=requestAnimationFrame(animate);
 }
 playButton.addEventListener('click',()=>{
  if(playing){stopAnimation();return;}
  if(!playable.length){status.textContent='No saved presets available';return;}
- playing=true;playButton.textContent='■ Stop animation';
- advanceAnimation();
+ playing=true;cycleIndex=playable.indexOf(select.value)-1;playButton.textContent='■ Stop animation';
+ nextExpression();frame=requestAnimationFrame(animate);
 });
