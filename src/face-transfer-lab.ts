@@ -84,7 +84,7 @@ function paintMouth(reference:Point[],destination:Point[],strength:number,w:numb
 // Full Laugh only: feather reference texture out before the upper forehead/hairline.
 const foreheadCanvas=document.createElement('canvas');
 const foreheadCtx=foreheadCanvas.getContext('2d')!;
-function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alpha:number,w:number,h:number,out:CanvasRenderingContext2D=ctx){
+function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alpha:number,w:number,h:number){
  foreheadCanvas.width=w;foreheadCanvas.height=h;
  paint(ref,reference,destination,1,0,foreheadCtx);
  // Keep the cheeks and lower face; gradually restore the original forehead.
@@ -96,7 +96,7 @@ function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alp
  grad.addColorStop(1,'rgba(0,0,0,1)');
  foreheadCtx.fillStyle=grad;foreheadCtx.fillRect(0,0,w,h);
  foreheadCtx.globalCompositeOperation='source-over';
- out.save();out.globalAlpha=alpha;out.drawImage(foreheadCanvas,0,0);out.restore();
+ ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(foreheadCanvas,0,0);ctx.restore();
 }
 // Restrict repairs to expressions that failed visual QA. Approved expressions stay untouched.
 const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json','horny.json']);
@@ -151,8 +151,6 @@ $('viseme-copy').addEventListener('click',()=>{
  const field=$<HTMLTextAreaElement>('viseme-values');field.value=data;field.select();
  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(data).catch(()=>{});
 });
-const expressionTextureCanvas=document.createElement('canvas');
-const expressionTextureCtx=expressionTextureCanvas.getContext('2d')!;
 const visemeCanvas=document.createElement('canvas'),visemeCtx=visemeCanvas.getContext('2d')!;
 const smooth=(x:number)=>{const q=Math.max(0,Math.min(1,x));return q*q*(3-2*q);};
 function paintViseme(destination:Point[],w:number,h:number){
@@ -173,29 +171,14 @@ function paintViseme(destination:Point[],w:number,h:number){
  const align=(p:Point)=>({x:sc.x+(p.x-tc.x)*scale,y:sc.y+(p.y-tc.y)*scale});
  const srcBox=(indices:number[],points:Point[])=>{const xs=indices.map(i=>points[i].x),ys=indices.map(i=>points[i].y);return {left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)};};
  const refBox=srcBox(lipIndices,target);
- // Screenshot-approved mouth-only calibration: 100% geometry and 100% reference
- // texture. Do not inherit geometry/texture percentages from the 17 expressions.
- const mouthGeometryStrength=1;
- const mouthTextureStrength=1;
- // Measure mouth size against the locked ORIGINAL, not the changing expression.
- // Expression movement is applied to the center below, leaving calibrated size stable.
- const mouth=lipIndices.map(i=>{const aligned=align(target[i]);return {
-  x:(source[i].x+(aligned.x-source[i].x)*mouthGeometryStrength)*w,
-  y:(source[i].y+(aligned.y-source[i].y)*mouthGeometryStrength)*h
- };});
+ // Keep all expression geometry outside the lips. Apply only viseme-vs-rest mouth deltas.
+ const mouth=lipIndices.map(i=>{const aligned=align(target[i]);return {x:destination[i].x+(aligned.x-source[i].x)*w,y:destination[i].y+(aligned.y-source[i].y)*h};});
  const x0=Math.min(...mouth.map(p=>p.x)),x1=Math.max(...mouth.map(p=>p.x));
  const y0=Math.min(...mouth.map(p=>p.y)),y1=Math.max(...mouth.map(p=>p.y));
  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
  const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
  const mouthScale=.85;
- // Restore the exact baseline positioning used when the five mouth screenshots
- // were approved. Move the whole calibrated mouth with the live expression.
- const originalCenterX=(source[61].x+source[291].x)*w/2;
- const liveCenterX=(destination[61].x+destination[291].x)/2;
- const originalCenterY=lipIndices.reduce((sum,i)=>sum+source[i].y*h,0)/lipIndices.length;
- const liveCenterY=lipIndices.reduce((sum,i)=>sum+destination[i].y,0)/lipIndices.length;
- const cx=originalCenterX+tune.x+(liveCenterX-originalCenterX);
- const cy=source[0].y*h-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y+(liveCenterY-originalCenterY);
+ const cx=(destination[61].x+destination[291].x)/2+tune.x,cy=destination[0].y-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y;
  visemeCanvas.width=w;visemeCanvas.height=h;
  visemeCtx.save();
  visemeCtx.translate(cx,cy);
@@ -205,12 +188,11 @@ function paintViseme(destination:Point[],w:number,h:number){
  // Soft feather restricts reference pixels to lips and immediate mouth contour.
  visemeCtx.globalCompositeOperation='destination-in';
  visemeCtx.save();visemeCtx.translate(cx,cy);visemeCtx.scale(Math.max(2,bw*.66*mouthScale*tune.width/100),Math.max(2,bh*.94*mouthScale*tune.height/100));
- const innerStop=Math.max(.08,Math.min(.94,1-tune.feather/100*.75));
- const mask=visemeCtx.createRadialGradient(0,0,innerStop,0,0,1);
+ const mask=visemeCtx.createRadialGradient(0,0,.57,0,0,1);
  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
  visemeCtx.fillStyle=mask;visemeCtx.beginPath();visemeCtx.arc(0,0,1,0,Math.PI*2);visemeCtx.fill();
  visemeCtx.restore();visemeCtx.globalCompositeOperation='source-over';
- ctx.save();ctx.globalAlpha=(calibrationPreview?1:speechAmount)*tune.blend/100*mouthTextureStrength;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
+ ctx.save();ctx.globalAlpha=(calibrationPreview?1:speechAmount)*tune.blend/100;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
 }
 function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test mapped visemes';render();}
 function animateSpeech(now:number){
@@ -258,36 +240,7 @@ if(g){
 }
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
-const speechMouthActive=calibrationPreview||speechPlaying;
-if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){
- const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));
- const forehead=foreheadRepairs.has(select.value.split('/').pop()||'');
- if(speechMouthActive){
-  // Isolate expression texture: remove its lips/teeth before compositing the scanned viseme.
-  expressionTextureCanvas.width=w;expressionTextureCanvas.height=h;
-  if(forehead)paintFeatheredForeheadTexture(reference,destination,t*.55,w,h,expressionTextureCtx);
-  else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0,expressionTextureCtx);
-  const lips=lipIndices.map(i=>destination[i]);
-  const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
-  const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
-  expressionTextureCtx.save();
-  expressionTextureCtx.globalCompositeOperation='destination-out';
-  expressionTextureCtx.translate((left+right)/2,(top+bottom)/2);
-  expressionTextureCtx.scale(Math.max(3,(right-left)*.78),Math.max(3,(bottom-top)*1.2));
-  const matte=expressionTextureCtx.createRadialGradient(0,0,.52,0,0,1);
-  matte.addColorStop(0,'#000');matte.addColorStop(1,'transparent');
-  expressionTextureCtx.fillStyle=matte;expressionTextureCtx.beginPath();
-  expressionTextureCtx.arc(0,0,1,0,Math.PI*2);expressionTextureCtx.fill();
-  expressionTextureCtx.restore();
-  ctx.drawImage(expressionTextureCanvas,0,0);
- }else{
-  // Unmodified rendering path for all approved expressions when not speaking.
-  if(forehead)paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);
-  else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);
-  if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);
-  else paintMouth(reference,destination,expressionBlend,w,h);
- }
-}
+if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(select.value.split('/').pop()||''))paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 paintViseme(destination,w,h);
 }
