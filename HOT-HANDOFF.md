@@ -1,3 +1,8 @@
+## 2026-10-11 · MOUTH LAB BITE 05
+- User supplied piper-mouth-landmarks(1).json, version 2, image IMG_4604.jpeg. Six inner calibration coordinates from user locked as defaults: upperInner (.4844248013743109,.6995207244531921), lowerInner (.49152926250066264,.7111550853463564), upperInnerLeft (.4461699429965808,.6995207244531921), upperInnerRight (.5226796597520409,.6967506310289929), lowerInnerLeft (.46529734630115566,.7089390315993122), lowerInnerRight (.5407141247879559,.7039528844280686). Eight original outer defaults unchanged.
+- Commits: 913853d calibration; 3556efa Bite 05 HTML slider; 045d277 experimental SVG clipped photo region translated downward with dark opening and anchored upper edge. Storage key changed to piper-mouth-lab-05-calibrated to avoid prior saved coordinates overriding approved defaults.
+- Important: visual prototype only, no claim of photorealism or verified Cloudflare deployment. Test npm run build and page on iPhone. Oasis main screen and voice untouched. Potential visual seams/clip artifacts need user feedback before refinements.
+
 ## 2026-10-11 · CONFIRMED BUILD FAILURE FIX
 - Josh supplied Cloudflare build log: npm run build -> tsc && vite build failed with TS18047 patchCtx possibly null at lines 50,57,60,61,63,64,66,67 of src/mouth-lab.ts. This explains why new builds did not deploy; prior SVG image theory was not established.
 - Commit 2cf9724 removes ALL obsolete Bite 03 canvas warp and dark aperture code, unused patchCtx and opening slider handler. Bite 04 is calibration-only with HTML portrait + 14 draggable markers. Export JSON version 2.
