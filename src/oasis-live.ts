@@ -25,3 +25,11 @@ const refresh=()=>{
 timing.addEventListener('input',refresh);
 smooth.addEventListener('input',refresh);
 panel.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',()=>{timing.value='0';smooth.value='45';refresh();});
+
+const expressionControls=document.createElement('div');
+expressionControls.style.cssText='position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%);z-index:100001;display:flex;gap:8px';
+expressionControls.innerHTML='<button type="button" data-expression="neutral">Neutral</button><button type="button" data-expression="smile">Smile</button>';
+document.body.append(expressionControls);
+expressionControls.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.addEventListener('click',()=>{
+ frame.contentWindow?.postMessage({type:'piper-expression',expression:button.dataset.expression},location.origin);
+}));

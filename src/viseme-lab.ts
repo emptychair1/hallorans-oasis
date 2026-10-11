@@ -139,7 +139,23 @@ const spokenWords=[
  {start:27,shapes:['oo','rest'] as Viseme[],duration:400}
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
-const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
+const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!
+import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
+const originalExpressionPhoto=new Image();originalExpressionPhoto.src=portraitUrl;
+const expressionCanvas=document.createElement('canvas');
+const expressionCtx=expressionCanvas.getContext('2d');
+let liveExpression:'neutral'|'smile'='neutral',lastLiveShape='rest';
+const approvedSmile=approvedExpressions.find(e=>e.filename==='smile.json');
+const smileReference=new Image();if(approvedSmile)smileReference.src=approvedSmile.photoUrl;
+function showLiveExpression(){
+ if(!new URLSearchParams(location.search).has('live')||lastLiveShape!=='rest')return;
+ if(liveExpression==='neutral'||!approvedSmile||!expressionCtx||!originalExpressionPhoto.complete||!smileReference.complete||!smileReference.naturalWidth){facePhoto.src=portraitUrl;return;}
+ const result=drawCalibratedFace(expressionCtx,originalExpressionPhoto,smileReference,approvedSmile.map,approvedSmile.filename,approvedSmile.preset);
+ if(result)facePhoto.src=expressionCanvas.toDataURL('image/png');
+}
+originalExpressionPhoto.addEventListener('load',showLiveExpression);
+smileReference.addEventListener('load',showLiveExpression);
+;
 function setSpeechShape(next:Viseme){
  // One complete photographic face per viseme, never a second mouth overlay.
  viseme=next;
@@ -202,11 +218,13 @@ if(new URLSearchParams(location.search).has('live')){
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
+  if(d?.type==='piper-expression'){const expression=(event.data as {expression?:string}).expression;if(expression==='smile'||expression==='neutral'){liveExpression=expression;showLiveExpression();}return;}
   if(d?.type==='piper-viseme'){
    const shape=(event.data as {shape?:string}).shape||'rest';
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
    if(shape===last)return;
-   last=shape;
+   last=shape;lastLiveShape=shape;
+   if(shape==='rest'&&liveExpression==='smile'){showLiveExpression();return;}
    if(shape==='fv')facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
    else setSpeechShape(shape as Viseme);
   }
