@@ -23,7 +23,6 @@ export default defineConfig({
       }
       return html.replaceAll('__OASIS_VERSION_LABEL__', `V9.${12 + (commits as number)} · EXPRESSION HOLD`);
     }
-    }
   }, {
     name: 'ensure-mediapipe-assets',
     async buildStart() {
