@@ -215,13 +215,15 @@ if(new URLSearchParams(location.search).has('live')){
   const index=Math.min(words.length-1,Math.floor(Math.max(0,Math.min(.999,(Number(d.elapsed)||0)/duration))*words.length));
   const word=(words[index]||'').toLowerCase();
   let shape='rest';
-  if(level>=.045){
+  if(words.length){
    if(/^[mbp]/.test(word))shape='mbp';
    else if(/^[fv]/.test(word))shape='fv';
    else if(/oo|ou|ow|u/.test(word))shape='oo';
    else if(/ee|ea|ey|ie|i/.test(word))shape='ee';
    else shape='ah';
   }
+  const phase=((Number(d.elapsed)||0)*7)%1;
+  if(phase>.78 && shape!=='rest')shape='mbp';
   if(shape===previous)return;
   previous=shape;
   if(shape==='fv'){
