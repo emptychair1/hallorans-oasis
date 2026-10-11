@@ -213,6 +213,6 @@ if(new URLSearchParams(location.search).has('live')){
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
   if(d?.type==='piper-speech-level')update(Number(d.level)||0);
-  if(d?.type==='piper-speech-timing'&&d.type==='stop')update(0);
+  // Speech completion also sends a zero audio level from the parent.
  });
 }
