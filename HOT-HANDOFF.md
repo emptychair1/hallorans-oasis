@@ -1,3 +1,10 @@
+## 2026-10-10 · PIPER MOUTH LAB · BITES 01–02
+- Repository: emptychair1/hallorans-oasis, main. Production Oasis at https://hallorans-oasis.daniels-joshua100.workers.dev/ . Exact approved portrait IMG_4604.jpeg and existing voice were confirmed working by Josh; DO NOT disturb either.
+- Separate page /mouth-lab.html, src/mouth-lab.ts, built via Vite multi-page input. Bite 01: zoomed mouth portrait, draggable touch markers, 8 normalized lip coordinates, local persistence and JSON export. Initial drag/zoom bug corrected.
+- Josh supplied hand-calibrated JSON. Canonical landmarks: leftCorner (0.3986245916494381,0.7050609113015908); cupidLeft (0.46311136622667515,0.6756980154704966); upperCenter (0.48169230039692007,0.6873323763636608); cupidRight (0.5101101966709075,0.6668337480015316); rightCorner (0.5942709472242101,0.698966737256825); lowerRight (0.5407141247879559,0.7288836202842863); lowerCenter (0.4991802445299247,0.735531834006207); lowerLeft (0.43578645998992793,0.7316537137084856). Saved as defaults in commit ea09f02; new storage key isolates prior estimates.
+- Bite 02: manual 0–100% mouth opening slider, simple SVG dark aperture, hide/show landmark markers. Commit b6be674. This is geometry-only, NOT photorealistic mouth animation or phoneme synchronization. No changes to Oasis voice/main screen.
+- Important: GitHub commits DO NOT verify Cloudflare deployment. Bite 02 build/live interaction still unverified. Next: test slider visually on iPhone; correct geometry and eventually build realistic lip/inner-mouth rendering. User expects continuity docs updated after EVERY bite, not only occasionally.
+
 ## Piper Mouth Lab Bite 01 (2026-10-10)
 - User confirmed exact IMG_4604.jpeg portrait appears in live Oasis and existing voice works. Portrait root file is imported by src/main.ts using Vite ?url.
 - Built separate /mouth-lab.html and src/mouth-lab.ts, multi-page Vite input in vite.config.ts. Exact portrait is imported, eight draggable normalized lip landmarks, localStorage persistence, reset, copy JSON and download JSON. Initial landmark coordinates are estimates, NOT calibrated; user should drag to actual features.
