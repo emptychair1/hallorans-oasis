@@ -252,7 +252,7 @@ export class OasisPiperVoice {
         const shape=rms<.012?'rest':hiss>high*1.5?'fv':high>low*1.3?'ee':low>mid*1.4?'oo':mid>low*.85?'ah':'mbp';
         if(alignment){
           const cue=alignment.getFrame(Math.max(0,(this.context?.currentTime||0)-speechStartedAt+this.lipOffset)).visemeId;
-          const mapped=cue==='SILENT'?'rest':cue==='CLOSED'?'mbp':cue==='FRICATIVE'?'fv':cue==='ROUND'?'oo':cue==='OPEN'?'ah':'ee';
+          const mapped: string = ({SILENT:'rest',CLOSED:'mbp',FRICATIVE:'fv',ROUND:'oo',OPEN:'ah',WIDE:'ee'} as Record<string,string>)[cue] ?? 'rest';
           const now=performance.now();
           if(mapped!==this.lastLip&&(mapped==='rest'||now-this.lastLipAt>=this.lipHold)){
             this.lastLip=mapped;this.lastLipAt=now;this.onViseme(mapped);
