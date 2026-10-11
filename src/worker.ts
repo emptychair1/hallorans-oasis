@@ -136,30 +136,57 @@ async function proxyVoice(request: Request, endpoint: 'piper-transcribe' | 'pipe
 
 // Fast local director: facial expressions must never wait on a second model call.
 type ExpressionCue = {at:number;expression:string};
-function expressionForText(text:string):string {
- const t=text.toLowerCase();
- const rules:[string,RegExp,number][]=[
-  ['sad',/\b(sorry|grief|grieving|miss you|miss someone|lonely|heartbreak|heartbroken|sad|hurt|painful|lost someone|loss|crying|tears)\b/g,3],
-  ['surprised',/\b(wow|what\?!|unbelievable|no way|shocked|surprised|unexpected|seriously\?|really\?!)\b/g,3],
-  ['excited',/\b(amazing|wonderful|fantastic|incredible|excited|celebrate|congratulations|great news|so happy|thrilled)\b/g,3],
-  ['full-laugh',/\b(hahaha|ahahaha|laughing|hilarious|cracking up)\b/g,4],
-  ['thinking',/\b(think|thinking|consider|wonder|perhaps|maybe|question|interesting|complex|depends|possibility|reflect)\b/g,2],
-  ['flirt',/\b(flirting|flirt|darling|sweetheart|kiss|blush)\b/g,2],
-  ['smile',/\b(love|glad|happy|lovely|sweet|beautiful|proud|delighted|smile|good news|thank you)\b/g,2],
-  ['mad',/\b(angry|furious|outrageous|infuriating|unacceptable)\b/g,3]
- ];
- let best='neutral',score=0;
- for(const [name,re,weight] of rules){const hits=t.match(re)?.length||0;const n=Math.min(3,hits)*weight;if(n>score){score=n;best=name;}}
+type Mood = 'neutral'|'thinking'|'surprised'|'excited'|'full-laugh'|'smile'|'full-smile'|'sad'|'sad2'|'mad'|'flirt'|'wanting'|'flush'|'horny'|'mischievous'|'embarrassed2'|'smile2';
+const moodRules: {mood:Mood;pattern:RegExp;weight:number}[] = [
+ {mood:'horny',pattern:/\b(aroused|turned on|desire you|want you badly|can't keep my hands off|sexual tension|heated|lust|intimate|seduc(?:e|ing|tion))\b/gi,weight:6},
+ {mood:'wanting',pattern:/\b(longing|yearn(?:ing)?|craving|wish you were here|want to be close|miss your touch|need you close)\b/gi,weight:6},
+ {mood:'flirt',pattern:/\b(flirt(?:ing|atious)?|teas(?:e|ing)|come closer|come here|kiss(?:ing)?|darling|sweetheart|baby|gutter|wink|date night|little black dress)\b/gi,weight:4},
+ {mood:'flush',pattern:/\b(blush(?:ing)?|flustered|making me blush|cheeks (?:are )?(?:red|warm)|shy around you)\b/gi,weight:7},
+ {mood:'mischievous',pattern:/\b(troublemaker|cheeky|dare you|caught you|naughty|playful|sly|wicked grin)\b/gi,weight:5},
+ {mood:'embarrassed2',pattern:/\b(embarrassed|mortified|awkward|oops|caught me)\b/gi,weight:5},
+ {mood:'sad',pattern:/\b(grief|grieving|heartbroken|sad|lonely|loss|crying|tears|mourning|devastated)\b/gi,weight:6},
+ {mood:'sad2',pattern:/\b(i'm sorry|that hurts|miss someone|painful|hard time)\b/gi,weight:5},
+ {mood:'mad',pattern:/\b(furious|angry|outrageous|infuriating|unacceptable)\b/gi,weight:6},
+ {mood:'surprised',pattern:/\b(wow|unbelievable|no way|shocked|surprised|unexpected|what a surprise)\b/gi,weight:5},
+ {mood:'excited',pattern:/\b(amazing|wonderful|fantastic|incredible|excited|celebrate|congratulations|thrilled|great news)\b/gi,weight:5},
+ {mood:'full-laugh',pattern:/\b(hahaha|ahahaha|hilarious|cracking up|burst out laughing)\b/gi,weight:6},
+ {mood:'full-smile',pattern:/\b(so happy|overjoyed|delighted|beaming|big smile)\b/gi,weight:5},
+ {mood:'smile',pattern:/\b(love|glad|happy|lovely|sweet|beautiful|proud|thank you|smile)\b/gi,weight:3},
+ {mood:'thinking',pattern:/\b(let me think|consider the possibilities|on the other hand|it depends|complex question|perhaps|reasoning|analyze|reflect on)\b/gi,weight:4}
+];
+function moodScores(text:string):Map<Mood,number>{
+ const scores=new Map<Mood,number>();
+ for(const rule of moodRules){const hits=text.match(rule.pattern)?.length||0;if(hits)scores.set(rule.mood,(scores.get(rule.mood)||0)+Math.min(3,hits)*rule.weight);}
+ return scores;
+}
+function strongestMood(scores:Map<Mood,number>,fallback:Mood='neutral'):Mood{
+ let best=fallback,top=0;
+ for(const [mood,score] of scores){if(score>top){best=mood;top=score;}}
  return best;
 }
 function directExpressionCues(reply:string,context:string):ExpressionCue[]{
- const parts=reply.match(/[^.!?\n]+[.!?]*/g)?.map(s=>s.trim()).filter(Boolean)||[reply];
+ const recent=context.slice(-1300);
+ const contextScores=moodScores(recent);
+ const replyScores=moodScores(reply);
+ // A sustained relational tone can guide ambiguous sentences, but the reply remains primary.
+ const romantic:Mood[]=['flirt','wanting','flush','horny','mischievous'];
+ const romanticContext=strongestMood(new Map([...contextScores].filter(([m])=>romantic.includes(m))));
+ const primary=strongestMood(replyScores,romanticContext==='neutral'?'neutral':romanticContext);
+ const parts=reply.match(/[^.!?\n]+[.!?]*/g)?.map(x=>x.trim()).filter(Boolean)||[reply];
  const total=parts.reduce((n,p)=>n+p.length,0)||1;
  let offset=0;
  const cues:ExpressionCue[]=[];
- for(const part of parts){const at=offset/total;const expression=expressionForText(part);if(!cues.length||cues[cues.length-1].expression!==expression){cues.push({at,expression});}offset+=part.length;}
- if(cues.length===1&&cues[0].expression==='neutral'){const fromContext=expressionForText(context);if(fromContext!=='neutral')cues[0].expression=fromContext;}
- const selected=cues.filter((cue,i)=>i===0||cue.expression!=='neutral'||i===cues.length-1).slice(0,4);
+ for(const part of parts){
+  const scores=moodScores(part);
+  let mood=strongestMood(scores,primary);
+  // Common affectionate words must not override a stronger romantic or emotional scene.
+  if(romantic.includes(primary)&&['smile','thinking','neutral'].includes(mood))mood=primary;
+  const at=offset/total;
+  if(!cues.length||cues[cues.length-1].expression!==mood)cues.push({at,expression:mood});
+  offset+=part.length;
+ }
+ // Keep the opening beat and up to three meaningful changes; don't reset on empty sentences.
+ const selected=cues.filter((cue,i)=>i===0||cue.expression!=='neutral').slice(0,4);
  if(!selected.length)return [{at:0,expression:'neutral'}];
  selected[0].at=0;
  return selected;
