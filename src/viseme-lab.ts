@@ -139,7 +139,7 @@ const spokenWords=[
  {start:27,shapes:['oo','rest'] as Viseme[],duration:400}
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
-const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!
+const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
 import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
 const originalExpressionPhoto=new Image();originalExpressionPhoto.src=portraitUrl;
 const expressionCanvas=document.createElement('canvas');
@@ -224,7 +224,7 @@ if(new URLSearchParams(location.search).has('live')){
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
    if(shape===last)return;
    last=shape;lastLiveShape=shape;
-   if(shape==='rest'&&liveExpression==='smile'){showLiveExpression();return;}
+   if(shape==='rest'){showLiveExpression();return;}
    if(shape==='fv')facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
    else setSpeechShape(shape as Viseme);
   }

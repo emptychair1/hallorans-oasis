@@ -207,7 +207,7 @@ export class OasisPiperVoice {
       const expression = /😳|😮|😲|\*(?:gasps|looks surprised)\*/i.test(reply) ? 'surprise'
         : /😉|\*(?:winks?|blinks?)\*/i.test(reply) ? 'blink'
         : /😏|😂|🤣|😊|🥰|❤️|\*(?:smirks?|smiles?|grins?|laughs?)\*/i.test(reply) ? 'smile' : 'neutral';
-      this.onExpression(expression);
+      this.onExpression('neutral');
       this.setState('speaking', 'Piper is speaking…');
       const speech = await fetch('/api/oasis/speak-fast', {
         method: 'POST',
@@ -266,6 +266,7 @@ export class OasisPiperVoice {
           this.activeSource = null;
           this.onSpeechTiming({type:'stop'});
           this.resetSpeechAnimation();
+          if(this.wanted && generation===this.generation){this.onExpression(expression);window.setTimeout(()=>{if(this.wanted && generation===this.generation && !this.activeSource)this.onExpression('neutral');},1800);}
         }
         if (this.wanted && generation === this.generation) {
           this.busy = false;
