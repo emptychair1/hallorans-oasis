@@ -3,13 +3,10 @@ type Point = {x:number;y:number};
 type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight'|'upperInner'|'lowerInner'|'upperInnerLeft'|'upperInnerRight'|'lowerInnerLeft'|'lowerInnerRight';
 const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorner','lowerRight','lowerCenter','lowerLeft','upperInner','lowerInner','upperInnerLeft','upperInnerRight','lowerInnerLeft','lowerInnerRight'];
 // Calibrated by Josh on the original IMG_4604.jpeg; do not overwrite with estimates.
-const defaults = {"leftCorner":{"x":0.3986245916494381,"y":0.7050609113015908},"cupidLeft":{"x":0.46311136622667515,"y":0.6756980154704966},"upperCenter":{"x":0.48169230039692007,"y":0.6873323763636608},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5942709472242101,"y":0.698966737256825},"lowerRight":{"x":0.5407141247879559,"y":0.7288836202842863},"lowerCenter":{"x":0.4991802445299247,"y":0.735531834006207},"lowerLeft":{"x":0.43578645998992793,"y":0.7316537137084856}} as Record<Key,Point>;
+const defaults = {"leftCorner":[0.39844241801513464,0.7019215105734092],"cupidLeft":[0.4549139150630831,0.6668338004823194],"upperCenter":[0.48132795312831317,0.680684215122528],"cupidRight":[0.5101101966709075,0.6668337480015316],"rightCorner":[0.5924492626497562,0.7009981635922722],"lowerRight":[0.5505510868916985,0.7499362883235705],"lowerCenter":[0.4877037714860316,0.7674801433691154],"lowerLeft":[0.4184806894912267,0.7407026610698355],"upperInner":[0.47404131836765795,0.7019215105734092],"lowerInner":[0.5031879091788591,0.7093083913840821],"upperInnerLeft":[0.4461699429965808,0.6995207244531921],"upperInnerRight":[0.5226796597520409,0.6967506310289929],"lowerInnerLeft":[0.48588213868015795,0.7157719252136178],"lowerInnerRight":[0.5204936796775604,0.7120784848082814]} as unknown as Record<Key,Point>;
 const svg=document.querySelector<SVGSVGElement>('#overlay')!;
 const output=document.querySelector<HTMLElement>('#output')!;
-defaults.upperInner={x:0.4844248013743109,y:0.6995207244531921};defaults.lowerInner={x:0.49152926250066264,y:0.7111550853463564};
-defaults.upperInnerLeft={x:0.4461699429965808,y:0.6995207244531921};defaults.upperInnerRight={x:0.5226796597520409,y:0.6967506310289929};
-defaults.lowerInnerLeft={x:0.46529734630115566,y:0.7089390315993122};defaults.lowerInnerRight={x:0.5407141247879559,y:0.7039528844280686};
-const storeKey='piper-viseme-lab-01-calibrated';
+const storeKey='piper-viseme-lab-12-corrected-calibration';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=1,active:Key|null=null,w=1000,h=1000;
