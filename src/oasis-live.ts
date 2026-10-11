@@ -3,10 +3,11 @@ import { OasisPiperVoice } from './OasisPiperVoice';
 const frame=document.querySelector<HTMLIFrameElement>('#portrait')!;
 const expressionDiagnostic=document.createElement('div');
 expressionDiagnostic.style.cssText='position:fixed;top:8px;left:8px;z-index:100002;background:#171717e8;color:#fff;padding:6px 9px;border:1px solid #9b8265;border-radius:6px;font:12px system-ui;pointer-events:none';
-expressionDiagnostic.textContent='Expression · selected: waiting | applied: neutral';
+expressionDiagnostic.textContent='Expression · status: idle | selected: waiting | applied: neutral';
 document.body.append(expressionDiagnostic);
-let selectedExpression='waiting',appliedExpression='neutral';
-const updateExpressionDiagnostic=()=>{expressionDiagnostic.textContent=`Expression · selected: ${selectedExpression} | applied: ${appliedExpression}`;};
+let selectedExpression='waiting',appliedExpression='neutral',expressionStatus='idle';
+const updateExpressionDiagnostic=()=>{expressionDiagnostic.textContent=`Expression · status: ${expressionStatus} | selected: ${selectedExpression} | applied: ${appliedExpression}`;};
+window.addEventListener('oasis-expression-status',(event)=>{expressionStatus=(event as CustomEvent<{status:string}>).detail.status;updateExpressionDiagnostic();});
 window.addEventListener('oasis-expression-selected',(event)=>{selectedExpression=(event as CustomEvent<{expression:string}>).detail.expression;updateExpressionDiagnostic();});
 const voice=new OasisPiperVoice(
  level=>frame.contentWindow?.postMessage({type:'piper-speech-level',level},location.origin),
