@@ -198,6 +198,7 @@ speakButton.addEventListener('click',()=>{
 // Live Oasis: use the original audio-level signal with approved full-face photos.
 if(new URLSearchParams(location.search).has('live')){
  let last='rest';
+ let changedAt=0;
  const update=(level:number)=>{
   const n=Math.max(0,Math.min(1,level));
   const shape=n<.045?'rest':n<.16?'mbp':n<.32?'oo':n<.55?'ee':n<.78?'ah':'fv';
@@ -212,7 +213,14 @@ if(new URLSearchParams(location.search).has('live')){
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
-  if(d?.type==='piper-speech-level')update(Number(d.level)||0);
+  if(d?.type==='piper-viseme'){
+   const shape=(event.data as {shape?:string}).shape||'rest';
+   if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
+   if(shape===last || (shape!=='rest' && performance.now()-changedAt<90))return;
+   changedAt=performance.now();last=shape;
+   if(shape==='fv')facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
+   else setSpeechShape(shape as Viseme);
+  }
   // Speech completion also sends a zero audio level from the parent.
  });
 }
