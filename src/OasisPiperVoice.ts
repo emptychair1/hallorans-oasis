@@ -6,7 +6,9 @@ const SESSION_CONTEXT = 'home-ephemeral-session-v1';
 const VOICE_STYLE = 'Voice mode: speak naturally in plain spoken sentences. Do not write stage directions, asterisk actions, facial-expression narration, emoji, or emoji names. Convey emotion through your words, not descriptions of gestures.';
 function spokenText(reply:string):string {
  return reply
+  .replace(/\*\*[^*\n]{1,160}\*\*/g,' ')
   .replace(/\*[^*\n]{1,120}\*/g,' ')
+  .replace(/(?:^|[.!?]\s+)(?:laughing|sparkling eyes|eyes wide|smiling|grinning|blushing|gasping|sighing)(?=\s*[.!?]|$)/gi,' ')
   .replace(/\[[^\]\n]{1,100}(?:smil|laugh|wink|blush|nod|sigh|gasp|expression|emoji)[^\]\n]*\]/gi,' ')
   .replace(/:[a-z][a-z0-9_+-]{2,40}:/gi,' ')
   .replace(/[\p{Extended_Pictographic}\uFE0F\u200D\u{1F3FB}-\u{1F3FF}]/gu,'')
@@ -252,7 +254,7 @@ export class OasisPiperVoice {
       let speechStartedAt=0;
       let expressionCues:ExpressionCue[]=[];
       let nextExpressionCue=0;
-      void expressionDecision.then(cues=>{if(!this.wanted||generation!==this.generation||this.activeSource!==source)return;expressionCues=cues;nextExpressionCue=0;});
+      void expressionDecision.then(cues=>{if(!this.wanted||generation!==this.generation||this.activeSource!==source)return;expressionCues=cues;const elapsed=Math.max(0,(this.context?.currentTime||0)-speechStartedAt);while(nextExpressionCue<expressionCues.length&&elapsed>=expressionCues[nextExpressionCue].at*audioBuffer.duration)nextExpressionCue++;const active=expressionCues[Math.max(0,nextExpressionCue-1)];if(active)this.onExpression(active.expression);});
       const animateSpeech = () => {
         if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
         speechAnalyser.getFloatTimeDomainData(samples);
