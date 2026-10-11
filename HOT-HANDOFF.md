@@ -1,3 +1,10 @@
+## 2026-10-10 · PIPER MOUTH LAB BITE 03
+- Josh confirmed Bite 02 slider mechanically works but looks unrealistic. Bite 03 changes the isolated /mouth-lab.html only, NOT main Oasis or voice.
+- src/mouth-lab.ts now uses Canvas 2D strips to warp photo pixels from lower lip/chin region, feathering horizontal/vertical edges, composited over smaller provisional dark mouth aperture. This is a preliminary pixel warp, not photorealistic mouth interior or speech lip sync. User must visually evaluate on iPhone.
+- Commits: 90f3102 (warp), d473b78 (page label). GitHub commit is not proof of Cloudflare deployment. No live verification yet.
+- Canonical 8 landmarks remain from user-provided JSON and must be preserved. Next work depends on user visual feedback.
+- Continuity rule: update Oasis and central hot handoffs after every implementation bite; don't assert other docs updated unless done.
+
 ## 2026-10-10 · PIPER MOUTH LAB · BITES 01–02
 - Repository: emptychair1/hallorans-oasis, main. Production Oasis at https://hallorans-oasis.daniels-joshua100.workers.dev/ . Exact approved portrait IMG_4604.jpeg and existing voice were confirmed working by Josh; DO NOT disturb either.
 - Separate page /mouth-lab.html, src/mouth-lab.ts, built via Vite multi-page input. Bite 01: zoomed mouth portrait, draggable touch markers, 8 normalized lip coordinates, local persistence and JSON export. Initial drag/zoom bug corrected.
