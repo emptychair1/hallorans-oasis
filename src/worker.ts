@@ -134,27 +134,47 @@ async function proxyVoice(request: Request, endpoint: 'piper-transcribe' | 'pipe
 }
 
 
+// Fast local director: facial expressions must never wait on a second model call.
 const EXPRESSION_CHOICES = ["wanting","thinking","surprised","smile2","smile","sad2","sad","neutral","mischievous","mad","horny","full-smile","full-laugh","flush","flirt","excited","embarrassed2"];
+type ExpressionCue = {at:number;expression:string};
+function expressionForText(text:string):string {
+ const t=text.toLowerCase();
+ const rules:[string,RegExp,number][]=[
+  ['sad',/\b(sorry|grief|grieving|miss you|miss someone|lonely|heartbreak|heartbroken|sad|hurt|painful|lost someone|loss|crying|tears)\b/g,3],
+  ['surprised',/\b(wow|what\?!|unbelievable|no way|shocked|surprised|unexpected|seriously\?|really\?!)\b/g,3],
+  ['excited',/\b(amazing|wonderful|fantastic|incredible|excited|celebrate|congratulations|great news|so happy|thrilled)\b/g,3],
+  ['full-laugh',/\b(hahaha|ahahaha|laughing|hilarious|cracking up)\b/g,4],
+  ['thinking',/\b(think|thinking|consider|wonder|perhaps|maybe|question|interesting|complex|depends|possibility|reflect)\b/g,2],
+  ['flirt',/\b(flirting|flirt|darling|sweetheart|kiss|blush)\b/g,2],
+  ['smile',/\b(love|glad|happy|lovely|sweet|beautiful|proud|delighted|smile|good news|thank you)\b/g,2],
+  ['mad',/\b(angry|furious|outrageous|infuriating|unacceptable)\b/g,3]
+ ];
+ let best='neutral',score=0;
+ for(const [name,re,weight] of rules){const hits=t.match(re)?.length||0;const n=Math.min(3,hits)*weight;if(n>score){score=n;best=name;}}
+ return best;
+}
+function directExpressionCues(reply:string,context:string):ExpressionCue[]{
+ const parts=reply.match(/[^.!?\n]+[.!?]*/g)?.map(s=>s.trim()).filter(Boolean)||[reply];
+ const total=parts.reduce((n,p)=>n+p.length,0)||1;
+ let offset=0;
+ const cues:ExpressionCue[]=[];
+ for(const part of parts){const at=offset/total;const expression=expressionForText(part);if(!cues.length||cues[cues.length-1].expression!==expression){cues.push({at,expression});}offset+=part.length;}
+ if(cues.length===1&&cues[0].expression==='neutral'){const fromContext=expressionForText(context);if(fromContext!=='neutral')cues[0].expression=fromContext;}
+ const selected=cues.filter((cue,i)=>i===0||cue.expression!=='neutral'||i===cues.length-1).slice(0,4);
+ if(!selected.length)return [{at:0,expression:'neutral'}];
+ selected[0].at=0;
+ return selected;
+}
 async function classifyExpression(request:Request):Promise<Response>{
  if(request.method!=='POST')return jsonError('Method not allowed',405);
  if(!sameOrigin(request))return jsonError('Same-origin request required',403);
  let body:{conversation?:unknown;reply?:unknown};
  try{const raw=await request.text();if(raw.length>16000)return jsonError('Too large',413);body=JSON.parse(raw);}catch{return jsonError('Invalid JSON',400);}
  const reply=typeof body.reply==='string'?body.reply.slice(0,2500):'';
- const context=Array.isArray(body.conversation)?body.conversation.filter((m):m is {role:string;content:string}=>!!m&&typeof m==='object'&&typeof m.role==='string'&&typeof m.content==='string').slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1000)})):[];
  if(!reply)return jsonError('Reply required',400);
- const instruction='You are a silent facial-expression director for a talking portrait. Infer the emotional intent of the assistant reply in the context of the conversation, using stage directions (such as **laughing** or **eyes wide**) as emotional cues without treating them as dialogue. Choose up to FOUR emotional beats across the assistant reply from: '+EXPRESSION_CHOICES.join(', ')+'. Split by meaningful phrase or sentence transitions, not every punctuation mark. Return ONLY compact JSON: {"cues":[{"at":0,"expression":"smile"},{"at":0.5,"expression":"thinking"}]}. The at value is a fraction from 0 to 1 of the spoken reply progression; first cue must be at 0, remaining cues increasing. Avoid needless switches. Prefer neutral if ambiguous.\nConversation: '+JSON.stringify(context)+'\nAssistant reply: '+JSON.stringify(reply);
- try{
-  const upstream=await fetch(PIPER_HOME_ORIGIN+'/api/chat',{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({messages:[{role:'user',content:instruction}],current_session_messages:[{role:'user',content:instruction}],session_context:'oasis-expression-classifier-v1',input_mode:'text',stream:false})});
-  if(!upstream.ok)return Response.json({expression:'neutral',fallback:true},{headers:{'cache-control':'no-store'}});
-  const result=await upstream.json() as {reply?:string;response?:string;text?:string};
-  const raw=String(result.reply||result.response||result.text||'').trim();
-  let cues:{at:number;expression:string}[]=[];
-  try{const match=raw.match(/\{[\s\S]*\}/);const parsed=JSON.parse(match?.[0]||raw) as {cues?:unknown};if(Array.isArray(parsed.cues)){cues=parsed.cues.slice(0,4).filter((cue):cue is {at:number;expression:string}=>!!cue&&typeof cue.at==='number'&&Number.isFinite(cue.at)&&cue.at>=0&&cue.at<=1&&typeof cue.expression==='string'&&EXPRESSION_CHOICES.includes(cue.expression)).sort((a,b)=>a.at-b.at);}}catch{/* legacy single-expression fallback */}
-  if(!cues.length){const single=raw.toLowerCase().replace(/[`"'*.]/g,'');cues=[{at:0,expression:EXPRESSION_CHOICES.includes(single)?single:'neutral'}];}
-  if(cues[0].at!==0)cues.unshift({at:0,expression:cues[0].expression});
-  return Response.json({expression:cues[0].expression,cues},{headers:{'cache-control':'no-store'}});
- }catch{return Response.json({expression:'neutral',fallback:true},{headers:{'cache-control':'no-store'}});}
+ const conversation=Array.isArray(body.conversation)?body.conversation.slice(-4).filter((m):m is {role:string;content:string}=>!!m&&typeof m==='object'&&typeof m.role==='string'&&typeof m.content==='string').map(m=>m.content.slice(0,500)).join(' '):'';
+ const cues=directExpressionCues(reply,conversation);
+ return Response.json({expression:cues[0].expression,cues,fallback:false,source:'local-director'},{headers:{'cache-control':'no-store'}});
 }
 
 export default {
