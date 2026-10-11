@@ -178,7 +178,10 @@ function paintViseme(destination:Point[],w:number,h:number){
  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
  const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
  const mouthScale=.85;
- const cx=(destination[61].x+destination[291].x)/2+tune.x,cy=destination[0].y-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y;
+ const cx=(destination[61].x+destination[291].x)/2+tune.x;
+ const originalLipY=lipIndices.reduce((sum,i)=>sum+source[i].y*h,0)/lipIndices.length;
+ const activeLipY=lipIndices.reduce((sum,i)=>sum+destination[i].y,0)/lipIndices.length;
+ const cy=source[0].y*h-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y+(activeLipY-originalLipY);
  visemeCanvas.width=w;visemeCanvas.height=h;
  visemeCtx.save();
  visemeCtx.translate(cx,cy);
@@ -188,7 +191,8 @@ function paintViseme(destination:Point[],w:number,h:number){
  // Soft feather restricts reference pixels to lips and immediate mouth contour.
  visemeCtx.globalCompositeOperation='destination-in';
  visemeCtx.save();visemeCtx.translate(cx,cy);visemeCtx.scale(Math.max(2,bw*.66*mouthScale*tune.width/100),Math.max(2,bh*.94*mouthScale*tune.height/100));
- const mask=visemeCtx.createRadialGradient(0,0,.57,0,0,1);
+ const innerStop=Math.max(.08,Math.min(.94,1-tune.feather/100*.75));
+ const mask=visemeCtx.createRadialGradient(0,0,innerStop,0,0,1);
  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
  visemeCtx.fillStyle=mask;visemeCtx.beginPath();visemeCtx.arc(0,0,1,0,Math.PI*2);visemeCtx.fill();
  visemeCtx.restore();visemeCtx.globalCompositeOperation='source-over';
