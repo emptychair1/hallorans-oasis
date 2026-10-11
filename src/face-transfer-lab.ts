@@ -97,8 +97,8 @@ function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alp
  ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(foreheadCanvas,0,0);ctx.restore();
 }
 // Restrict repairs to expressions that failed visual QA. Approved expressions stay untouched.
-const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json']);
-const foreheadRepairs=new Set(['full-laugh.json','flush.json','thinking.json']);
+const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json','horny.json']);
+const foreheadRepairs=new Set(['full-laugh.json','flush.json','thinking.json','horny.json']);
 let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
