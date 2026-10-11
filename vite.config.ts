@@ -1,6 +1,32 @@
 import { defineConfig } from 'vite';
+import { readdir, mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export default defineConfig({
+  plugins: [{
+    name: 'ensure-mediapipe-assets',
+    async buildStart() {
+      const from = 'node_modules/@mediapipe/tasks-vision/wasm';
+      const to = 'public/mediapipe/wasm';
+      await mkdir(to, { recursive: true });
+      const names = await readdir(from);
+      for (const name of names.filter(n => n.endsWith('.js') || n.endsWith('.wasm'))) await copyFile(join(from,name),join(to,name));
+      for (const required of ['vision_wasm_internal.js','vision_wasm_internal.wasm']) {
+        const bytes = await readFile(join(to,required));
+        if (bytes.length < 10000) throw new Error('MediaPipe build asset invalid: ' + required + ' (' + bytes.length + ' bytes)');
+      }
+      const model = 'public/mediapipe/face_landmarker.task';
+      let valid = false;
+      try { valid = (await readFile(model)).length > 1000000; } catch { /* download below */ }
+      if (!valid) {
+        const response = await fetch('https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task');
+        if (!response.ok) throw new Error('MediaPipe model download HTTP ' + response.status);
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.length < 1000000) throw new Error('MediaPipe model too small');
+        await writeFile(model, bytes);
+      }
+    }
+  }],
   server: { host: true },
   build: {
     target: 'es2022',
