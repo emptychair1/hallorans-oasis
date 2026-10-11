@@ -102,46 +102,89 @@ const foreheadRepairs=new Set(['full-laugh.json','flush.json','thinking.json','h
 // Bite 03.4: isolated visual speech test. At rest, the approved renderer is unchanged.
 const speechButton=document.getElementById('play-speech') as HTMLButtonElement;
 const speechLabel=document.getElementById('speech-shape') as HTMLElement;
-const visemes=['M','AH','EE','OO','F'] as const;
+// Reuse the calibrated mouth model and displacement rules from src/viseme-lab.ts.
+// Never modify its saved calibration, source lab, or approved expression maps.
+type SpeechViseme='rest'|'ah'|'ee'|'oo'|'mbp';
+const visemes:SpeechViseme[]=['mbp','ah','ee','oo'];
+type MouthKey='leftCorner'|'rightCorner'|'upperInner'|'lowerInner'|'lowerCenter';
+type MouthPoint={x:number;y:number};
+const calibratedMouth={"leftCorner":{"x":0.39844241801513464,"y":0.7019215105734092},"cupidLeft":{"x":0.4549139150630831,"y":0.6668338004823194},"upperCenter":{"x":0.48132795312831317,"y":0.680684215122528},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5924492626497562,"y":0.7009981635922722},"lowerRight":{"x":0.5505510868916985,"y":0.7499362883235705},"lowerCenter":{"x":0.4877037714860316,"y":0.7674801433691154},"lowerLeft":{"x":0.4184806894912267,"y":0.7407026610698355},"upperInner":{"x":0.47404131836765795,"y":0.7019215105734092},"lowerInner":{"x":0.5031879091788591,"y":0.7093083913840821},"upperInnerLeft":{"x":0.4461699429965808,"y":0.6995207244531921},"upperInnerRight":{"x":0.5226796597520409,"y":0.6967506310289929},"lowerInnerLeft":{"x":0.48588213868015795,"y":0.7157719252136178},"lowerInnerRight":{"x":0.5204936796775604,"y":0.7120784848082814}} as Record<MouthKey,MouthPoint>;
+const calibrationKey='piper-viseme-lab-12-corrected-calibration';
+let mouthCalibration:Record<MouthKey,MouthPoint>=calibratedMouth;
+try{
+ const stored=JSON.parse(localStorage.getItem(calibrationKey)||'null');
+ if(stored&&(['leftCorner','rightCorner','upperInner','lowerInner','lowerCenter'] as MouthKey[]).every(k=>Number.isFinite(stored[k]?.x)&&Number.isFinite(stored[k]?.y)))mouthCalibration=stored;
+}catch{/* keep checked-in calibration */}
 let speechPlaying=false,speechFrame=0,speechStart=0;
-const speechSource=document.createElement('canvas');
-const speechSourceCtx=speechSource.getContext('2d')!;
-let speechShape='M',speechAmount=0;
+let speechShape:SpeechViseme='rest',speechAmount=0;
+const speechAmounts:Record<SpeechViseme,number>={rest:0,ah:.78,ee:.22,oo:.46,mbp:0};
+const speechPixels=document.createElement('canvas');
+const speechPixelsCtx=speechPixels.getContext('2d',{willReadFrequently:true})!;
+const smooth=(t:number)=>{const q=Math.max(0,Math.min(1,t));return q*q*(3-2*q);};
 function applySpeech(destination:Point[],w:number,h:number){
- if(!speechPlaying||speechAmount<=0)return;
+ if(!speechPlaying)return;
+ // Adapt the original Viseme Lab's calibrated local coordinates to the
+ // current expression mouth. This leaves the approved face render intact.
  const lips=lipIndices.map(i=>destination[i]);
- const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
- const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
- const cx=(left+right)/2,cy=(top+bottom)/2,lipW=right-left,lipH=bottom-top;
- if(lipW<2||lipH<2)return;
- const rx=lipW*.82,ry=Math.max(lipH*1.55,lipW*.24);
- const shapes:Record<string,[number,number]>={M:[1,.78],AH:[1.04,1.35],EE:[1.20,.72],OO:[.78,1.24],F:[1.05,.83]};
- const [targetX,targetY]=shapes[speechShape]||[1,1];
- const sx=1+(targetX-1)*speechAmount,sy=1+(targetY-1)*speechAmount;
- speechSource.width=w;speechSource.height=h;speechSourceCtx.drawImage(canvas,0,0);
- // Feather a transformed sample into the existing portrait, keeping cheeks and forehead intact.
- const layer=document.createElement('canvas');layer.width=w;layer.height=h;
- const lc=layer.getContext('2d')!;
- lc.save();lc.translate(cx,cy);lc.scale(sx,sy);lc.translate(-cx,-cy);
- lc.drawImage(speechSource,0,0);lc.restore();
- lc.globalCompositeOperation='destination-in';
- lc.save();lc.translate(cx,cy);lc.scale(1,ry/rx);
- const oval=lc.createRadialGradient(0,0,rx*.52,0,0,rx);
- oval.addColorStop(0,'#000');oval.addColorStop(1,'transparent');
- lc.fillStyle=oval;lc.beginPath();lc.arc(0,0,rx,0,Math.PI*2);lc.fill();lc.restore();
- lc.globalCompositeOperation='source-over';
- ctx.drawImage(layer,0,0);
+ const left=Math.min(...lips.map(p=>p.x))/w,right=Math.max(...lips.map(p=>p.x))/w;
+ const top=Math.min(...lips.map(p=>p.y))/h,bottom=Math.max(...lips.map(p=>p.y))/h;
+ const baseLeft=mouthCalibration.leftCorner.x,baseRight=mouthCalibration.rightCorner.x;
+ const baseTop=mouthCalibration.upperInner.y,baseBottom=mouthCalibration.lowerCenter.y;
+ const sx=(right-left)/Math.max(.001,baseRight-baseLeft);
+ const sy=(bottom-top)/Math.max(.001,baseBottom-baseTop);
+ const xMap=(x:number)=>left+(x-baseLeft)*sx;
+ const yMap=(y:number)=>top+(y-baseTop)*sy;
+ const l=xMap(baseLeft),r=xMap(baseRight),upper=yMap(baseTop);
+ const lower=yMap(mouthCalibration.lowerInner.y),lowerCenter=yMap(baseBottom);
+ const mid=(l+r)/2,halfWidth=(r-l)/2;
+ if(halfWidth<=0)return;
+ const opening=speechAmounts[speechShape]*speechAmount;
+ const shape=(speechShape==='ee'?-.12:speechShape==='oo'?.18:0)*speechAmount;
+ const mbp=speechShape==='mbp'?speechAmount:0;
+ if(opening<.0001&&Math.abs(shape)<.0001&&mbp<.0001)return;
+ speechPixels.width=w;speechPixels.height=h;
+ speechPixelsCtx.drawImage(canvas,0,0);
+ const frame=speechPixelsCtx.getImageData(0,0,w,h),src=new Uint8ClampedArray(frame.data);
+ const minX=Math.max(0,Math.floor((l-.045*sx)*w)),maxX=Math.min(w-1,Math.ceil((r+.045*sx)*w));
+ const minY=Math.max(0,Math.floor((upper-.012*sy)*h)),maxY=Math.min(h-1,Math.ceil((lowerCenter+.085*sy)*h));
+ for(let py=minY;py<=maxY;py++){
+  const yn=py/h;
+  for(let px=minX;px<=maxX;px++){
+   const xn=px/w,u=(xn-mid)/halfWidth;
+   const horizontal=1-smooth((Math.abs(u)-.72)/.58);
+   if(horizontal<=0)continue;
+   const below=smooth((yn-(upper-.007*sy))/(.022*sy));
+   const chinFade=1-smooth((yn-(lowerCenter+.012*sy))/(.07*sy));
+   const displacement=opening*.016*sy*horizontal*below*chinFade;
+   const lipVertical=smooth((yn-(upper-.035*sy))/(.035*sy))*(1-smooth((yn-(lowerCenter+.012*sy))/(.045*sy)));
+   const xShift=shape*halfWidth*u*horizontal*lipVertical;
+   const closureCenter=(upper+lower)/2,closureDistance=(yn-closureCenter)/(.012*sy);
+   const mbpOffset=.0018*sy*mbp*horizontal*lipVertical*(closureDistance/(1+closureDistance*closureDistance));
+   const sourceX=Math.max(0,Math.min(w-1,Math.round(px+xShift*w)));
+   const sourceY=Math.max(0,Math.min(h-1,Math.round(py-(displacement+mbpOffset)*h)));
+   const dest=(py*w+px)*4,from=(sourceY*w+sourceX)*4;
+   for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
+   const apertureU=u/.77,arch=Math.sqrt(Math.max(0,1-apertureU*apertureU));
+   const centerY=(upper+lower)/2+.001*sy+displacement*.28;
+   const halfHeight=(.0025+opening*.0105)*sy*arch,feather=.0022*sy;
+   const vertical=smooth((yn-(centerY-halfHeight))/feather)*(1-smooth((yn-(centerY+halfHeight-feather))/feather));
+   const sideFade=1-smooth((Math.abs(apertureU)-.76)/.24);
+   const dark=vertical*sideFade*opening*.76;
+   if(dark>0){frame.data[dest]=Math.round(frame.data[dest]*(1-dark)+38*dark);frame.data[dest+1]=Math.round(frame.data[dest+1]*(1-dark)+19*dark);frame.data[dest+2]=Math.round(frame.data[dest+2]*(1-dark)+25*dark);}
+  }
+ }
+ speechPixelsCtx.putImageData(frame,0,0);ctx.drawImage(speechPixels,0,0);
 }
-function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='M';speechLabel.textContent='Rest';speechButton.textContent='▶ Test speech shapes';render();}
+function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test calibrated visemes';render();}
 function animateSpeech(now:number){
  if(!speechPlaying)return;
  const elapsed=now-speechStart,period=650,index=Math.floor(elapsed/period)%visemes.length;
  const phase=(elapsed%period)/period;
  speechShape=visemes[index];speechAmount=Math.sin(Math.PI*phase);
- speechLabel.textContent=speechShape;render();
+ speechLabel.textContent=speechShape.toUpperCase();render();
  speechFrame=requestAnimationFrame(animateSpeech);
 }
-speechButton.addEventListener('click',()=>{if(speechPlaying){stopSpeech();return;}stopAnimation();speechPlaying=true;speechStart=performance.now();speechButton.textContent='■ Stop speech test';speechFrame=requestAnimationFrame(animateSpeech);});
+speechButton.addEventListener('click',()=>{if(speechPlaying){stopSpeech();return;}stopAnimation();speechPlaying=true;speechStart=performance.now();speechButton.textContent='■ Stop viseme test';speechFrame=requestAnimationFrame(animateSpeech);});
 let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
