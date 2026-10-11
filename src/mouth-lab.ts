@@ -11,6 +11,7 @@ let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
 let opening=0,showMarkers=true;
+const patch=document.createElement('canvas');const patchCtx=patch.getContext('2d');
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
@@ -20,15 +21,42 @@ function draw(){
  svg.setAttribute('viewBox',`${cx-side/2} ${cy-side/2} ${side} ${side}`);
  svg.replaceChildren();
  const image=element('image');image.setAttribute('href',portraitUrl);image.setAttribute('width',String(w));image.setAttribute('height',String(h));svg.append(image);
- // Geometry-only preview: a dark mouth aperture between the calibrated lip edges.
+ // Bite 03: experimental pixel-warping of the lower lip and nearby skin.
  // This does not synthesize teeth or photorealistic inner-mouth imagery.
  if(opening>0){
    const left=points.leftCorner,right=points.rightCorner,top=points.upperCenter,bottom=points.lowerCenter;
    const lx=left.x*w,rx=right.x*w,mid=(lx+rx)/2,cy=(top.y+bottom.y)*h/2;
-   const halfGap=opening*.036*h;
+   const halfGap=opening*.018*h;
    const path=element('path');
    path.setAttribute('d',`M ${lx} ${left.y*h} Q ${mid} ${cy-halfGap} ${rx} ${right.y*h} Q ${mid} ${cy+halfGap} ${lx} ${left.y*h} Z`);
-   path.setAttribute('fill','#30131d');path.setAttribute('stroke','#8e4755');path.setAttribute('stroke-width',String(Math.min(w,h)*.0015));svg.append(path);
+   path.setAttribute('fill','#30131d');path.setAttribute('stroke','#8e4755');path.setAttribute('stroke-width',String(Math.min(w,h)*.0008));svg.append(path);
+   // Warp original photo pixels in a feathered local patch rather than drawing a flat lower lip.
+   if(photo.complete && photo.naturalWidth && patchCtx){
+     const px=Math.max(0,Math.floor((left.x-.035)*w));
+     const pw=Math.min(w-px,Math.ceil((right.x-left.x+.07)*w));
+     const py=Math.max(0,Math.floor((bottom.y-.009)*h));
+     const ph=Math.min(h-py,Math.ceil(.09*h));
+     patch.width=pw;patch.height=ph+Math.ceil(.025*h);
+     patchCtx.clearRect(0,0,patch.width,patch.height);
+     const maxShift=opening*.016*h;
+     // Smooth vertical deformation: lower lip moves most, chin gradually returns to rest.
+     const strip=2;
+     for(let sy=0;sy<ph;sy+=strip){
+       const falloff=Math.pow(Math.max(0,1-sy/ph),1.7);
+       const shift=maxShift*falloff;
+       patchCtx.drawImage(photo,px,py+sy,pw,Math.min(strip,ph-sy),0,sy+shift,pw,Math.min(strip+1,ph-sy));
+     }
+     // Feather patch edges horizontally and vertically to avoid hard rectangular seams.
+     patchCtx.globalCompositeOperation='destination-in';
+     const gx=patchCtx.createLinearGradient(0,0,pw,0);
+     gx.addColorStop(0,'rgba(0,0,0,0)');gx.addColorStop(.12,'rgba(0,0,0,1)');gx.addColorStop(.88,'rgba(0,0,0,1)');gx.addColorStop(1,'rgba(0,0,0,0)');
+     patchCtx.fillStyle=gx;patchCtx.fillRect(0,0,patch.width,patch.height);
+     const gy=patchCtx.createLinearGradient(0,0,0,patch.height);
+     gy.addColorStop(0,'rgba(0,0,0,1)');gy.addColorStop(.65,'rgba(0,0,0,1)');gy.addColorStop(1,'rgba(0,0,0,0)');
+     patchCtx.fillStyle=gy;patchCtx.fillRect(0,0,patch.width,patch.height);
+     patchCtx.globalCompositeOperation='source-over';
+     const warped=element('image');warped.setAttribute('href',patch.toDataURL('image/png'));warped.setAttribute('x',String(px));warped.setAttribute('y',String(py));warped.setAttribute('width',String(patch.width));warped.setAttribute('height',String(patch.height));svg.append(warped);
+   }
  }
  if(showMarkers){
  const line=element('polyline');line.setAttribute('points',keys.map(k=>`${points[k].x*w},${points[k].y*h}`).join(' '));line.setAttribute('class','line');svg.append(line);
