@@ -212,4 +212,51 @@ select.addEventListener('change',stopAutoplay);
 document.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',stopAutoplay);
 document.querySelector<HTMLButtonElement>('#demo')!.addEventListener('click',stopAutoplay);
 
+
+ // Intent lab: explicit conversational signals, not random emotional guessing.
+ // A future dialogue system can dispatch the same "oasis-intent" event.
+type IntentName='warmth'|'curiosity'|'delight'|'concern'|'amusement'|'listen';
+const intentions:Record<IntentName,{file:string;values:Record<Region,number>;hold:number}>={
+ warmth:{file:'smile.json',values:{brows:16,eyes:33,cheeks:53,mouth:48},hold:1700},
+ curiosity:{file:'thinking.json',values:{brows:58,eyes:37,cheeks:15,mouth:9},hold:1800},
+ delight:{file:'excited.json',values:{brows:60,eyes:72,cheeks:78,mouth:85},hold:1600},
+ concern:{file:'sad.json',values:{brows:47,eyes:38,cheeks:22,mouth:17},hold:1900},
+ amusement:{file:'mischievous.json',values:{brows:42,eyes:55,cheeks:58,mouth:57},hold:1800},
+ listen:{file:'neutral.json',values:{brows:8,eyes:10,cheeks:4,mouth:0},hold:2000}
+};
+let intentFrame=0,intentRun=0;
+function applyIntent(name:IntentName){
+ const cue=intentions[name];if(!cue)return;
+ stopAutoplay();epoch++;cancelAnimationFrame(raf);cancelAnimationFrame(intentFrame);
+ const run=++intentRun,start=performance.now();
+ const initial=Object.fromEntries(names.map(n=>[n,Number(controls[n].value)])) as Record<Region,number>;
+ const previous=select.value;
+ const settle=cue.hold,fadeIn=700,fadeOut=1050;
+ const tick=(now:number)=>{
+  if(run!==intentRun)return;
+  const elapsed=now-start;
+  const gain=elapsed<fadeIn?ease(elapsed/fadeIn):elapsed<fadeIn+settle?1:1-ease((elapsed-fadeIn-settle)/fadeOut);
+  select.value=elapsed<fadeIn*.4?previous:cue.file;
+  for(const n of names){
+   const v=Math.round(initial[n]*(1-ease(elapsed/fadeIn))+cue.values[n]*gain);
+   controls[n].value=String(Math.max(0,Math.min(100,v)));
+   document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=controls[n].value+'%';
+  }
+  draw();
+  document.querySelector<HTMLElement>('#intentStatus')!.textContent='Intent: '+name+' · '+(elapsed<fadeIn?'arriving':elapsed<fadeIn+settle?'holding':'settling');
+  if(elapsed<fadeIn+settle+fadeOut)intentFrame=requestAnimationFrame(tick);
+  else document.querySelector<HTMLElement>('#intentStatus')!.textContent='Ready for the next cue';
+ };
+ intentFrame=requestAnimationFrame(tick);
+}
+document.querySelectorAll<HTMLButtonElement>('[data-intent]').forEach(button=>{
+ button.onclick=()=>applyIntent(button.dataset.intent as IntentName);
+});
+window.addEventListener('oasis-intent',(event:Event)=>{
+ const name=(event as CustomEvent<{intent?:string}>).detail?.intent;
+ if(name&&Object.prototype.hasOwnProperty.call(intentions,name))applyIntent(name as IntentName);
+});
+for(const n of names)controls[n].addEventListener('pointerdown',()=>{intentRun++;cancelAnimationFrame(intentFrame);});
+select.addEventListener('change',()=>{intentRun++;cancelAnimationFrame(intentFrame);});
+
 original.onload=draw;original.onerror=()=>status.textContent='Base portrait failed to load.';draw();
