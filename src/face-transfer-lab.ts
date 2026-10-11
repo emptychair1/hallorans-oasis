@@ -1,3 +1,4 @@
+import presetData from '../data/expression-presets.json';
 import originalUrl from '../IMG_4604.jpeg?url';
 import { FaceLandmarker } from '@mediapipe/tasks-vision';
 const maps = import.meta.glob('../data/face-maps/*.json', { eager: true, import: 'default' }) as Record<string,FaceMap>;
@@ -11,6 +12,8 @@ const geometry=$<HTMLInputElement>('geometry'), texture=$<HTMLInputElement>('tex
 const ctx=canvas.getContext('2d')!;
 const entries=Object.entries(maps).filter(([,m])=>m.images?.length===2&&m.images.every(i=>i.landmarks?.length===478)).sort(([a],[b])=>a.localeCompare(b));
 for(const [path,m] of entries){const opt=document.createElement('option');opt.value=path;opt.textContent=m.expressionName||path.split('/').pop()!.replace('.json','');select.append(opt);}
+const savedPresets=presetData.presets as Record<string,{geometry:number;texture:number;cheekWarmth:number}>;
+function applyPreset(){const filename=select.value.split('/').pop()||'';const p=savedPresets[filename];geometry.value=String(p?.geometry??0);texture.value=String(p?.texture??0);flush.value=String(p?.cheekWarmth??0);}
 select.value=entries.find(([p])=>p.endsWith('/shy.json'))?.[0]||entries[0]?.[0]||'';
 original.src=originalUrl;
 const ref=new Image();
@@ -36,6 +39,6 @@ if(t&&ref.complete&&ref.naturalWidth){const reference=target.map(p=>({x:p.x*ref.
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent='Ready: '+(m.expressionName||select.selectedOptions[0]?.textContent)+'. Adjust sliders to audition.';render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
-select.addEventListener('change',()=>{geometry.value='0';texture.value='0';flush.value='0';loadReference();});
+select.addEventListener('change',()=>{applyPreset();loadReference();});
 for(const control of [geometry,texture,flush])control.addEventListener('input',render);
-original.decode().then(()=>{loadReference();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
+original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
