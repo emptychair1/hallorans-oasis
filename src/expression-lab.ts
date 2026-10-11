@@ -15,7 +15,7 @@ const defaults:Record<string,P>={leftEye:{x:.40,y:.45},rightEye:{x:.60,y:.45},le
 const key='piper-expression-lab-17';
 let anchors:Record<string,P>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved&&Object.keys(defaults).every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))anchors=saved;}catch{}
-let pose:Pose='rest',from:Pose='rest',blend=1,show=false,frame=0,started=0;
+let pose:Pose='rest',from:Pose='rest',blend=1,show=false,started=0;
 const image=new Image();image.src=portraitUrl;
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 const smooth=(v:number)=>{const t=clamp(v);return t*t*(3-2*t);};
@@ -31,7 +31,7 @@ for(const [label,action] of [['Show markers',()=>{show=!show;markers();}],['Rese
 function updateButtons(){buttons.querySelectorAll<HTMLButtonElement>('[data-pose]').forEach(b=>b.style.borderColor=b.dataset.pose===pose?'#ffd08b':'#8b7261');}
 function markers(){
  svg.replaceChildren();if(!show)return;
- for(const [name,p] of Object.entries(anchors)){
+ for(const p of Object.values(anchors)){
   const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
   circle.setAttribute('cx',String(p.x));circle.setAttribute('cy',String(p.y));circle.setAttribute('r','.012');
   circle.setAttribute('fill','#ffcc85');circle.setAttribute('stroke','#1b1110');circle.setAttribute('stroke-width','.003');
@@ -80,7 +80,7 @@ function render(){
 }
 function tick(now:number){
  if(blend<1){blend=smooth((now-started)/380);render();}
- frame=requestAnimationFrame(tick);
+ requestAnimationFrame(tick);
 }
 image.onload=()=>{render();frame=requestAnimationFrame(tick);};
 window.addEventListener('resize',render);
