@@ -195,14 +195,38 @@ speakButton.addEventListener('click',()=>{
 });
 
 
-// Isolated live-voice audition: receive actual Piper playback RMS from parent.
+// Live speech photo renderer: approximate word-to-mouth mapping against the actual playback clock.
 if(new URLSearchParams(location.search).has('live')){
+ let words:string[]=[];
+ let duration=1;
+ let previous='';
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
-  const data=event.data as {type?:string;level?:number};
-  if(data?.type!=='piper-speech-level')return;
-  const level=Math.max(0,Math.min(1,Number(data.level)||0));
-  const next:Viseme=level<.045?'rest':level<.2?'mbp':level<.46?'oo':'ah';
-  aimMouth(next,level<.045?0:Math.min(.78,.14+level*.67));
+  const d=event.data as {type?:string;text?:string;duration?:number;elapsed?:number;level?:number};
+  if(d?.type!=='piper-speech-timing')return;
+  if(d.type==='start'){
+   words=(d.text||'').split(/\s+/).filter(Boolean);
+   duration=Math.max(.01,Number(d.duration)||1);
+   previous='';setSpeechShape('rest');return;
+  }
+  if(d.type==='stop'){previous='';setSpeechShape('rest');return;}
+  if(d.type!=='frame')return;
+  const level=Number(d.level)||0;
+  const index=Math.min(words.length-1,Math.floor(Math.max(0,Math.min(.999,(Number(d.elapsed)||0)/duration))*words.length));
+  const word=(words[index]||'').toLowerCase();
+  let shape='rest';
+  if(level>=.045){
+   if(/^[mbp]/.test(word))shape='mbp';
+   else if(/^[fv]/.test(word))shape='fv';
+   else if(/oo|ou|ow|u/.test(word))shape='oo';
+   else if(/ee|ea|ey|ie|i/.test(word))shape='ee';
+   else shape='ah';
+  }
+  if(shape===previous)return;
+  previous=shape;
+  if(shape==='fv'){
+   const image=speechPhotos.get('fv');
+   facePhoto.src=image?.src||portraitUrl;
+  }else setSpeechShape(shape as Viseme);
  });
 }
