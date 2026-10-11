@@ -7,96 +7,85 @@ const closure=document.querySelector<HTMLInputElement>('#closure')!;
 const speed=document.querySelector<HTMLInputElement>('#speed')!;
 const asym=document.querySelector<HTMLInputElement>('#asym')!;
 const lashes=document.querySelector<HTMLInputElement>('#lashes')!;
+const upload=document.querySelector<HTMLInputElement>('#closedUpload')!;
+const offsetX=document.querySelector<HTMLInputElement>('#offsetX')!;
+const offsetY=document.querySelector<HTMLInputElement>('#offsetY')!;
+const scale=document.querySelector<HTMLInputElement>('#scale')!;
 const outputs={closure:document.querySelector<HTMLOutputElement>('#closureOut')!,speed:document.querySelector<HTMLOutputElement>('#speedOut')!,asym:document.querySelector<HTMLOutputElement>('#asymOut')!,lashes:document.querySelector<HTMLOutputElement>('#lashesOut')!};
-const image=new Image();image.decoding='async';image.src=new URL('../IMG_4604.jpeg', import.meta.url).href;
+const original=new Image();original.decoding='async';original.src=new URL('../IMG_4604.jpeg',import.meta.url).href;
+const closed=new Image();closed.decoding='async';
 const landmarks=(neutralMap as {images:{role:string;landmarks:P[]}[]}).images.find(i=>i.role==='locked-original')!.landmarks;
-const eyeDefs=[
- {name:'left',outer:33,inner:133,upper:[160,158],lower:[144,153],brow:70,sign:1},
- {name:'right',outer:263,inner:362,upper:[387,385],lower:[373,380],brow:300,sign:-1}
-];
-let animationId=0;
-function point(id:number){const p=landmarks[id];return {x:p.x*canvas.width,y:p.y*canvas.height};}
-
-function curve(points:{x:number;y:number}[],t:number){const a=points[0],b=points[1],c=points[2];return {x:(1-t)*(1-t)*a.x+2*(1-t)*t*b.x+t*t*c.x,y:(1-t)*(1-t)*a.y+2*(1-t)*t*b.y+t*t*c.y};}
-function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
- const a=point(def.outer),b=point(def.inner),u1=point(def.upper[0]),u2=point(def.upper[1]),l1=point(def.lower[0]),l2=point(def.lower[1]);
- const w=Math.hypot(b.x-a.x,b.y-a.y);
- const upper=[a,{x:(u1.x+u2.x)/2,y:(u1.y+u2.y)/2},b];
- const lower=[a,{x:(l1.x+l2.x)/2,y:(l1.y+l2.y)/2},b];
- const top:{x:number;y:number}[]=[],bottom:{x:number;y:number}[]=[],movingTop:{x:number;y:number}[]=[],movingBottom:{x:number;y:number}[]=[];
- for(let i=0;i<=32;i++){
-  const t=i/32,p=curve(upper,t),q=curve(lower,t);
-  // Slightly overlap the lid bands so no bright eye-white seam survives at full closure.
-  const h=(p.y+q.y)/2,overlap=amount*Math.max(1.5,w*.025);
-  top.push(p);bottom.push(q);
-  movingTop.push({x:p.x,y:p.y+(h-p.y)*amount+overlap});
-  movingBottom.push({x:q.x,y:q.y+(h-q.y)*amount-overlap});
- }
- // Sample several points from the real portrait above and below the eye, then blend a soft skin gradient.
- const sample=(x:number,y:number)=>{const px=Math.max(0,Math.min(canvas.width-1,Math.round(x))),py=Math.max(0,Math.min(canvas.height-1,Math.round(y)));const d=ctx.getImageData(px,py,1,1).data;return [d[0],d[1],d[2]] as number[];};
- const midX=(a.x+b.x)/2,midY=(a.y+b.y)/2;
- const upperSkin=sample(midX,midY-w*.34),lowerSkin=sample(midX,midY+w*.28);
- const rgb=(c:number[])=>`rgb(${c[0]},${c[1]},${c[2]})`;
+const eyeDefs=[{outer:33,inner:133,top:159,bottom:145},{outer:263,inner:362,top:386,bottom:374}];
+let animationId=0,run=0,closedReady=false;
+const point=(id:number)=>({x:landmarks[id].x*canvas.width,y:landmarks[id].y*canvas.height});
+const clamp=(n:number)=>Math.max(0,Math.min(1,n));
+function eyeBounds(def:typeof eyeDefs[number]){
+ const a=point(def.outer),b=point(def.inner),t=point(def.top),d=point(def.bottom);
+ const w=Math.hypot(b.x-a.x,b.y-a.y),cx=(a.x+b.x)/2,cy=(t.y+d.y)/2;
+ return {cx,cy,w,rx:w*.70,ry:w*.39};
+}
+function renderEye(def:typeof eyeDefs[number],amount:number){
+ if(!closedReady||amount<=0)return;
+ const {cx,cy,rx,ry}=eyeBounds(def);
+ const k=Number(scale.value)/100,dx=Number(offsetX.value),dy=Number(offsetY.value);
+ // Closed reference is positioned using a face-centered registration, not stretched to fit the eye.
+ // The user can fine-tune its alignment using the three calibration controls.
+ const referenceCenterX=closed.naturalWidth*.5,referenceCenterY=closed.naturalHeight*.5;
+ const targetCenterX=canvas.width*.5,targetCenterY=canvas.height*.5;
+ const destW=closed.naturalWidth*k,destH=closed.naturalHeight*k;
+ const destX=targetCenterX-referenceCenterX*k+dx,destY=targetCenterY-referenceCenterY*k+dy;
  ctx.save();
- // Upper lid skin advances downward; lower lid skin advances upward. They overlap at closure.
- const band=(outer:{x:number;y:number}[],inner:{x:number;y:number}[])=>{
-  ctx.beginPath();ctx.moveTo(outer[0].x,outer[0].y);
-  for(const p of outer.slice(1))ctx.lineTo(p.x,p.y);
-  for(const p of inner.slice().reverse())ctx.lineTo(p.x,p.y);
-  ctx.closePath();
-  const g=ctx.createLinearGradient(midX,midY-w*.22,midX,midY+w*.22);
-  g.addColorStop(0,rgb(upperSkin));g.addColorStop(1,rgb(lowerSkin));
-  ctx.fillStyle=g;ctx.fill();
- };
- band(top,movingTop);band(bottom,movingBottom);
- // Cover the ORIGINAL eye aperture with sampled lid skin as closure increases.
- // Filling only the converging lid edges creates a degenerate zero-area polygon at 100%.
- if(amount>0){
-  ctx.beginPath();ctx.moveTo(top[0].x,top[0].y);
-  for(const p of top.slice(1))ctx.lineTo(p.x,p.y);
-  for(const p of bottom.slice().reverse())ctx.lineTo(p.x,p.y);
-  ctx.closePath();
-  const aperture=ctx.createLinearGradient(midX,midY-w*.34,midX,midY+w*.28);
-  aperture.addColorStop(0,rgb(upperSkin));aperture.addColorStop(1,rgb(lowerSkin));
-  ctx.globalAlpha=amount;
-  ctx.fillStyle=aperture;ctx.fill();
-  ctx.globalAlpha=1;
- }
- const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
- if(amount>.08){
-  ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
-  ctx.strokeStyle='rgba(78,47,43,'+(0.10+amount*.27)+')';ctx.lineWidth=Math.max(1,w*.012);ctx.stroke();
- }
- if(amount>.42&&lash>0){
-  ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
-  ctx.strokeStyle='rgba(32,22,25,'+(lash/100*.85)+')';ctx.lineWidth=Math.max(.8,w*(.003+lash/100*.01));ctx.stroke();
- }
+ // Soft elliptical mask confines every pixel change to the eyelid region.
+ // Expand with closure so lashes and crease are present without a hard cutout.
+ const feather=Math.max(5,rx*.22);
+ const mask=document.createElement('canvas');mask.width=canvas.width;mask.height=canvas.height;
+ const mc=mask.getContext('2d')!;
+ mc.drawImage(closed,destX,destY,destW,destH);
+ mc.globalCompositeOperation='destination-in';
+ const g=mc.createRadialGradient(cx,cy,Math.max(1,rx-feather)*.45,cx,cy,rx);
+ g.addColorStop(0,'rgba(0,0,0,1)');
+ g.addColorStop(.65,'rgba(0,0,0,1)');
+ g.addColorStop(1,'rgba(0,0,0,0)');
+ mc.save();mc.translate(cx,cy);mc.scale(1,ry/rx);mc.translate(-cx,-cy);
+ mc.fillStyle=g;mc.fillRect(cx-rx-2,cy-rx-2,rx*2+4,rx*2+4);mc.restore();
+ mc.globalCompositeOperation='source-over';
+ ctx.globalAlpha=clamp(amount);
+ ctx.drawImage(mask,0,0);
  ctx.restore();
 }
 function draw(){
- if(!image.complete||!image.naturalWidth)return;
- ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+ if(!original.complete||!original.naturalWidth)return;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.drawImage(original,0,0,canvas.width,canvas.height);
  const total=Number(closure.value)/100,skew=Number(asym.value)/100;
- drawEye(eyeDefs[0],Math.max(0,Math.min(1,total+skew*.5)),Number(lashes.value));
- drawEye(eyeDefs[1],Math.max(0,Math.min(1,total-skew*.5)),Number(lashes.value));
+ renderEye(eyeDefs[0],clamp(total+skew*.5));
+ renderEye(eyeDefs[1],clamp(total-skew*.5));
  outputs.closure.value=Math.round(total*100)+'%';outputs.speed.value=speed.value+' ms';outputs.asym.value=asym.value+'%';outputs.lashes.value=lashes.value+'%';
 }
-function setPose(value:number,skew=0){closure.value=String(Math.round(value*100));asym.value=String(skew);draw();}
+function setPose(value:number,skew=0){closure.value=String(Math.round(value*100));asym.value=String(Math.round(skew));draw();}
 function animatePose(poses:{value:number;skew?:number;hold?:number}[]){
- cancelAnimationFrame(animationId);const duration=Number(speed.value);
- const sequence=async()=>{for(const pose of poses){const from=Number(closure.value)/100,fromSkew=Number(asym.value),to=pose.value,toSkew=pose.skew||0,start=performance.now();await new Promise<void>(resolve=>{const tick=(now:number)=>{const t=Math.min(1,(now-start)/duration);const eased=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;setPose(from+(to-from)*eased,fromSkew+(toSkew-fromSkew)*eased);if(t<1)animationId=requestAnimationFrame(tick);else resolve();};animationId=requestAnimationFrame(tick);});if(pose.hold)await new Promise(r=>setTimeout(r,pose.hold));}};
+ cancelAnimationFrame(animationId);const current=++run;const duration=Number(speed.value);
+ const sequence=async()=>{for(const pose of poses){if(current!==run)return;const from=Number(closure.value)/100,fromSkew=Number(asym.value),to=pose.value,toSkew=pose.skew||0,start=performance.now();await new Promise<void>(resolve=>{const tick=(now:number)=>{if(current!==run){resolve();return;}const t=Math.min(1,(now-start)/duration);const eased=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;setPose(from+(to-from)*eased,fromSkew+(toSkew-fromSkew)*eased);if(t<1)animationId=requestAnimationFrame(tick);else resolve();};animationId=requestAnimationFrame(tick);});if(pose.hold)await new Promise(r=>setTimeout(r,pose.hold));}};
  void sequence();
 }
-image.addEventListener('load',()=>{try{draw();status.textContent='Portrait loaded: '+image.naturalWidth+' × '+image.naturalHeight+' · 478-point landmark map ready.';}catch(error){status.textContent='Portrait loaded, but drawing failed: '+String(error);}});
-image.addEventListener('error',()=>{status.textContent='Portrait failed to load from '+image.src;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#f4eee6';ctx.font='24px system-ui';ctx.fillText('Portrait failed to load',32,60);});
-[closure,lashes,asym].forEach(input=>input.addEventListener('input',draw));speed.addEventListener('input',()=>{outputs.speed.value=speed.value+' ms';});
+function loadClosed(src:string){
+ closedReady=false;closed.onload=()=>{closedReady=true;status.textContent='Open portrait + closed-eye reference ready. Adjust alignment if needed.';draw();};
+ closed.onerror=()=>{closedReady=false;status.textContent='Could not load closed-eye reference. Upload the image below.';draw();};
+ closed.src=src;
+}
+original.onload=()=>{draw();status.textContent='Original portrait and 478 landmarks loaded. Upload the closed-eye image to begin.';};
+original.onerror=()=>{status.textContent='Original portrait failed to load.';};
+upload.addEventListener('change',()=>{const file=upload.files?.[0];if(!file)return;const url=URL.createObjectURL(file);closed.onload=()=>{URL.revokeObjectURL(url);closedReady=true;status.textContent='Closed-eye reference loaded: '+closed.naturalWidth+' × '+closed.naturalHeight+'.';draw();};closed.onerror=()=>{URL.revokeObjectURL(url);status.textContent='Failed to decode uploaded image.';};closed.src=url;});
+[closure,asym,lashes,offsetX,offsetY,scale].forEach(input=>input.addEventListener('input',draw));
+speed.addEventListener('input',draw);
 document.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach(button=>button.addEventListener('click',()=>{
  const action=button.dataset.action;
- if(action==='open'){cancelAnimationFrame(animationId);setPose(0,0);return;}
- if(action==='hold'){cancelAnimationFrame(animationId);setPose(1,0);return;}
+ if(action==='open'){run++;cancelAnimationFrame(animationId);setPose(0);return;}
+ if(action==='hold'){run++;cancelAnimationFrame(animationId);setPose(1);return;}
  if(action==='normal')animatePose([{value:0},{value:1,hold:35},{value:0}]);
  if(action==='double')animatePose([{value:0},{value:1,hold:35},{value:0,hold:90},{value:1,hold:35},{value:0}]);
- if(action==='bat')animatePose([{value:0},{value:.9,skew:10,hold:35},{value:0,skew:0,hold:65},{value:.85,skew:-8,hold:35},{value:0,skew:0,hold:70},{value:.9,skew:5,hold:35},{value:0}]);
+ if(action==='bat')animatePose([{value:0},{value:.9,skew:10,hold:35},{value:0,hold:65},{value:.85,skew:-8,hold:35},{value:0,hold:70},{value:.9,skew:5,hold:35},{value:0}]);
  if(action==='disbelief')animatePose([{value:0},{value:.8,skew:22,hold:45},{value:.2,skew:12,hold:100},{value:.65,skew:-8,hold:35},{value:0}]);
 }));
+loadClosed('/closed-eyes-reference.jpg');
 draw();
