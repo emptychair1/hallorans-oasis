@@ -73,7 +73,7 @@ function loadClosed(src:string){
  closed.onerror=()=>{closedReady=false;status.textContent='Could not load closed-eye reference. Upload the image below.';draw();};
  closed.src=src;
 }
-original.onload=()=>{draw();status.textContent='Original portrait and 478 landmarks loaded. Upload the closed-eye image to begin.';};
+original.onload=()=>{draw();status.textContent='Original portrait and 478 landmarks loaded. Loading the committed closed-eye reference…';};
 original.onerror=()=>{status.textContent='Original portrait failed to load.';};
 upload.addEventListener('change',()=>{const file=upload.files?.[0];if(!file)return;const url=URL.createObjectURL(file);closed.onload=()=>{URL.revokeObjectURL(url);closedReady=true;status.textContent='Closed-eye reference loaded: '+closed.naturalWidth+' × '+closed.naturalHeight+'.';draw();};closed.onerror=()=>{URL.revokeObjectURL(url);status.textContent='Failed to decode uploaded image.';};closed.src=url;});
 [closure,asym,lashes,offsetX,offsetY,scale].forEach(input=>input.addEventListener('input',draw));
@@ -87,5 +87,5 @@ document.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach(butt
  if(action==='bat')animatePose([{value:0},{value:.9,skew:10,hold:35},{value:0,hold:65},{value:.85,skew:-8,hold:35},{value:0,hold:70},{value:.9,skew:5,hold:35},{value:0}]);
  if(action==='disbelief')animatePose([{value:0},{value:.8,skew:22,hold:45},{value:.2,skew:12,hold:100},{value:.65,skew:-8,hold:35},{value:0}]);
 }));
-loadClosed('/closed-eyes-reference.jpg');
+loadClosed(new URL('../assets/ad3261163d764c34291dd6dfb0612bfa7f0a42ea92becd0ab5d9549211479970.png',import.meta.url).href);
 draw();
