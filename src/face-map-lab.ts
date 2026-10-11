@@ -47,9 +47,8 @@ run.addEventListener('click', async () => {
   try {
     status.textContent = 'Loading MediaPipe face landmark detector…';
     await Promise.all(originals.map(ready));
-    // Loaded on demand to keep the working Oasis bundle completely independent.
-    const url = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
-    const vision = await import(/* @vite-ignore */ url);
+    // Vite bundles the JavaScript module locally; only WASM/model assets load externally.
+    const vision = await import('@mediapipe/tasks-vision');
     const files = await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
     const detector: Detector = await vision.FaceLandmarker.createFromOptions(files, {
       baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', delegate: 'CPU' },
