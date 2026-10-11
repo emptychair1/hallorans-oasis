@@ -48,14 +48,14 @@ run.addEventListener('click', async () => {
   try {
     status.textContent = 'Loading MediaPipe face landmark detector…';
     await Promise.all(originals.map(ready));
-    // Vite bundles the JavaScript module locally; only WASM/model assets load externally.
+    // JavaScript, WASM and model are served from the same origin after the build asset preparation step.
     stage = 'JavaScript import'; status.textContent = 'Stage 1: loading MediaPipe JavaScript';
     const vision = await import('@mediapipe/tasks-vision');
     stage = 'WASM runtime'; status.textContent = 'Stage 2: loading MediaPipe WASM';
-    const files = await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+    const files = await vision.FilesetResolver.forVisionTasks('/mediapipe/wasm');
     stage = 'model initialization'; status.textContent = 'Stage 3: loading face model';
     const detector: Detector = await vision.FaceLandmarker.createFromOptions(files, {
-      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', delegate: 'CPU' },
+      baseOptions: { modelAssetPath: '/mediapipe/face_landmarker.task', delegate: 'CPU' },
       runningMode: 'IMAGE', numFaces: 1
     });
     stage = 'face detection'; status.textContent = 'Stage 4: detecting faces';
