@@ -61,10 +61,11 @@ function draw(i: number) {
   }
 }
 const imageNames = () => ['IMG_4604.jpeg', expressionSelect.selectedOptions[0]?.textContent ?? 'unknown'];
-function faceMapJSON(): string {
+function faceMapJSON(expressionName?: string): string {
   if (!results[0] || !results[1]) throw new Error('Detect both faces before exporting.');
   return JSON.stringify({
     schema: 'piper-face-maps-v1',
+    ...(expressionName ? { expressionName } : {}),
     detector: '@mediapipe/tasks-vision FaceLandmarker',
     coordinateSystem: 'normalized image coordinates, x/y in [0,1], z relative',
     images: originals.map((img, i) => ({
@@ -79,10 +80,16 @@ function faceMapJSON(): string {
 }
 exportButton.addEventListener('click', () => {
   try {
-    const blob = new Blob([faceMapJSON()], {type:'application/json'});
+    const enteredName = window.prompt('Name this expression (for example: Shy, Laughing, Embarrassed):');
+    if (enteredName === null) return;
+    const expressionName = enteredName.trim();
+    if (!expressionName) { status.textContent = 'Enter an expression name to export.'; return; }
+    const safeName = expressionName.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!safeName) { status.textContent = 'Use letters or numbers in the expression name.'; return; }
+    const blob = new Blob([faceMapJSON(expressionName)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'piper-face-maps-bite01.7-' + imageNames()[1].replace(/\.[^.]+$/, '').slice(0,16) + '.json';
+    anchor.href = url; anchor.download = safeName + '.json';
     document.body.append(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     status.textContent = 'JSON export requested. On iPhone, check Downloads or the Files app. If download is blocked, use Copy JSON.';
