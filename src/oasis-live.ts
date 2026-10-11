@@ -12,7 +12,7 @@ window.addEventListener('pagehide',()=>voice.dispose(),{once:true});
 
 const panel=document.createElement('details');
 panel.style.cssText='position:fixed;top:45px;right:8px;z-index:100000;background:#171717;color:white;padding:12px;border:1px solid #9b8265;border-radius:8px;font:13px system-ui;width:190px';
-panel.innerHTML='<summary style="cursor:pointer">Mouth tuning</summary><p>Timing: <output id="offset">0 ms</output></p><input id="timing" aria-label="Timing" type="range" min="-250" max="250" step="25" value="0" style="width:100%"><p>Smoothing: <output id="hold">90 ms</output></p><input id="smooth" aria-label="Smoothing" type="range" min="0" max="250" step="10" value="90" style="width:100%"><p><button id="reset" type="button">Reset</button></p>';
+panel.innerHTML='<summary style="cursor:pointer">Mouth tuning</summary><p>Timing: <output id="offset">0 ms</output></p><input id="timing" aria-label="Timing" type="range" min="-250" max="250" step="25" value="0" style="width:100%"><p>Smoothing: <output id="hold">45 ms</output></p><input id="smooth" aria-label="Smoothing" type="range" min="0" max="250" step="10" value="45" style="width:100%"><p><button id="reset" type="button">Reset</button></p>';
 document.body.append(panel);
 const timing=panel.querySelector<HTMLInputElement>('#timing')!;
 const smooth=panel.querySelector<HTMLInputElement>('#smooth')!;
@@ -24,4 +24,4 @@ const refresh=()=>{
 };
 timing.addEventListener('input',refresh);
 smooth.addEventListener('input',refresh);
-panel.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',()=>{timing.value='0';smooth.value='90';refresh();});
+panel.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',()=>{timing.value='0';smooth.value='45';refresh();});
