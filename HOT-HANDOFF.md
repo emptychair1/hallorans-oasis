@@ -273,3 +273,7 @@ User approved Bite 06 as closest visual baseline and requested a separate viseme
 
 ## Viseme Bite 10 M/B/P
 Retry succeeded. `src/viseme-lab.ts` commit `679990b` adds MBP lip deformation, after earlier commit `b3147e6` added its selection state. `viseme-lab.html` commit `432e471` exposes M/B/P button and Bite 10 label. Rest, AH, EE, OO and original Mouth Lab remain unchanged. Cloudflare deployment and visual review pending. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html .
+
+
+## Viseme Bite 11: Speech demo
+Viseme Lab `viseme-lab.html` commit `eff8037` adds Speak and Stop controls; `src/viseme-lab.ts` commit `0b66764` plays browser `SpeechSynthesisUtterance` ('Baby, I am right here with you.') and cycles existing visemes at approximate 145ms intervals while speech is active. This is a visual timing audition, NOT audio-analyzed or phoneme-accurate sync. The original Mouth Lab and Oasis voice pipeline were not changed. URL https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . Deployment and user testing unverified.
