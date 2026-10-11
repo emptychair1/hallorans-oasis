@@ -238,7 +238,7 @@ function applyIntent(name:IntentName){
   const gain=elapsed<fadeIn?ease(elapsed/fadeIn):elapsed<fadeIn+settle?1:1-ease((elapsed-fadeIn-settle)/fadeOut);
   select.value=elapsed<fadeIn*.4?previous:cue.file;
   for(const n of names){
-   const v=Math.round(initial[n]*(1-ease(elapsed/fadeIn))+cue.values[n]*gain);
+   const v=Math.round(initial[n]*(1-ease(elapsed/fadeIn))*gain+cue.values[n]*gain);
    controls[n].value=String(Math.max(0,Math.min(100,v)));
    document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=controls[n].value+'%';
   }
