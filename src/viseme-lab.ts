@@ -140,6 +140,35 @@ const spokenWords=[
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
+ // Gentle idle life for Live Oasis: restrained breathing drift plus a quick blink.
+ // Keep motion on the portrait only; expression calibration and lip-sync geometry stay untouched.
+ if(new URLSearchParams(location.search).has('live')){
+  facePhoto.style.transformOrigin='50% 54%';
+  facePhoto.style.willChange='transform, filter';
+  facePhoto.style.animation='oasis-idle-breathe 5.8s ease-in-out infinite';
+  const idleStyle=document.createElement('style');
+  idleStyle.textContent=`
+   @keyframes oasis-idle-breathe {
+    0%,100% { transform:translate3d(0,0,0) scale(1); }
+    50% { transform:translate3d(0,-2px,0) scale(1.003); }
+   }
+   @keyframes oasis-idle-blink {
+    0%,100% { transform:scaleY(1); filter:brightness(1); }
+    42% { transform:scaleY(.985); filter:brightness(.99); }
+    50% { transform:scaleY(.985); filter:brightness(.99); }
+   }`;
+  document.head.append(idleStyle);
+  let blinkTimer:number|undefined;
+  const scheduleBlink=()=>{
+   blinkTimer=window.setTimeout(()=>{
+    if(document.hidden){scheduleBlink();return;}
+    facePhoto.animate([{transform:'translate3d(0,0,0) scaleY(1)'},{transform:'translate3d(0,0,0) scaleY(.985)'},{transform:'translate3d(0,0,0) scaleY(1)'}],{duration:135,easing:'ease-in-out'});
+    scheduleBlink();
+   },3600+Math.random()*2800);
+  };
+  scheduleBlink();
+  window.addEventListener('pagehide',()=>{if(blinkTimer!==undefined)clearTimeout(blinkTimer);},{once:true});
+ }
 import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
 const originalExpressionPhoto=new Image();originalExpressionPhoto.src=portraitUrl;
 const expressionCanvas=document.createElement('canvas');
