@@ -26,6 +26,7 @@ export class OasisPiperVoice {
   constructor(
     private readonly onSpeechLevel: (level: number) => void = () => {},
     private readonly onExpression: (expression: 'neutral' | 'smile' | 'blink' | 'surprise') => void = () => {},
+    private readonly onViseme: (shape: string) => void = () => {},
     private readonly onSpeechTiming: (event: {type:'start';text:string;duration:number}|{type:'frame';elapsed:number;level:number}|{type:'stop'}) => void = () => {}
   ) {
     this.root.className = 'oasis-voice';
@@ -222,6 +223,7 @@ export class OasisPiperVoice {
       source.connect(speechAnalyser);
       speechAnalyser.connect(this.context.destination);
       const samples = new Float32Array(speechAnalyser.fftSize);
+      const spectrum = new Uint8Array(speechAnalyser.frequencyBinCount);
       let speechStartedAt=0;
       const animateSpeech = () => {
         if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
@@ -232,6 +234,11 @@ export class OasisPiperVoice {
         const target = Math.min(1, Math.max(0, (rms - 0.012) * 8));
         this.speechLevel += (target - this.speechLevel) * (target > this.speechLevel ? 0.45 : 0.22);
         this.onSpeechLevel(this.speechLevel);
+        speechAnalyser.getByteFrequencyData(spectrum);
+        const slice=(a:number,b:number)=>{let sum=0;for(let i=a;i<b;i++)sum+=spectrum[i];return sum/(b-a);};
+        const low=slice(4,14),mid=slice(14,40),high=slice(40,90),hiss=slice(90,160);
+        const shape=rms<.012?'rest':hiss>high*1.5?'fv':high>low*1.3?'ee':low>mid*1.4?'oo':mid>low*.85?'ah':'mbp';
+        this.onViseme(shape);
         this.onSpeechTiming({type:'frame',elapsed:Math.max(0,(this.context?.currentTime||0)-speechStartedAt),level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
       };
@@ -345,6 +352,7 @@ export class OasisPiperVoice {
     this.speechFrame = 0;
     this.speechLevel = 0;
     this.onSpeechLevel(0);
+    this.onViseme('rest');
     this.onSpeechTiming({type:'stop'});
     this.onExpression('neutral');
     try { this.speechAnalyser?.disconnect(); } catch {}
