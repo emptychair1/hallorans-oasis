@@ -8,6 +8,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const status = $<HTMLParagraphElement>('status');
 const run = $<HTMLButtonElement>('run');
 const mesh = $<HTMLInputElement>('mesh');
+const exportButton = $<HTMLButtonElement>('export');
+const copyButton = $<HTMLButtonElement>('copy');
 const originals = [$<HTMLImageElement>('original'), $<HTMLImageElement>('expression')];
 const canvases = [$<HTMLCanvasElement>('original-overlay'), $<HTMLCanvasElement>('expression-overlay')];
 const labels = [$<HTMLParagraphElement>('original-status'), $<HTMLParagraphElement>('expression-status')];
@@ -41,9 +43,46 @@ function draw(i: number) {
     ctx.fillStyle='#ffce73';ctx.fillText(name,x+9,y-8);
   }
 }
+const imageNames = ['IMG_4604.jpeg', 'b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png'];
+function faceMapJSON(): string {
+  if (!results[0] || !results[1]) throw new Error('Detect both faces before exporting.');
+  return JSON.stringify({
+    schema: 'piper-face-maps-v1',
+    detector: '@mediapipe/tasks-vision FaceLandmarker',
+    coordinateSystem: 'normalized image coordinates, x/y in [0,1], z relative',
+    images: originals.map((img, i) => ({
+      role: i === 0 ? 'locked-original' : 'expression-reference',
+      filename: imageNames[i],
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+      landmarkCount: results[i]!.length,
+      landmarks: results[i]!.map(p => ({x:p.x, y:p.y, z:p.z ?? 0}))
+    }))
+  }, null, 2);
+}
+exportButton.addEventListener('click', () => {
+  try {
+    const blob = new Blob([faceMapJSON()], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url; anchor.download = 'piper-face-maps-bite01.6.json';
+    document.body.append(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    status.textContent = 'JSON export requested. On iPhone, check Downloads or the Files app. If download is blocked, use Copy JSON.';
+  } catch (e) { status.textContent = String(e); }
+});
+copyButton.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(faceMapJSON());
+    status.textContent = 'Both face maps copied as JSON. Paste into a file or send here.';
+  } catch (e) { status.textContent = 'Clipboard failed: ' + String(e) + '. Try Export JSON.'; }
+});
 mesh.addEventListener('change', () => {draw(0);draw(1);});
 run.addEventListener('click', async () => {
   run.disabled = true;
+  exportButton.disabled = true;
+  copyButton.disabled = true;
+  results[0] = null; results[1] = null;
   let stage = 'startup';
   try {
     status.textContent = 'Loading MediaPipe face landmark detector…';
@@ -80,6 +119,8 @@ run.addEventListener('click', async () => {
       labels[i].textContent = faces.length ? `Detected ${faces[0].length} landmarks · image ${img.naturalWidth} × ${img.naturalHeight}` : 'No face detected. Try another reference image.';
       draw(i);
     });
+    exportButton.disabled = !results.every(Boolean);
+    copyButton.disabled = !results.every(Boolean);
     status.textContent = results.every(Boolean) ? 'Both faces mapped. Inspect eyes, brows, nose, lips, and chin before Bite 02.' : 'Detection incomplete. Do not proceed to transplant until both faces map.';
   } catch (e) {
     status.textContent = 'Detection failed at ' + stage + ': ' + (e instanceof Error ? e.message : (e instanceof Event ? 'Resource event ' + e.type : String(e)));
