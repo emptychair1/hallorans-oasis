@@ -277,3 +277,7 @@ Retry succeeded. `src/viseme-lab.ts` commit `679990b` adds MBP lip deformation, 
 
 ## Viseme Bite 11: Speech demo
 Viseme Lab `viseme-lab.html` commit `eff8037` adds Speak and Stop controls; `src/viseme-lab.ts` commit `0b66764` plays browser `SpeechSynthesisUtterance` ('Baby, I am right here with you.') and cycles existing visemes at approximate 145ms intervals while speech is active. This is a visual timing audition, NOT audio-analyzed or phoneme-accurate sync. The original Mouth Lab and Oasis voice pipeline were not changed. URL https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . Deployment and user testing unverified.
+
+
+## Viseme Bite 12
+User approved revised uploaded mouth calibration (lowerInner x corrected to 0.5031879091788592). `src/viseme-lab.ts` commits `6baf9e0`, `ca98cca` install calibration with fresh localStorage key, `0877615`, `b7a7f31` replace random speech loop with phrase-specific per-word viseme sequences, speech boundary event alignment where supported and duration fallback for iOS. `viseme-lab.html` `ba58801` labels Bite 12. Existing portrait and Mouth Lab unchanged. URL https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . This is approximate text-driven viseme animation, not phoneme-timestamp sync; deployment/user test not verified.
