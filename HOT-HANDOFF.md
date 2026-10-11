@@ -1,3 +1,8 @@
+## 2026-10-11 · BITE 01 iPHONE IMPORT FIX
+- User screenshot shows original image loaded but clicking Detect faces fails: "Importing a module script failed." This is failure of browser-side jsDelivr dynamic ESM import, not landmark detection.
+- Added @mediapipe/tasks-vision ^0.10.22 to package.json and replaced CDN module dynamic import with Vite-bundled import('@mediapipe/tasks-vision') in src/face-map-lab.ts. WASM and model still load from CDN/Google at runtime; no claim those succeed until tested.
+- Commits 08e2445, 6b2df89. No changes to Oasis main, voice, viseme, or original image. Build/deploy NOT verified; user must wait for Cloudflare green and retest Detect faces.
+
 ## 2026-10-11 · LIVING FACE · BITE 01 (face mapping)
 - New isolated `/face-map-lab.html` and `src/face-map-lab.ts`, Vite entry added. Original `IMG_4604.jpeg` and expression `assets/expressions/b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png` loaded read-only.
 - User taps Detect faces; MediaPipe Face Landmarker loaded from jsDelivr with official Google-hosted model; overlay shows all landmarks plus eye/brow/nose/lip/chin anchors and detection counts. Requires network access for model/CDN; no uploads, no image changes, no production voice or mouth changes.
