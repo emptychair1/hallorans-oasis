@@ -13,7 +13,7 @@ const storeKey='piper-mouth-lab-05-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
-let showMarkers=true;
+let showMarkers=true,opening=0;
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
@@ -30,7 +30,30 @@ function draw(){
  photo.style.height=(h*pixels)+'px';
  photo.style.left=(-(cx-side/2)*pixels)+'px';
  photo.style.top=(-(cy-side/2)*pixels)+'px';
- // Bite 04: calibration only; no experimental animation.
+ // Bite 05 experimental preview: anchored upper edge, downward-translated lower-lip photo.
+ if(opening>0 && photo.complete && photo.naturalWidth){
+  const shift=opening*.022*h;
+  const lx=points.leftCorner.x*w,rx=points.rightCorner.x*w;
+  const upper=points.upperInner.y*h,lower=points.lowerInner.y*h;
+  const mid=(lx+rx)/2;
+  const gap=element('path');
+  gap.setAttribute('d',`M ${lx} ${points.leftCorner.y*h} Q ${mid} ${upper} ${rx} ${points.rightCorner.y*h} Q ${mid} ${lower+shift} ${lx} ${points.leftCorner.y*h} Z`);
+  gap.setAttribute('fill','#30191e');svg.append(gap);
+  // Move source photo pixels from the lower lip through the chin as one clipped region.
+  const defs=element('defs'),clip=element('clipPath');
+  clip.setAttribute('id','moving-lower-lip');
+  const region=element('path');
+  const topY=Math.min(points.lowerInnerLeft.y,points.lowerInner.y,points.lowerInnerRight.y)*h;
+  const bottomY=(points.lowerCenter.y+.065)*h;
+  region.setAttribute('d',`M ${lx} ${points.leftCorner.y*h} Q ${mid} ${topY} ${rx} ${points.rightCorner.y*h} L ${(points.rightCorner.x+.025)*w} ${bottomY} L ${(points.leftCorner.x-.025)*w} ${bottomY} Z`);
+  clip.append(region);defs.append(clip);svg.append(defs);
+  const moving=element('image');
+  moving.setAttribute('href',portraitUrl);moving.setAttribute('width',String(w));moving.setAttribute('height',String(h));
+  moving.setAttribute('clip-path','url(#moving-lower-lip)');
+  moving.setAttribute('transform',`translate(0 ${shift})`);
+  svg.append(moving);
+ }
+
  if(showMarkers){
  const line=element('polyline');line.setAttribute('points',keys.slice(0,8).map(k=>`${points[k].x*w},${points[k].y*h}`).join(' '));line.setAttribute('class','line');svg.append(line);
  const seam=element('polyline');seam.setAttribute('points',['leftCorner','upperInnerLeft','upperInner','upperInnerRight','rightCorner','lowerInnerRight','lowerInner','lowerInnerLeft','leftCorner'].map(k=>{const p=points[k as Key];return `${p.x*w},${p.y*h}`;}).join(' '));seam.setAttribute('fill','none');seam.setAttribute('stroke','#4ce0e6');seam.setAttribute('stroke-width',String(side*.003));svg.append(seam);
@@ -55,6 +78,8 @@ svg.addEventListener('pointerdown',e=>{
 });
 svg.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();points[active]=coords(e);draw();});
 const stop=()=>{active=null};svg.addEventListener('pointerup',stop);svg.addEventListener('pointercancel',stop);svg.addEventListener('lostpointercapture',stop);
+const slider=document.querySelector<HTMLInputElement>('#opening')!;
+slider.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
 document.querySelector('#toggleMarkers')!.addEventListener('click',e=>{showMarkers=!showMarkers;(e.currentTarget as HTMLButtonElement).textContent=showMarkers?'Hide markers':'Show markers';draw();});
 document.querySelector('#zoomIn')!.addEventListener('click',()=>{zoom=Math.min(10,zoom+1);draw();});
 document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(2,zoom-1);draw();});
