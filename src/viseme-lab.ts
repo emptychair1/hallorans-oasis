@@ -93,7 +93,13 @@ function draw(){
      const shape=shapeBlend;
      const xShift=shape*halfWidth*u*horizontal*lipVertical;
      const sx=Math.max(0,Math.min(size-1,Math.round(px+xShift*w*scale)));
-     const mbpOffset=.003*mbpBlend*horizontal*(yn<upper+.006?-1:1);
+     // Bite 15: M/B/P must close without a discontinuous vertical pixel jump.
+     // A smooth, tapered convergence replaces the old +/- offset that
+     // produced a hard horizontal seam across the lips.
+     const closureCenter=(upper+lower)/2;
+     const closureDistance=(yn-closureCenter)/.012;
+     const mbpOffset=.0018*mbpBlend*horizontal*lipVertical*
+       (closureDistance/(1+closureDistance*closureDistance));
      const sy=Math.max(0,Math.min(size-1,Math.round(py-(displacement+mbpOffset)*h*scale)));
      const dest=(py*size+px)*4,from=(sy*size+sx)*4;
      for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
