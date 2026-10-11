@@ -217,9 +217,11 @@ export class OasisPiperVoice {
 
       // A separate model decision interprets the dialogue, never the TTS string.
       type ExpressionCue={at:number;expression:string};
+      const reportExpression=(status:string)=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-status',{detail:{status}}));};
+      reportExpression('requesting');
       const expressionDecision:Promise<ExpressionCue[]>=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
-        .then(async response=>{if(!response.ok)return [{at:0,expression:'neutral'}];const data=await response.json() as {expression?:string;cues?:ExpressionCue[]};return Array.isArray(data.cues)&&data.cues.length?data.cues:[{at:0,expression:data.expression||'neutral'}];})
-        .catch(()=>([{at:0,expression:'neutral'}]));
+        .then(async response=>{if(!response.ok){reportExpression('HTTP '+response.status);return [{at:0,expression:'neutral'}];}const data=await response.json() as {expression?:string;cues?:ExpressionCue[];fallback?:boolean;reason?:string};reportExpression(data.fallback?'fallback: '+(data.reason||'unknown'):'ok');return Array.isArray(data.cues)&&data.cues.length?data.cues:[{at:0,expression:data.expression||'neutral'}];})
+        .catch((error:unknown)=>{reportExpression('request error: '+(error instanceof Error?error.message:'unknown'));return [{at:0,expression:'neutral'}];});
       void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:cues.map(c=>c.expression).join(' → ')}}));});
       const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
