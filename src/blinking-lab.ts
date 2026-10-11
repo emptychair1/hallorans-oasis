@@ -23,21 +23,44 @@ function sampleSkin(x:number,y:number):string{
 function curve(points:{x:number;y:number}[],t:number){const a=points[0],b=points[1],c=points[2];return {x:(1-t)*(1-t)*a.x+2*(1-t)*t*b.x+t*t*c.x,y:(1-t)*(1-t)*a.y+2*(1-t)*t*b.y+t*t*c.y};}
 function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
  const a=point(def.outer),b=point(def.inner),u1=point(def.upper[0]),u2=point(def.upper[1]),l1=point(def.lower[0]),l2=point(def.lower[1]);
- const w=Math.hypot(b.x-a.x,b.y-a.y),mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
- const skin=sampleSkin(mid.x,mid.y-w*.48);
+ const w=Math.hypot(b.x-a.x,b.y-a.y);
  const upper=[a,{x:(u1.x+u2.x)/2,y:(u1.y+u2.y)/2},b];
  const lower=[a,{x:(l1.x+l2.x)/2,y:(l1.y+l2.y)/2},b];
- // Build a closed lid silhouette whose central edge travels from the open eye contour to a curved closed seam.
  const top:{x:number;y:number}[]=[],bottom:{x:number;y:number}[]=[],movingTop:{x:number;y:number}[]=[],movingBottom:{x:number;y:number}[]=[];
- for(let i=0;i<=18;i++){const t=i/18;const p=curve(upper,t),q=curve(lower,t);const h=(p.y+q.y)/2;top.push(p);bottom.push(q);movingTop.push({x:p.x,y:p.y+(h-p.y)*amount});movingBottom.push({x:q.x,y:q.y+(h-q.y)*amount});}
- ctx.save();ctx.fillStyle=skin;
- // Upper and lower lids move inward as separate skin bands, leaving the eye visible until closure.
- const fillBand=(outer:{x:number;y:number}[],inner:{x:number;y:number}[])=>{ctx.beginPath();ctx.moveTo(outer[0].x,outer[0].y);for(const p of outer.slice(1))ctx.lineTo(p.x,p.y);for(const p of inner.slice().reverse())ctx.lineTo(p.x,p.y);ctx.closePath();ctx.fill();};
- fillBand(top,movingTop);fillBand(bottom,movingBottom);
- // Closed-lid seam follows the converging upper/lower contours.
+ for(let i=0;i<=32;i++){
+  const t=i/32,p=curve(upper,t),q=curve(lower,t);
+  // Slightly overlap the lid bands so no bright eye-white seam survives at full closure.
+  const h=(p.y+q.y)/2,overlap=amount*Math.max(1.5,w*.025);
+  top.push(p);bottom.push(q);
+  movingTop.push({x:p.x,y:p.y+(h-p.y)*amount+overlap});
+  movingBottom.push({x:q.x,y:q.y+(h-q.y)*amount-overlap});
+ }
+ // Sample several points from the real portrait above and below the eye, then blend a soft skin gradient.
+ const sample=(x:number,y:number)=>{const px=Math.max(0,Math.min(canvas.width-1,Math.round(x))),py=Math.max(0,Math.min(canvas.height-1,Math.round(y)));const d=ctx.getImageData(px,py,1,1).data;return [d[0],d[1],d[2]] as number[];};
+ const midX=(a.x+b.x)/2,midY=(a.y+b.y)/2;
+ const upperSkin=sample(midX,midY-w*.34),lowerSkin=sample(midX,midY+w*.28);
+ const rgb=(c:number[])=>`rgb(${c[0]},${c[1]},${c[2]})`;
+ ctx.save();
+ // Upper lid skin advances downward; lower lid skin advances upward. They overlap at closure.
+ const band=(outer:{x:number;y:number}[],inner:{x:number;y:number}[],upperSide:boolean)=>{
+  ctx.beginPath();ctx.moveTo(outer[0].x,outer[0].y);
+  for(const p of outer.slice(1))ctx.lineTo(p.x,p.y);
+  for(const p of inner.slice().reverse())ctx.lineTo(p.x,p.y);
+  ctx.closePath();
+  const g=ctx.createLinearGradient(midX,midY-w*.22,midX,midY+w*.22);
+  g.addColorStop(0,rgb(upperSkin));g.addColorStop(1,rgb(lowerSkin));
+  ctx.fillStyle=g;ctx.fill();
+ };
+ band(top,movingTop,true);band(bottom,movingBottom,false);
  const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
- if(amount>.08){ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(67,42,39,'+(0.12+amount*.30)+')';ctx.lineWidth=Math.max(1,w*.012);ctx.stroke();}
- if(amount>.42&&lash>0){ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(32,22,25,'+(lash/100*.9)+')';ctx.lineWidth=Math.max(.8,w*(.003+lash/100*.012));ctx.stroke();}
+ if(amount>.08){
+  ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
+  ctx.strokeStyle='rgba(78,47,43,'+(0.10+amount*.27)+')';ctx.lineWidth=Math.max(1,w*.012);ctx.stroke();
+ }
+ if(amount>.42&&lash>0){
+  ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
+  ctx.strokeStyle='rgba(32,22,25,'+(lash/100*.85)+')';ctx.lineWidth=Math.max(.8,w*(.003+lash/100*.01));ctx.stroke();
+ }
  ctx.restore();
 }
 function draw(){
