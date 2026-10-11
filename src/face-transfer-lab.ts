@@ -99,12 +99,56 @@ function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alp
 // Restrict repairs to expressions that failed visual QA. Approved expressions stay untouched.
 const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json','horny.json']);
 const foreheadRepairs=new Set(['full-laugh.json','flush.json','thinking.json','horny.json']);
+// Bite 03.4: isolated visual speech test. At rest, the approved renderer is unchanged.
+const speechButton=document.getElementById('play-speech') as HTMLButtonElement;
+const speechLabel=document.getElementById('speech-shape') as HTMLElement;
+const visemes=['M','AH','EE','OO','F'] as const;
+let speechPlaying=false,speechFrame=0,speechStart=0;
+const speechSource=document.createElement('canvas');
+const speechSourceCtx=speechSource.getContext('2d')!;
+let speechShape='M',speechAmount=0;
+function applySpeech(destination:Point[],w:number,h:number){
+ if(!speechPlaying||speechAmount<=0)return;
+ const lips=lipIndices.map(i=>destination[i]);
+ const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
+ const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
+ const cx=(left+right)/2,cy=(top+bottom)/2,lipW=right-left,lipH=bottom-top;
+ if(lipW<2||lipH<2)return;
+ const rx=lipW*.82,ry=Math.max(lipH*1.55,lipW*.24);
+ const shapes:Record<string,[number,number]>={M:[1,.78],AH:[1.04,1.35],EE:[1.20,.72],OO:[.78,1.24],F:[1.05,.83]};
+ const [targetX,targetY]=shapes[speechShape]||[1,1];
+ const sx=1+(targetX-1)*speechAmount,sy=1+(targetY-1)*speechAmount;
+ speechSource.width=w;speechSource.height=h;speechSourceCtx.drawImage(canvas,0,0);
+ // Feather a transformed sample into the existing portrait, keeping cheeks and forehead intact.
+ const layer=document.createElement('canvas');layer.width=w;layer.height=h;
+ const lc=layer.getContext('2d')!;
+ lc.save();lc.translate(cx,cy);lc.scale(sx,sy);lc.translate(-cx,-cy);
+ lc.drawImage(speechSource,0,0);lc.restore();
+ lc.globalCompositeOperation='destination-in';
+ const mask=lc.createRadialGradient(cx,cy,ry*.32,cx,cy,ry);
+ lc.save();lc.translate(cx,cy);lc.scale(1,ry/rx);
+ const oval=lc.createRadialGradient(0,0,rx*.52,0,0,rx);
+ oval.addColorStop(0,'#000');oval.addColorStop(1,'transparent');
+ lc.fillStyle=oval;lc.beginPath();lc.arc(0,0,rx,0,Math.PI*2);lc.fill();lc.restore();
+ lc.globalCompositeOperation='source-over';
+ ctx.drawImage(layer,0,0);
+}
+function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='M';speechLabel.textContent='Rest';speechButton.textContent='▶ Test speech shapes';render();}
+function animateSpeech(now:number){
+ if(!speechPlaying)return;
+ const elapsed=now-speechStart,period=650,index=Math.floor(elapsed/period)%visemes.length;
+ const phase=(elapsed%period)/period;
+ speechShape=visemes[index];speechAmount=Math.sin(Math.PI*phase);
+ speechLabel.textContent=speechShape;render();
+ speechFrame=requestAnimationFrame(animateSpeech);
+}
+speechButton.addEventListener('click',()=>{if(speechPlaying){stopSpeech();return;}stopAnimation();speechPlaying=true;speechStart=performance.now();speechButton.textContent='■ Stop speech test';speechFrame=requestAnimationFrame(animateSpeech);});
 let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
 const g=Number(geometry.value)/100*expressionBlend,t=Number(texture.value)/100*expressionBlend,f=Number(flush.value)/100*expressionBlend;
 for(const [id,input] of [['geometry-value',geometry],['texture-value',texture],['flush-value',flush]] as const)$(id).textContent=input.value+'%';
-if(!g&&!t&&!f)return;
+if(!g&&!t&&!f&&!speechPlaying)return;
 const sb=bounds(src),tb=bounds(target),ratioX=sb.w/Math.max(tb.w,.001),ratioY=sb.h/Math.max(tb.h,.001);
 const source=src.map(p=>({x:p.x*w,y:p.y*h}));
 const destination=src.map((p,i)=>{const q=target[i];const nx=sb.minX+(q.x-tb.minX)*ratioX,ny=sb.minY+(q.y-tb.minY)*ratioY;return {x:(p.x+(nx-p.x)*g)*w,y:(p.y+(ny-p.y)*g)*h};});
@@ -129,9 +173,10 @@ if(g){
 // Do not transfer occluding hand pixels into the portrait.
 if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(select.value.split('/').pop()||''))paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
+applySpeech(destination,w,h);
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
-select.addEventListener('change',()=>{stopAnimation();applyPreset();loadReference();});
+select.addEventListener('change',()=>{stopSpeech();stopAnimation();applyPreset();loadReference();});
 for(const control of [geometry,texture,flush])control.addEventListener('input',render);
 original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
 
@@ -170,6 +215,6 @@ function animate(now:number){
 playButton.addEventListener('click',()=>{
  if(playing){stopAnimation();return;}
  if(!playable.length){status.textContent='No saved presets available';return;}
- playing=true;cycleIndex=playable.indexOf(select.value)-1;playButton.textContent='■ Stop animation';
+ stopSpeech();playing=true;cycleIndex=playable.indexOf(select.value)-1;playButton.textContent='■ Stop animation';
  nextExpression();frame=requestAnimationFrame(animate);
 });
