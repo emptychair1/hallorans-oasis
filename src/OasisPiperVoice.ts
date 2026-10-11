@@ -254,9 +254,34 @@ export class OasisPiperVoice {
       const samples = new Float32Array(speechAnalyser.fftSize);
       const spectrum = new Uint8Array(speechAnalyser.frequencyBinCount);
       let speechStartedAt=0;
+      // Preserve expressive beats long enough to read on the portrait.
       let expressionCues:ExpressionCue[]=[];
       let nextExpressionCue=0;
-      void expressionDecision.then(cues=>{if(!this.wanted||generation!==this.generation||this.activeSource!==source)return;expressionCues=cues;const elapsed=Math.max(0,(this.context?.currentTime||0)-speechStartedAt);while(nextExpressionCue<expressionCues.length&&elapsed>=expressionCues[nextExpressionCue].at*audioBuffer.duration)nextExpressionCue++;const active=expressionCues[Math.max(0,nextExpressionCue-1)];if(active)this.onExpression(active.expression);});
+      let currentExpression='neutral';
+      let expressionBeganAt=0;
+      const expressiveHold=(expression:string)=>['flirt','wanting','flush','horny','mischievous'].includes(expression)?3.2:expression==='neutral'?0:1.5;
+      const applyExpression=(expression:string,elapsed:number)=>{
+        if(expression===currentExpression)return;
+        currentExpression=expression;
+        expressionBeganAt=elapsed;
+        this.onExpression(expression);
+      };
+      const advanceExpression=(elapsed:number)=>{
+        while(nextExpressionCue<expressionCues.length){
+          const cue=expressionCues[nextExpressionCue];
+          if(elapsed<cue.at*audioBuffer.duration)break;
+          if(elapsed-expressionBeganAt<expressiveHold(currentExpression))break;
+          nextExpressionCue++;
+          // Don't erase an emotional beat with a neutral filler cue.
+          if(cue.expression==='neutral'&&currentExpression!=='neutral')continue;
+          applyExpression(cue.expression,elapsed);
+        }
+      };
+      void expressionDecision.then(cues=>{
+        if(!this.wanted||generation!==this.generation||this.activeSource!==source)return;
+        expressionCues=cues.filter(cue=>Number.isFinite(cue.at)&&typeof cue.expression==='string').sort((a,b)=>a.at-b.at);
+        advanceExpression(Math.max(0,(this.context?.currentTime||0)-speechStartedAt));
+      });
       const animateSpeech = () => {
         if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
         speechAnalyser.getFloatTimeDomainData(samples);
@@ -279,7 +304,7 @@ export class OasisPiperVoice {
           }
         }else this.onViseme(shape);
         const elapsed=Math.max(0,(this.context?.currentTime||0)-speechStartedAt);
-        while(nextExpressionCue<expressionCues.length&&elapsed>=expressionCues[nextExpressionCue].at*audioBuffer.duration){this.onExpression(expressionCues[nextExpressionCue].expression);nextExpressionCue++;}
+        advanceExpression(elapsed);
         this.onSpeechTiming({type:'frame',elapsed,level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
       };
