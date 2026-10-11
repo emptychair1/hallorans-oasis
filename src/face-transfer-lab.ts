@@ -105,7 +105,23 @@ if(!g&&!t&&!f)return;
 const sb=bounds(src),tb=bounds(target),ratioX=sb.w/Math.max(tb.w,.001),ratioY=sb.h/Math.max(tb.h,.001);
 const source=src.map(p=>({x:p.x*w,y:p.y*h}));
 const destination=src.map((p,i)=>{const q=target[i];const nx=sb.minX+(q.x-tb.minX)*ratioX,ny=sb.minY+(q.y-tb.minY)*ratioY;return {x:(p.x+(nx-p.x)*g)*w,y:(p.y+(ny-p.y)*g)*h};});
-if(g){ctx.clearRect(0,0,w,h);ctx.drawImage(original,0,0);paint(original,source,destination,1,select.value.endsWith('/smile.json')?0.7:0);}
+if(g){
+ ctx.clearRect(0,0,w,h);ctx.drawImage(original,0,0);
+ if(select.value.endsWith('/full-laugh.json')){
+  // Warp the lower face as before, but fade the geometry to zero above the brows.
+  // Preserve the original hairline and upper forehead; mouth rendering stays unchanged.
+  const layer=document.createElement('canvas');layer.width=w;layer.height=h;
+  const layerCtx=layer.getContext('2d')!;
+  paint(original,source,destination,1,0,layerCtx);
+  const browY=Math.min(destination[70].y,destination[300].y);
+  const fadeStart=Math.max(0,browY-h*.13),fadeEnd=browY+h*.06;
+  layerCtx.globalCompositeOperation='destination-in';
+  const fade=layerCtx.createLinearGradient(0,fadeStart,0,fadeEnd);
+  fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,1)');
+  layerCtx.fillStyle=fade;layerCtx.fillRect(0,0,w,h);
+  layerCtx.globalCompositeOperation='source-over';ctx.drawImage(layer,0,0);
+ }else paint(original,source,destination,1,select.value.endsWith('/smile.json')?0.7:0);
+}
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
 if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(select.value.endsWith('/full-laugh.json'))paintFullLaughTexture(reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json'))paintFullLaughMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
