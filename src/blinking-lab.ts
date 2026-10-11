@@ -28,7 +28,7 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
  const upper=[a,{x:(u1.x+u2.x)/2,y:(u1.y+u2.y)/2},b];
  const lower=[a,{x:(l1.x+l2.x)/2,y:(l1.y+l2.y)/2},b];
  // Build a closed lid silhouette whose central edge travels from the open eye contour to a curved closed seam.
- const top=[],bottom=[],movingTop=[],movingBottom=[];
+ const top:{x:number;y:number}[]=[],bottom:{x:number;y:number}[]=[],movingTop:{x:number;y:number}[]=[],movingBottom:{x:number;y:number}[]=[];
  for(let i=0;i<=18;i++){const t=i/18;const p=curve(upper,t),q=curve(lower,t);const h=(p.y+q.y)/2;top.push(p);bottom.push(q);movingTop.push({x:p.x,y:p.y+(h-p.y)*amount});movingBottom.push({x:q.x,y:q.y+(h-q.y)*amount});}
  ctx.save();ctx.fillStyle=skin;
  // Upper and lower lids move inward as separate skin bands, leaving the eye visible until closure.
