@@ -84,7 +84,7 @@ function paintMouth(reference:Point[],destination:Point[],strength:number,w:numb
 // Full Laugh only: feather reference texture out before the upper forehead/hairline.
 const foreheadCanvas=document.createElement('canvas');
 const foreheadCtx=foreheadCanvas.getContext('2d')!;
-function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alpha:number,w:number,h:number){
+function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alpha:number,w:number,h:number,out:CanvasRenderingContext2D=ctx){
  foreheadCanvas.width=w;foreheadCanvas.height=h;
  paint(ref,reference,destination,1,0,foreheadCtx);
  // Keep the cheeks and lower face; gradually restore the original forehead.
@@ -96,7 +96,7 @@ function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alp
  grad.addColorStop(1,'rgba(0,0,0,1)');
  foreheadCtx.fillStyle=grad;foreheadCtx.fillRect(0,0,w,h);
  foreheadCtx.globalCompositeOperation='source-over';
- ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(foreheadCanvas,0,0);ctx.restore();
+ out.save();out.globalAlpha=alpha;out.drawImage(foreheadCanvas,0,0);out.restore();
 }
 // Restrict repairs to expressions that failed visual QA. Approved expressions stay untouched.
 const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json','horny.json']);
