@@ -143,7 +143,7 @@ const choices=document.querySelectorAll<HTMLButtonElement>('[data-viseme]');
 const amounts:Record<Viseme,number>={rest:0,ah:.78,ee:.22,oo:.46,mbp:0};
 choices.forEach(button=>button.addEventListener('click',()=>{
  viseme=button.dataset.viseme as Viseme;
- aimMouth(viseme,amounts[viseme]);slider.value=String(Math.round(opening*100));
+ aimMouth(viseme,amounts[viseme]);slider.value=String(Math.round(amounts[viseme]*100));
  document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
  choices.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
  draw();
@@ -173,11 +173,11 @@ const spokenWords=[
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 function setSpeechShape(next:Viseme){
- viseme=next;opening=amounts[next];
- slider.value=String(Math.round(opening*100));
+ aimMouth(next,amounts[next]);
+ slider.value=String(Math.round(amounts[next]*100));
  document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
  choices.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viseme===next)));
- }
+}
 function stopSpeech(){
  speechActive=false;
  if(speechTimer!==undefined){window.clearInterval(speechTimer);speechTimer=undefined;}
