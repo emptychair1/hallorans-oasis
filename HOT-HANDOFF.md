@@ -1,3 +1,10 @@
+## Piper Mouth Lab Bite 01 (2026-10-10)
+- User confirmed exact IMG_4604.jpeg portrait appears in live Oasis and existing voice works. Portrait root file is imported by src/main.ts using Vite ?url.
+- Built separate /mouth-lab.html and src/mouth-lab.ts, multi-page Vite input in vite.config.ts. Exact portrait is imported, eight draggable normalized lip landmarks, localStorage persistence, reset, copy JSON and download JSON. Initial landmark coordinates are estimates, NOT calibrated; user should drag to actual features.
+- No modifications to Oasis main page or OasisPiperVoice for this bite. No facial animation yet.
+- Commits: 3783e4d (lab HTML), 55dc602 (lab TS), ed1b430 (multi-page Vite config final).
+- Deployment/build not yet verified. Visit https://hallorans-oasis.daniels-joshua100.workers.dev/mouth-lab.html after Cloudflare deployment. If build fails, inspect logs and fix before proceeding.
+
 ## Portrait-only Oasis switch (2026-10-10)
 - User explicitly requested replace the visual Oasis experience with the exact supplied still portrait while preserving existing voice conversation.
 - Updated src/main.ts to render only /assets/piper-presence-portrait.jpg, without starting ConversationScene or Three.js. OasisPiperVoice is mounted unchanged, so microphone/transcription/Home chat/TTS remain on the existing pipeline. src/style.css provides full-screen image with voice control overlay.
