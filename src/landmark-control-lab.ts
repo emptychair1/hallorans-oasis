@@ -189,7 +189,6 @@ function autoTick(now:number){
   nextPose=choosePose();poseStart=now;
  }
  const t=clamp((now-poseStart)/nextPose.duration);
- const blend=ease(t);
  const values={} as Record<Region,number>;
  for(const n of names){
   // Offset onset and release slightly between facial regions.
