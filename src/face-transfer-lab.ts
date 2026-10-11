@@ -481,3 +481,48 @@ $<HTMLInputElement>('studio-import').addEventListener('change',async event=>{
 });
 $('studio-open').addEventListener('click',studioShow);
 studioRefreshCount();
+
+// Bite 04.7: strict sequential five-state audition. Exactly one facial state per frame.
+const sequenceButton=$<HTMLButtonElement>('play-sequence');
+const sequenceLabel=$<HTMLElement>('sequence-state');
+const sequenceStates=['SMILE','OO','AH','EE','SMILE'] as const;
+let sequencePlaying=false,sequenceFrame=0,sequenceStart=0;
+function stopSequence(){sequencePlaying=false;cancelAnimationFrame(sequenceFrame);sequenceButton.textContent='▶ Smile · OO · AH · EE · Smile';}
+function renderSequenceState(index:number){
+ const state=sequenceStates[index];
+ sequenceLabel.textContent=state+' ('+(index+1)+'/5)';
+ // Never composite a mouth onto a rendered expression in this audition.
+ if(state==='SMILE'){
+  calibrationPreview=false;speechPlaying=false;speechAmount=0;
+  const smile=entries.find(([path])=>path.endsWith('/smile.json'))?.[0];
+  if(smile&&select.value!==smile){select.value=smile;applyPreset();loadReference();}
+  expressionBlend=1;render();return;
+ }
+ const name=state.toLowerCase() as SpeechViseme;
+ const asset=visemeAssets.get(name);
+ if(!asset?.image.complete||!asset.image.naturalWidth){
+  sequenceLabel.textContent='Waiting for '+state+' photo';return;
+ }
+ // Full, unmodified photographed viseme face, with no expression layer beneath it.
+ canvas.width=asset.image.naturalWidth;canvas.height=asset.image.naturalHeight;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.drawImage(asset.image,0,0);
+}
+function sequenceTick(now:number){
+ if(!sequencePlaying)return;
+ const elapsed=now-sequenceStart;
+ const stateDuration=850;
+ const index=Math.min(4,Math.floor(elapsed/stateDuration));
+ renderSequenceState(index);
+ if(elapsed>=stateDuration*5){stopSequence();return;}
+ sequenceFrame=requestAnimationFrame(sequenceTick);
+}
+sequenceButton.addEventListener('click',()=>{
+ if(sequencePlaying){stopSequence();render();return;}
+ stopAnimation();stopSpeech();auditionPlaying=false;auditionButton.textContent='▶ Play audition';
+ ooStatic=false;ooButton.textContent='◉ Test static OO mouth';
+ studioActive=false;calibrationPreview=false;
+ sequencePlaying=true;sequenceStart=performance.now();
+ sequenceButton.textContent='■ Stop sequential audition';
+ sequenceFrame=requestAnimationFrame(sequenceTick);
+});
