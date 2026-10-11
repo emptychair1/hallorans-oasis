@@ -235,3 +235,16 @@ speakButton.addEventListener('click',()=>{
  utterance.onerror=stopSpeech;
  window.speechSynthesis.speak(utterance);
 });
+
+
+// Isolated live-voice audition: receive actual Piper playback RMS from parent.
+if(new URLSearchParams(location.search).has('live')){
+ window.addEventListener('message',(event:MessageEvent)=>{
+  if(event.origin!==location.origin||event.source!==window.parent)return;
+  const data=event.data as {type?:string;level?:number};
+  if(data?.type!=='piper-speech-level')return;
+  const level=Math.max(0,Math.min(1,Number(data.level)||0));
+  const next:Viseme=level<.045?'rest':level<.2?'mbp':level<.46?'oo':'ah';
+  aimMouth(next,level<.045?0:Math.min(.78,.14+level*.67));
+ });
+}
