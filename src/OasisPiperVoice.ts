@@ -39,7 +39,7 @@ export class OasisPiperVoice {
 
   constructor(
     private readonly onSpeechLevel: (level: number) => void = () => {},
-    private readonly onExpression: (expression: 'neutral' | 'smile' | 'blink' | 'surprise') => void = () => {},
+    private readonly onExpression: (expression: string) => void = () => {},
     private readonly onViseme: (shape: string) => void = () => {},
     private readonly onSpeechTiming: (event: {type:'start';text:string;duration:number}|{type:'frame';elapsed:number;level:number}|{type:'stop'}) => void = () => {}
   ) {
@@ -213,10 +213,10 @@ export class OasisPiperVoice {
       this.messages.push({ role: 'user', content: transcript }, { role: 'assistant', content: reply });
       while (this.messages.length > 8) this.messages.shift();
 
-      // Stage directions and emojis are cues, not words to speak.
-      const expression = /😳|😮|😲|\*(?:gasps|looks surprised)\*/i.test(reply) ? 'surprise'
-        : /😉|\*(?:winks?|blinks?)\*/i.test(reply) ? 'blink'
-        : /😏|😂|🤣|😊|🥰|❤️|\*(?:smirks?|smiles?|grins?|laughs?)\*/i.test(reply) ? 'smile' : 'neutral';
+      // A separate model decision interprets the dialogue, never the TTS string.
+      const expressionDecision=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
+        .then(async response=>response.ok?(await response.json() as {expression?:string}).expression||'neutral':'neutral')
+        .catch(()=>'neutral');
       const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
       this.setState('speaking', 'Piper is speaking…');
@@ -277,7 +277,7 @@ export class OasisPiperVoice {
           this.activeSource = null;
           this.onSpeechTiming({type:'stop'});
           this.resetSpeechAnimation();
-          if(this.wanted && generation===this.generation){this.onExpression(expression);window.setTimeout(()=>{if(this.wanted && generation===this.generation && !this.activeSource)this.onExpression('neutral');},1800);}
+          if(this.wanted && generation===this.generation){void expressionDecision.then(expression=>{if(!this.wanted||generation!==this.generation||this.activeSource)return;this.onExpression(expression);window.setTimeout(()=>{if(this.wanted&&generation===this.generation&&!this.activeSource)this.onExpression('neutral');},1800);});}
         }
         if (this.wanted && generation === this.generation) {
           this.busy = false;

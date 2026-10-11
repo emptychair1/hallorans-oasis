@@ -144,13 +144,15 @@ import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-re
 const originalExpressionPhoto=new Image();originalExpressionPhoto.src=portraitUrl;
 const expressionCanvas=document.createElement('canvas');
 const expressionCtx=expressionCanvas.getContext('2d');
-let liveExpression:'neutral'|'smile'='neutral',lastLiveShape='rest';
-const approvedSmile=approvedExpressions.find(e=>e.filename==='smile.json');
-const smileReference=new Image();if(approvedSmile)smileReference.src=approvedSmile.photoUrl;
+let liveExpression='neutral',lastLiveShape='rest';
+const expressionPhotos=new Map<string,HTMLImageElement>();
+for(const item of approvedExpressions){const image=new Image();image.src=item.photoUrl;image.addEventListener('load',showLiveExpression);expressionPhotos.set(item.filename.replace(/\.json$/,''),image);}
 function showLiveExpression(){
  if(!new URLSearchParams(location.search).has('live')||lastLiveShape!=='rest')return;
- if(liveExpression==='neutral'||!approvedSmile||!expressionCtx||!originalExpressionPhoto.complete||!smileReference.complete||!smileReference.naturalWidth){facePhoto.src=portraitUrl;return;}
- const result=drawCalibratedFace(expressionCtx,originalExpressionPhoto,smileReference,approvedSmile.map,approvedSmile.filename,approvedSmile.preset);
+ const approved=approvedExpressions.find(e=>e.filename===liveExpression+'.json');
+ const reference=expressionPhotos.get(liveExpression);
+ if(liveExpression==='neutral'||!approved||!reference?.complete||!reference.naturalWidth||!expressionCtx||!originalExpressionPhoto.complete||!originalExpressionPhoto.naturalWidth){facePhoto.src=portraitUrl;return;}
+ const result=drawCalibratedFace(expressionCtx,originalExpressionPhoto,reference,approved.map,approved.filename,approved.preset);
  if(result)facePhoto.src=expressionCanvas.toDataURL('image/png');
 }
 originalExpressionPhoto.addEventListener('load',showLiveExpression);
@@ -218,7 +220,7 @@ if(new URLSearchParams(location.search).has('live')){
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
-  if(d?.type==='piper-expression'){const expression=(event.data as {expression?:string}).expression;if(expression==='smile'||expression==='neutral'){liveExpression=expression;showLiveExpression();}return;}
+  if(d?.type==='piper-expression'){const expression=(event.data as {expression?:string}).expression;if(expression==='neutral'||approvedExpressions.some(item=>item.filename===expression+'.json')){liveExpression=expression;showLiveExpression();}return;}
   if(d?.type==='piper-viseme'){
    const shape=(event.data as {shape?:string}).shape||'rest';
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;

@@ -133,9 +133,31 @@ async function proxyVoice(request: Request, endpoint: 'piper-transcribe' | 'pipe
   }
 }
 
+
+const EXPRESSION_CHOICES = ["wanting","thinking","surprised","smile2","smile","sad2","sad","neutral","mischievous","mad","horny","full-smile","full-laugh","flush","flirt","excited","embarrassed2"];
+async function classifyExpression(request:Request):Promise<Response>{
+ if(request.method!=='POST')return jsonError('Method not allowed',405);
+ if(!sameOrigin(request))return jsonError('Same-origin request required',403);
+ let body:{conversation?:unknown;reply?:unknown};
+ try{const raw=await request.text();if(raw.length>16000)return jsonError('Too large',413);body=JSON.parse(raw);}catch{return jsonError('Invalid JSON',400);}
+ const reply=typeof body.reply==='string'?body.reply.slice(0,2500):'';
+ const context=Array.isArray(body.conversation)?body.conversation.filter((m):m is {role:string;content:string}=>!!m&&typeof m==='object'&&typeof m.role==='string'&&typeof m.content==='string').slice(-6).map(m=>({role:m.role,content:m.content.slice(0,1000)})):[];
+ if(!reply)return jsonError('Reply required',400);
+ const instruction='You are a silent facial-expression director for a talking portrait. Infer the emotional intent of the assistant reply in the context of the conversation, not from keyword or emoji matching. Choose exactly ONE expression from: '+EXPRESSION_CHOICES.join(', ')+'. Prefer neutral when ambiguous. Reply ONLY with the exact expression identifier, no explanation.\nConversation: '+JSON.stringify(context)+'\nAssistant reply: '+JSON.stringify(reply);
+ try{
+  const upstream=await fetch(PIPER_HOME_ORIGIN+'/api/chat',{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({messages:[{role:'user',content:instruction}],current_session_messages:[{role:'user',content:instruction}],session_context:'oasis-expression-classifier-v1',input_mode:'text',stream:false})});
+  if(!upstream.ok)return Response.json({expression:'neutral',fallback:true},{headers:{'cache-control':'no-store'}});
+  const result=await upstream.json() as {reply?:string;response?:string;text?:string};
+  const raw=String(result.reply||result.response||result.text||'').trim().toLowerCase().replace(/[`"'*.]/g,'');
+  const expression=EXPRESSION_CHOICES.includes(raw)?raw:'neutral';
+  return Response.json({expression},{headers:{'cache-control':'no-store'}});
+ }catch{return Response.json({expression:'neutral',fallback:true},{headers:{'cache-control':'no-store'}});}
+}
+
 export default {
   async fetch(request: Request, env: OasisEnv): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/api/oasis/expression') return classifyExpression(request);
     if (url.pathname === '/api/oasis/chat') return proxyPiperChat(request);
     if (url.pathname === '/api/oasis/transcribe') return proxyVoice(request, 'piper-transcribe');
     if (url.pathname === '/api/oasis/speak-fast') return proxyVoice(request, 'piper-speak-fast');

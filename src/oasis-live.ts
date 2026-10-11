@@ -3,7 +3,7 @@ import { OasisPiperVoice } from './OasisPiperVoice';
 const frame=document.querySelector<HTMLIFrameElement>('#portrait')!;
 const voice=new OasisPiperVoice(
  level=>frame.contentWindow?.postMessage({type:'piper-speech-level',level},location.origin),
- expression=>frame.contentWindow?.postMessage({type:'piper-expression',expression:expression==='smile'?'smile':'neutral'},location.origin),
+ expression=>frame.contentWindow?.postMessage({type:'piper-expression',expression},location.origin),
  shape=>frame.contentWindow?.postMessage({type:'piper-viseme',shape},location.origin),
  event=>frame.contentWindow?.postMessage({...event,type:'piper-speech-timing'},location.origin)
 );
