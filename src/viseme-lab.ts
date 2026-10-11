@@ -116,7 +116,7 @@ function draw(){
   const scale=size/side;
   warpCtx.setTransform(scale,0,0,scale,-(cx-side/2)*scale,-(cy-side/2)*scale);
   warpCtx.clearRect(0,0,w,h);
-  warpCtx.drawImage(photo,0,0,w,h);
+  warpCtx.drawImage(liveBlink && facePhoto.complete && facePhoto.naturalWidth ? facePhoto : photo,0,0,w,h);
    drawPhotoBlink(warpCtx);
   warpCtx.setTransform(1,0,0,1,0,0);
   if(opening>.0001||mbpBlend>.0001||Math.abs(shapeBlend)>.0001){
@@ -186,7 +186,7 @@ let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
 // In live mode the speechFace overlay sits above the animated canvas (z-index:5).
 // Hide only that static overlay so the blink and calibrated mouth canvas is visible.
-if(liveBlink)facePhoto.style.display='none';
+if(liveBlink){facePhoto.style.display='none';facePhoto.addEventListener('load',draw);}
  // Gentle idle life for Live Oasis: restrained breathing drift plus a quick blink.
  // Keep motion on the portrait only; expression calibration and lip-sync geometry stay untouched.
  if(new URLSearchParams(location.search).has('live')){
