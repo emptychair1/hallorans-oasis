@@ -522,6 +522,7 @@ sequenceButton.addEventListener('click',()=>{
  stopAnimation();stopSpeech();auditionPlaying=false;auditionButton.textContent='▶ Play audition';
  ooStatic=false;ooButton.textContent='◉ Test static OO mouth';
  studioActive=false;calibrationPreview=false;
+ canvas.style.display='block';
  sequencePlaying=true;sequenceStart=performance.now();
  sequenceButton.textContent='■ Stop sequential audition';
  sequenceFrame=requestAnimationFrame(sequenceTick);
