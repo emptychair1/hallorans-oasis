@@ -1,5 +1,5 @@
 import portraitUrl from '../IMG_4604.jpeg?url';
-import {approvedExpressions,drawCalibratedFace,lipIndices} from './calibrated-expression-renderer';
+import {approvedExpressions,drawCalibratedFace,paintFaceMesh,lipIndices} from './calibrated-expression-renderer';
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
 const ctx=canvas.getContext('2d')!;
 const status=document.querySelector<HTMLElement>('#status')!;
@@ -32,48 +32,52 @@ function draw(){
  const w=original.naturalWidth,h=original.naturalHeight;
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
  ctx.clearRect(0,0,w,h);
- if(smiling&&smile&&smileImage.complete&&smileImage.naturalWidth){
+ let expressionDestination:{x:number;y:number}[]|undefined;
+ if(smileMix>.001&&smile&&smileImage.complete&&smileImage.naturalWidth){
   const result=drawCalibratedFace(expressionCtx,original,smileImage,smile.map,smile.filename,smile.preset,smileMix);
-  if(result)ctx.drawImage(expressionCanvas,0,0,w,h);else ctx.drawImage(original,0,0,w,h);
+  if(result){expressionDestination=result.destination;ctx.drawImage(expressionCanvas,0,0,w,h);}else ctx.drawImage(original,0,0,w,h);
  }else ctx.drawImage(original,0,0,w,h);
- // Composite the mouth in the landmark coordinate system, not a fixed ellipse.
- // Crossfade the two viseme states while preserving the current expression geometry.
+ // Build one destination landmark field for expression and speech.
+ // Mouth-corner displacement is damped so the smile survives articulation.
  function paintShape(name:Shape,opacity:number){
   const image=images.get(name),map=visemeMaps.get(name);
   if(name==='rest'||!image?.complete||!image.naturalWidth||!map||opacity<=0)return;
   const ref=map.images.find(i=>i.role==='expression-reference')?.landmarks;
-  const src=map.images.find(i=>i.role==='locked-original')?.landmarks;
-  const smileDest=smile?.map.images.find(i=>i.role==='expression-reference')?.landmarks;
-  const smileSrc=smile?.map.images.find(i=>i.role==='locked-original')?.landmarks;
-  if(!ref||!src||ref.length!==478||src.length!==478)return;
-  const bounds=(pts:{x:number;y:number}[])=>{
-   const lip=lipIndices.map(i=>pts[i]);
-   return {cx:(Math.min(...lip.map(p=>p.x))+Math.max(...lip.map(p=>p.x)))/2,
-    cy:(Math.min(...lip.map(p=>p.y))+Math.max(...lip.map(p=>p.y)))/2,
-    width:Math.max(...lip.map(p=>p.x))-Math.min(...lip.map(p=>p.x)),
-    height:Math.max(...lip.map(p=>p.y))-Math.min(...lip.map(p=>p.y))};
-  };
-  const source=bounds(ref),neutral=bounds(src);
-  const smileBounds=smileDest&&smileSrc?bounds(smileDest):neutral;
-  const smileBase=smileSrc?bounds(smileSrc):neutral;
-  // Preserve the smile's mouth corner spread and vertical placement.
-  const dest={cx:neutral.cx+(smileBounds.cx-smileBase.cx)*smileMix,
-   cy:neutral.cy+(smileBounds.cy-smileBase.cy)*smileMix,
-   width:neutral.width+(smileBounds.width-smileBase.width)*smileMix,
-   height:neutral.height+(smileBounds.height-smileBase.height)*smileMix};
-  const sx=dest.width/Math.max(.001,source.width),sy=dest.height/Math.max(.001,source.height);
+  const neutral=map.images.find(i=>i.role==='locked-original')?.landmarks;
+  if(!ref||!neutral||ref.length!==478||neutral.length!==478)return;
+  const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
+  const base=neutral.map((p,i)=>expressionDestination?.[i]||{x:p.x*w,y:p.y*h});
+  const mouth=lipIndices.map(i=>base[i]);
+  const left=Math.min(...mouth.map(p=>p.x)),right=Math.max(...mouth.map(p=>p.x));
+  const top=Math.min(...mouth.map(p=>p.y)),bottom=Math.max(...mouth.map(p=>p.y));
+  const cx=(left+right)/2,cy=(top+bottom)/2;
+  const width=Math.max(1,right-left),height=Math.max(1,bottom-top);
+  const shapeStrength=name==='ah'?.85:name==='oo'?.8:name==='ee'?.75:1;
+  const destination=base.map((p,i)=>{
+   const q=ref[i],n=neutral[i];
+   const nx=(p.x-cx)/(width*1.65),ny=(p.y-cy)/(height*2.2);
+   const distance=nx*nx+ny*ny;
+   const influence=Math.pow(Math.max(0,1-distance),2);
+   // Attenuate speech deformation at the corners to retain the smile.
+   const cornerFactor=Math.max(.35,1-Math.pow(Math.min(1,Math.abs((p.x-cx)/(width*.5))),4)*.65*smileMix);
+   return {x:p.x+(q.x-n.x)*w*influence*cornerFactor*shapeStrength,
+           y:p.y+(q.y-n.y)*h*influence*shapeStrength};
+  });
   layer.width=w;layer.height=h;
-  layerCtx.save();layerCtx.translate(dest.cx*w,dest.cy*h);layerCtx.scale(sx,sy);
-  layerCtx.translate(-source.cx*w,-source.cy*h);layerCtx.drawImage(image,0,0,w,h);layerCtx.restore();
+  paintFaceMesh(image,source,destination,1,.4,layerCtx);
+  // Mask tracks the final destination lips, not an image-space oval.
+  const lips=lipIndices.map(i=>destination[i]);
+  const minX=Math.min(...lips.map(p=>p.x)),maxX=Math.max(...lips.map(p=>p.x));
+  const minY=Math.min(...lips.map(p=>p.y)),maxY=Math.max(...lips.map(p=>p.y));
+  const mx=(minX+maxX)/2,my=(minY+maxY)/2;
+  const rx=Math.max(2,(maxX-minX)*.72),ry=Math.max(2,(maxY-minY)*1.05);
   layerCtx.globalCompositeOperation='destination-in';
-  layerCtx.save();layerCtx.translate(dest.cx*w,dest.cy*h);
-  const rx=Math.max(1,dest.width*w*.76),ry=Math.max(1,dest.height*h*1.08);
-  layerCtx.scale(rx,ry);
-  const fade=layerCtx.createRadialGradient(0,0,.65,0,0,1);
-  fade.addColorStop(0,'black');fade.addColorStop(1,'transparent');
-  layerCtx.fillStyle=fade;layerCtx.beginPath();layerCtx.arc(0,0,1,0,Math.PI*2);layerCtx.fill();
+  layerCtx.save();layerCtx.translate(mx,my);layerCtx.scale(rx,ry);
+  const mask=layerCtx.createRadialGradient(0,0,.58,0,0,1);
+  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
+  layerCtx.fillStyle=mask;layerCtx.beginPath();layerCtx.arc(0,0,1,0,Math.PI*2);layerCtx.fill();
   layerCtx.restore();layerCtx.globalCompositeOperation='source-over';
-  ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,opacity));ctx.drawImage(layer,0,0);ctx.restore();
+  ctx.save();ctx.globalAlpha=Math.min(1,Math.max(0,opacity));ctx.drawImage(layer,0,0);ctx.restore();
  }
  paintShape(transitionFrom,1-shapeMix);
  paintShape(shape,shapeMix);
