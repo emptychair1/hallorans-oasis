@@ -120,7 +120,15 @@ let speechPlaying=false,speechFrame=0,speechStart=0,speechLast=0,speechAmount=0;
 let speechShape:SpeechViseme|'rest'='rest';
 type VisemeTuning={x:number;y:number;width:number;height:number;feather:number;blend:number};
 const tuningDefaults=():VisemeTuning=>({x:0,y:0,width:100,height:100,feather:57,blend:100});
-const visemeTuning=Object.fromEntries(visemeOrder.map(name=>[name,tuningDefaults()])) as Record<SpeechViseme,VisemeTuning>;
+// Approved 2026-10-11 from visible iPhone slider readings; MBP remains at defaults.
+const approvedVisemeTuning:Record<SpeechViseme,VisemeTuning>={
+ oo:{x:0,y:-26,width:100,height:100,feather:57,blend:100},
+ mbp:tuningDefaults(),
+ ah:{x:0,y:-41,width:96,height:95,feather:57,blend:100},
+ ee:{x:0,y:-28,width:106,height:100,feather:57,blend:100},
+ fv:{x:0,y:-17,width:100,height:100,feather:57,blend:100}
+};
+const visemeTuning=Object.fromEntries(visemeOrder.map(name=>[name,{...approvedVisemeTuning[name]}])) as Record<SpeechViseme,VisemeTuning>;
 const calibrationSelect=$<HTMLSelectElement>('viseme-calibration-shape');
 const calibrationControls=(['x','y','width','height','feather','blend'] as const).map(key=>({key,input:$<HTMLInputElement>('viseme-'+key),output:$<HTMLOutputElement>('viseme-'+key+'-value')}));
 let calibrationShape:SpeechViseme='oo',calibrationPreview=false;
