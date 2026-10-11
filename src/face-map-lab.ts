@@ -54,13 +54,14 @@ run.addEventListener('click', async () => {
     stage = 'WASM runtime'; status.textContent = 'Stage 2: loading MediaPipe WASM';
     // iOS can report "ModuleFactory not set" if the runtime JS fails to execute.
     // Preflight exact same-origin files and report the failing URL rather than masking it.
-    const root = new URL('/mediapipe/wasm/', window.location.href);
+    const root = new URL('/mediapipe/wasm', window.location.href);
     const files = await vision.FilesetResolver.forVisionTasks(root.href);
     for (const [kind, url] of [['WASM loader', files.wasmLoaderPath], ['WASM binary', files.wasmBinaryPath]] as const) {
       stage = kind; status.textContent = 'Checking ' + kind + '…';
       const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) throw new Error(kind + ' HTTP ' + response.status + ': ' + url);
-      if (kind === 'WASM loader' && !(await response.text()).includes('Module')) throw new Error('Unexpected WASM loader response: ' + url);
+      if (kind === 'WASM loader') { const body = await response.text(); if (body.trimStart().startsWith('<') || body.length < 1000) throw new Error('Invalid WASM loader response (' + body.length + ' chars): ' + url); }
+      if (kind === 'WASM binary') { const bytes = await response.arrayBuffer(); if (bytes.byteLength < 10000 || new Uint8Array(bytes)[0] !== 0 || new Uint8Array(bytes)[1] !== 97) throw new Error('Invalid WASM binary (' + bytes.byteLength + ' bytes): ' + url); }
     }
     stage = 'model download'; status.textContent = 'Stage 3: checking face model';
     const modelResponse = await fetch('/mediapipe/face_landmarker.task', { cache: 'no-store' });
