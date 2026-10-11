@@ -37,7 +37,7 @@ for(const [a,neighbors] of adjacency)for(const b of neighbors)for(const c of nei
  const ids=[a,b,c].sort((x,y)=>x-y),key=ids.join('-');
  if(!seen.has(key)){seen.add(key);triangles.push(ids);}
 }
-function warp(source:Point[],target:Point[],w:number,h:number){
+function warp(source:Point[],target:Point[]){
  for(const [i,j,k] of triangles){
   const a=source[i],b=source[j],c=source[k],d=target[i],e=target[j],f=target[k];
   const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);
@@ -92,7 +92,7 @@ function draw(){
   const mix=.2;
   return {x:from[i].x+deltaX*(1-mix)+nx/neighbors.size*mix,y:from[i].y+deltaY*(1-mix)+ny/neighbors.size*mix};
  });
- warp(from,smooth,w,h);
+ warp(from,smooth);
  // Approved reference textures supply visible skin, lip and eye changes.
  // The mesh above handles geometry; soft anatomical masks independently blend
  // each region of the already-approved photographic expression.
