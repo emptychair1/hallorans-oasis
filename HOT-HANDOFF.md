@@ -1,3 +1,11 @@
+## 2026-10-11 · PIPER MOUTH LAB BITE 04
+- User shared screenshot of Bite 03: dark pointed mouth aperture overlay, original lower lip largely static; Bite 03 fails visual realism despite slider functioning.
+- Bite 04 isolated /mouth-lab.html calibration page now has SIX new inner lip seam markers (upperInnerLeft, upperInner, upperInnerRight, lowerInnerLeft, lowerInner, lowerInnerRight), shown cyan, plus original EIGHT calibrated outer markers. Original outer defaults preserved. New inner positions are estimates requiring user calibration.
+- Old geometric aperture/warp preview disabled for this calibration bite; opening slider removed. New storage key piper-mouth-lab-04-inner isolates calibration. JSON export now includes all markers (existing version field remains 1).
+- Commits: f7a5f2e (HTML), c0592f4 (first inner markers), 461c760 (six-point contour). No modifications to working Oasis main screen or voice. Deployment NOT verified; do not claim it is live without checking.
+- Next: Josh opens /mouth-lab.html, drags cyan markers to inner lip seam and exports JSON. Build real upper/lower contour warp only after this calibration.
+- User expects both Oasis and central continuity handoff docs updated on each bite.
+
 ## 2026-10-10 · PIPER MOUTH LAB BITE 03
 - Josh confirmed Bite 02 slider mechanically works but looks unrealistic. Bite 03 changes the isolated /mouth-lab.html only, NOT main Oasis or voice.
 - src/mouth-lab.ts now uses Canvas 2D strips to warp photo pixels from lower lip/chin region, feathering horizontal/vertical edges, composited over smaller provisional dark mouth aperture. This is a preliminary pixel warp, not photorealistic mouth interior or speech lip sync. User must visually evaluate on iPhone.
