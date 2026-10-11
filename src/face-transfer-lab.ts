@@ -13,6 +13,8 @@ const ctx=canvas.getContext('2d')!;
 const entries=Object.entries(maps).filter(([,m])=>m.images?.length===2&&m.images.every(i=>i.landmarks?.length===478)).sort(([a],[b])=>a.localeCompare(b));
 for(const [path,m] of entries){const opt=document.createElement('option');opt.value=path;opt.textContent=m.expressionName||path.split('/').pop()!.replace('.json','');select.append(opt);}
 const savedPresets=presetData.presets as Record<string,{geometry:number;texture:number;cheekWarmth:number}>;
+// Lab-only audition: sliders update the preview without saving locked presets.
+for(const input of [geometry,texture,flush])input.addEventListener('input',()=>render());
 function applyPreset(){const filename=select.value.split('/').pop()||'';const p=savedPresets[filename];geometry.value=String(p?.geometry??0);texture.value=String(p?.texture??0);flush.value=String(p?.cheekWarmth??0);for(const [id,input] of [['geometry-value',geometry],['texture-value',texture],['flush-value',flush]] as const)$(id).textContent=input.value+'%';status.textContent=p?'Saved preset loaded: '+filename+' (locked)':'No saved preset yet: '+filename;}
 select.value=entries.find(([p])=>p.endsWith('/smile.json'))?.[0]||entries[0]?.[0]||'';
 applyPreset();
