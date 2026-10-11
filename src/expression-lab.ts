@@ -82,6 +82,6 @@ function tick(now:number){
  if(blend<1){blend=smooth((now-started)/380);render();}
  requestAnimationFrame(tick);
 }
-image.onload=()=>{render();frame=requestAnimationFrame(tick);};
+image.onload=()=>{render();requestAnimationFrame(tick);};
 window.addEventListener('resize',render);
 updateButtons();
