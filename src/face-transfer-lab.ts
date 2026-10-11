@@ -49,19 +49,8 @@ function blendReference(source:HTMLImageElement,from:Point[],to:Point[],opacity:
  const mg=mc.createRadialGradient(0,0,.58,0,0,1);
  mg.addColorStop(0,'rgba(0,0,0,1)');mg.addColorStop(1,'rgba(0,0,0,0)');
  mc.fillStyle=mg;mc.beginPath();mc.arc(0,0,1,0,Math.PI*2);mc.fill();mc.restore();
- // Soft face boundary hides the abrupt edge of the mesh.
- const bx=Math.min(...to.map(p=>p.x)),ex=Math.max(...to.map(p=>p.x));
- const uy=Math.min(...to.map(p=>p.y)),dy=Math.max(...to.map(p=>p.y));
- const fx=(bx+ex)/2,fy=(uy+dy)/2,fw=(ex-bx)*.56,fh=(dy-uy)*.57;
- const face=document.createElement('canvas');face.width=w;face.height=h;
- const fc=face.getContext('2d')!;fc.drawImage(transfer,0,0);
- fc.globalCompositeOperation='destination-in';
- fc.save();fc.translate(fx,fy);fc.scale(fw,fh);
- const fg=fc.createRadialGradient(0,0,.65,0,0,1);
- fg.addColorStop(0,'rgba(0,0,0,1)');fg.addColorStop(1,'rgba(0,0,0,0)');
- fc.fillStyle=fg;fc.beginPath();fc.arc(0,0,1,0,Math.PI*2);fc.fill();fc.restore();
- ctx.save();ctx.globalAlpha=opacity;ctx.drawImage(face,0,0);ctx.restore();
- ctx.drawImage(mask,0,0);
+ // Keep reference texture restricted to the mouth. Broad face texture caused color contamination.
+ ctx.save();ctx.globalAlpha=Math.min(1,Math.max(0,opacity*1.8));ctx.drawImage(mask,0,0);ctx.restore();
 }
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
