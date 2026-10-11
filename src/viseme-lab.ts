@@ -13,25 +13,6 @@ let zoom=1,active:Key|null=null,w=1000,h=1000;
 let showMarkers=false,opening=0;
 type Viseme='rest'|'ah'|'ee'|'oo'|'mbp';
 let viseme:Viseme='rest';
-let targetOpening=0, shapeBlend=0, targetShape=0, mbpBlend=0, targetMbp=0;
-let animationFrame=0, lastFrame=0;
-const shapeValue=(v:Viseme)=>v==='ee'?-.12:v==='oo'?.18:0;
-function animateMouth(now:number){
- const dt=lastFrame?Math.min(64,now-lastFrame):16;lastFrame=now;
- const alpha=1-Math.exp(-dt/95);
- opening+=(targetOpening-opening)*alpha;
- shapeBlend+=(targetShape-shapeBlend)*alpha;
- mbpBlend+=(targetMbp-mbpBlend)*alpha;
- if(Math.abs(opening-targetOpening)<.0005)opening=targetOpening;
- if(Math.abs(shapeBlend-targetShape)<.0005)shapeBlend=targetShape;
- if(Math.abs(mbpBlend-targetMbp)<.0005)mbpBlend=targetMbp;
- draw();
- if(opening!==targetOpening||shapeBlend!==targetShape||mbpBlend!==targetMbp){animationFrame=requestAnimationFrame(animateMouth);}else{animationFrame=0;lastFrame=0;}
-}
-function aimMouth(v:Viseme,amount:number){
- viseme=v;targetOpening=amount;targetShape=shapeValue(v);targetMbp=v==='mbp'?1:0;
- if(!animationFrame)animationFrame=requestAnimationFrame(animateMouth);
-}
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
@@ -60,7 +41,7 @@ function draw(){
   warpCtx.clearRect(0,0,w,h);
   warpCtx.drawImage(photo,0,0,w,h);
   warpCtx.setTransform(1,0,0,1,0,0);
-  if(opening>.0001||mbpBlend>.0001||Math.abs(shapeBlend)>.0001){
+  if(opening>0||viseme==='mbp'){
    const frame=warpCtx.getImageData(0,0,size,size);
    const src=new Uint8ClampedArray(frame.data);
    const left=points.leftCorner.x,right=points.rightCorner.x;
@@ -89,10 +70,10 @@ function draw(){
      // Experimental horizontal lip deformation for EE and OO.
      // Fade to zero at the cheek and above/below the lips.
      const lipVertical=smooth((yn-(upper-.035))/.035)*(1-smooth((yn-(points.lowerCenter.y+.012))/.045));
-     const shape=shapeBlend;
+     const shape=viseme==='ee' ? -.12 : viseme==='oo' ? .18 : 0;
      const xShift=shape*halfWidth*u*horizontal*lipVertical;
      const sx=Math.max(0,Math.min(size-1,Math.round(px+xShift*w*scale)));
-     const mbpOffset=.003*mbpBlend*horizontal*(yn<upper+.006?-1:1);
+     const mbpOffset=viseme==='mbp' ? .003*horizontal*(yn<upper+.006?-1:1) : 0;
      const sy=Math.max(0,Math.min(size-1,Math.round(py-(displacement+mbpOffset)*h*scale)));
      const dest=(py*size+px)*4,from=(sy*size+sx)*4;
      for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
@@ -143,12 +124,12 @@ const choices=document.querySelectorAll<HTMLButtonElement>('[data-viseme]');
 const amounts:Record<Viseme,number>={rest:0,ah:.78,ee:.22,oo:.46,mbp:0};
 choices.forEach(button=>button.addEventListener('click',()=>{
  viseme=button.dataset.viseme as Viseme;
- aimMouth(viseme,amounts[viseme]);slider.value=String(Math.round(amounts[viseme]*100));
+ opening=amounts[viseme];slider.value=String(Math.round(opening*100));
  document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
  choices.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
  draw();
 }));
-slider.addEventListener('input',()=>{targetOpening=Number(slider.value)/100;if(!animationFrame)animationFrame=requestAnimationFrame(animateMouth);document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
+slider.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
 document.querySelector('#toggleMarkers')!.addEventListener('click',e=>{showMarkers=!showMarkers;(e.currentTarget as HTMLButtonElement).textContent=showMarkers?'Hide markers':'Show markers';draw();});
 document.querySelector('#zoomIn')!.addEventListener('click',()=>{zoom=Math.min(10,zoom+1);draw();});
 document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(1,zoom-1);draw();});
@@ -173,10 +154,11 @@ const spokenWords=[
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 function setSpeechShape(next:Viseme){
- aimMouth(next,amounts[next]);
- slider.value=String(Math.round(amounts[next]*100));
+ viseme=next;opening=amounts[next];
+ slider.value=String(Math.round(opening*100));
  document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
  choices.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viseme===next)));
+ draw();
 }
 function stopSpeech(){
  speechActive=false;
