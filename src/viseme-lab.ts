@@ -199,17 +199,6 @@ speakButton.addEventListener('click',()=>{
 if(new URLSearchParams(location.search).has('live')){
  let last='rest';
  let changedAt=0;
- const update=(level:number)=>{
-  const n=Math.max(0,Math.min(1,level));
-  const shape=n<.045?'rest':n<.16?'mbp':n<.32?'oo':n<.55?'ee':n<.78?'ah':'fv';
-  if(shape===last)return;
-  last=shape;
-  if(shape==='fv'){
-   facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
-  }else{
-   setSpeechShape(shape as Viseme);
-  }
- };
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
