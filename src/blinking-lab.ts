@@ -1,4 +1,3 @@
-import portraitUrl from '../IMG_4604.jpeg';
 import neutralMap from '../data/face-maps/neutral.json';
 type P={x:number;y:number;z?:number};
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
@@ -9,7 +8,7 @@ const speed=document.querySelector<HTMLInputElement>('#speed')!;
 const asym=document.querySelector<HTMLInputElement>('#asym')!;
 const lashes=document.querySelector<HTMLInputElement>('#lashes')!;
 const outputs={closure:document.querySelector<HTMLOutputElement>('#closureOut')!,speed:document.querySelector<HTMLOutputElement>('#speedOut')!,asym:document.querySelector<HTMLOutputElement>('#asymOut')!,lashes:document.querySelector<HTMLOutputElement>('#lashesOut')!};
-const image=new Image();image.src=portraitUrl;
+const image=new Image();image.decoding='async';image.src=new URL('../IMG_4604.jpeg', import.meta.url).href;
 const landmarks=(neutralMap as {images:{role:string;landmarks:P[]}[]}).images.find(i=>i.role==='locked-original')!.landmarks;
 const eyeDefs=[
  {name:'left',outer:33,inner:133,upper:[160,158],lower:[144,153],brow:70,sign:1},
@@ -55,8 +54,8 @@ function animatePose(poses:{value:number;skew?:number;hold?:number}[]){
  const sequence=async()=>{for(const pose of poses){const from=Number(closure.value)/100,fromSkew=Number(asym.value),to=pose.value,toSkew=pose.skew||0,start=performance.now();await new Promise<void>(resolve=>{const tick=(now:number)=>{const t=Math.min(1,(now-start)/duration);const eased=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;setPose(from+(to-from)*eased,fromSkew+(toSkew-fromSkew)*eased);if(t<1)animationId=requestAnimationFrame(tick);else resolve();};animationId=requestAnimationFrame(tick);});if(pose.hold)await new Promise(r=>setTimeout(r,pose.hold));}};
  void sequence();
 }
-image.addEventListener('load',()=>{draw();status.textContent='Portrait and 478-point neutral landmark map loaded.';});
-image.addEventListener('error',()=>status.textContent='Could not load /IMG_4604.jpeg. Check the approved source asset path.');
+image.addEventListener('load',()=>{try{draw();status.textContent='Portrait loaded: '+image.naturalWidth+' × '+image.naturalHeight+' · 478-point landmark map ready.';}catch(error){status.textContent='Portrait loaded, but drawing failed: '+String(error);}});
+image.addEventListener('error',()=>{status.textContent='Portrait failed to load from '+image.src;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#f4eee6';ctx.font='24px system-ui';ctx.fillText('Portrait failed to load',32,60);});
 [closure,lashes,asym].forEach(input=>input.addEventListener('input',draw));speed.addEventListener('input',()=>{outputs.speed.value=speed.value+' ms';});
 document.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach(button=>button.addEventListener('click',()=>{
  const action=button.dataset.action;
