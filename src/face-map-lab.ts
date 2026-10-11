@@ -1,7 +1,7 @@
 import originalUrl from '../IMG_4604.jpeg?url';
-const expressionFiles = import.meta.glob('../assets/expressions/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string,string>;
+const expressionFiles = import.meta.glob('../assets/visemes/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string,string>;
 const expressionEntries = Object.entries(expressionFiles).sort(([a],[b])=>a.localeCompare(b));
-const defaultExpression = 'b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png';
+const defaultExpression = 'ah.png';
 
 type Point = { x: number; y: number; z?: number };
 type FaceResult = { faceLandmarks: Point[][] };
@@ -80,12 +80,12 @@ function faceMapJSON(expressionName?: string): string {
 }
 exportButton.addEventListener('click', () => {
   try {
-    const enteredName = window.prompt('Name this expression (for example: Shy, Laughing, Embarrassed):');
+    const enteredName = window.prompt('Name this viseme (AH, EE, OO, MBP, FV):', expressionSelect.selectedOptions[0]?.textContent?.replace(/\.[^.]+$/, '').toLowerCase() || '');
     if (enteredName === null) return;
     const expressionName = enteredName.trim();
-    if (!expressionName) { status.textContent = 'Enter an expression name to export.'; return; }
+    if (!expressionName) { status.textContent = 'Enter a viseme name to export.'; return; }
     const safeName = expressionName.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    if (!safeName) { status.textContent = 'Use letters or numbers in the expression name.'; return; }
+    if (!safeName) { status.textContent = 'Use letters or numbers in the viseme name.'; return; }
     const blob = new Blob([faceMapJSON(expressionName)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
