@@ -6,10 +6,10 @@ const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorn
 const defaults = {"leftCorner":{"x":0.3986245916494381,"y":0.7050609113015908},"cupidLeft":{"x":0.46311136622667515,"y":0.6756980154704966},"upperCenter":{"x":0.48169230039692007,"y":0.6873323763636608},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5942709472242101,"y":0.698966737256825},"lowerRight":{"x":0.5407141247879559,"y":0.7288836202842863},"lowerCenter":{"x":0.4991802445299247,"y":0.735531834006207},"lowerLeft":{"x":0.43578645998992793,"y":0.7316537137084856}} as Record<Key,Point>;
 const svg=document.querySelector<SVGSVGElement>('#overlay')!;
 const output=document.querySelector<HTMLElement>('#output')!;
-defaults.upperInner={x:.5,y:.704};defaults.lowerInner={x:.5,y:.712};
-defaults.upperInnerLeft={x:.45,y:.706};defaults.upperInnerRight={x:.55,y:.705};
-defaults.lowerInnerLeft={x:.45,y:.713};defaults.lowerInnerRight={x:.55,y:.712};
-const storeKey='piper-mouth-lab-04-inner';
+defaults.upperInner={x:0.4844248013743109,y:0.6995207244531921};defaults.lowerInner={x:0.49152926250066264,y:0.7111550853463564};
+defaults.upperInnerLeft={x:0.4461699429965808,y:0.6995207244531921};defaults.upperInnerRight={x:0.5226796597520409,y:0.6967506310289929};
+defaults.lowerInnerLeft={x:0.46529734630115566,y:0.7089390315993122};defaults.lowerInnerRight={x:0.5407141247879559,y:0.7039528844280686};
+const storeKey='piper-mouth-lab-05-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
