@@ -135,7 +135,6 @@ async function proxyVoice(request: Request, endpoint: 'piper-transcribe' | 'pipe
 
 
 // Fast local director: facial expressions must never wait on a second model call.
-const EXPRESSION_CHOICES = ["wanting","thinking","surprised","smile2","smile","sad2","sad","neutral","mischievous","mad","horny","full-smile","full-laugh","flush","flirt","excited","embarrassed2"];
 type ExpressionCue = {at:number;expression:string};
 function expressionForText(text:string):string {
  const t=text.toLowerCase();
