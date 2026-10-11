@@ -139,8 +139,8 @@ function paintViseme(destination:Point[],w:number,h:number){
  const y0=Math.min(...mouth.map(p=>p.y)),y1=Math.max(...mouth.map(p=>p.y));
  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
  const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
- const mouthScale=.80;
- const cx=(x0+x1)/2,cy=(y0+y1)/2-h*.012;
+ const mouthScale=.85;
+ const cx=(x0+x1)/2,cy=(y0+y1)/2-h*.012-10;
  visemeCanvas.width=w;visemeCanvas.height=h;
  visemeCtx.save();
  visemeCtx.translate(cx,cy);
