@@ -203,7 +203,7 @@ function animateSpeech(now:number){
  const goal=smooth(Math.min(1,phase/.23))*smooth(Math.min(1,(1-phase)/.23));
  const dt=speechLast?Math.min(64,now-speechLast):16;speechLast=now;
  speechAmount+=(goal-speechAmount)*(1-Math.exp(-dt/65));
- speechLabel.textContent=speechShape.toUpperCase();render();
+ speechLabel.textContent=speechShape.toUpperCase();if(!playing)render();
  speechFrame=requestAnimationFrame(animateSpeech);
 }
 speechButton.addEventListener('click',()=>{calibrationPreview=false;$('viseme-preview').textContent='Preview selected mouth';
@@ -261,6 +261,7 @@ const expressionTiming:Record<string,[number,number,number]>={
  'mad.json':[.7,1.3,1.2]
 };
 const ease=(x:number)=>x*x*(3-2*x);
+let lastAuditionPaint=0;
 function stopAnimation(){playing=false;cancelAnimationFrame(frame);expressionBlend=1;playButton.textContent='▶ Animate expressions';render();}
 function nextExpression(){
  cycleIndex=(cycleIndex+1)%playable.length;
@@ -279,7 +280,7 @@ function animate(now:number){
  else if(elapsed<rise+hold){const phase=(elapsed-rise)/Math.max(hold,1);expressionBlend=1-.018*Math.sin(Math.PI*phase)**2;}
  else if(elapsed<rise+hold+fall)expressionBlend=1-ease(Math.min(1,(elapsed-rise-hold)/fall));
  else {nextExpression();frame=requestAnimationFrame(animate);return;}
- render();frame=requestAnimationFrame(animate);
+ if(now-lastAuditionPaint>=85){lastAuditionPaint=now;render();}frame=requestAnimationFrame(animate);
 }
 playButton.addEventListener('click',()=>{
  if(playing){stopAnimation();return;}
