@@ -33,6 +33,33 @@ function paint(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,over
 const mouthCanvas=document.createElement('canvas');
 const mouthCtx=mouthCanvas.getContext('2d')!;
 const lipIndices=[...new Set(FaceLandmarker.FACE_LANDMARKS_LIPS.flatMap(e=>[e.start,e.end]))];
+
+function paintFullLaughMouth(reference:Point[],destination:Point[],strength:number,w:number,h:number){
+ if(strength<=0)return;
+ const refPts=lipIndices.map(i=>reference[i]),dstPts=lipIndices.map(i=>destination[i]);
+ const box=(pts:Point[])=>({left:Math.min(...pts.map(p=>p.x)),right:Math.max(...pts.map(p=>p.x)),top:Math.min(...pts.map(p=>p.y)),bottom:Math.max(...pts.map(p=>p.y))});
+ const a=box(refPts),b=box(dstPts);
+ const aw=Math.max(1,a.right-a.left),ah=Math.max(1,a.bottom-a.top);
+ const bw=Math.max(1,b.right-b.left),bh=Math.max(1,b.bottom-b.top);
+ const cx=(b.left+b.right)/2,cy=(b.top+b.bottom)/2;
+ const rx=bw*.69,ry=bh*.96;
+ // Copy actual reference teeth and mouth as one continuous image, not a triangulated lip mesh.
+ mouthCanvas.width=w;mouthCanvas.height=h;
+ mouthCtx.save();
+ mouthCtx.translate(cx,cy);
+ mouthCtx.scale(bw/aw,bh/ah);
+ mouthCtx.translate(-(a.left+a.right)/2,-(a.top+a.bottom)/2);
+ mouthCtx.drawImage(ref,0,0);
+ mouthCtx.restore();
+ mouthCtx.globalCompositeOperation='destination-in';
+ mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
+ const mask=mouthCtx.createRadialGradient(0,0,.70,0,0,1);
+ mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
+ mouthCtx.fillStyle=mask;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
+ mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
+ ctx.save();ctx.globalAlpha=Math.min(1,strength);ctx.drawImage(mouthCanvas,0,0);ctx.restore();
+}
+
 function paintMouth(reference:Point[],destination:Point[],strength:number,w:number,h:number){
  if(strength<=0)return;
  const pts=lipIndices.map(i=>destination[i]);
@@ -64,7 +91,7 @@ const destination=src.map((p,i)=>{const q=target[i];const nx=sb.minX+(q.x-tb.min
 if(g){ctx.clearRect(0,0,w,h);ctx.drawImage(original,0,0);paint(original,source,destination,1,select.value.endsWith('/smile.json')?0.7:0);}
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
-if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);paintMouth(reference,destination,expressionBlend,w,h);}
+if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json'))paintFullLaughMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
