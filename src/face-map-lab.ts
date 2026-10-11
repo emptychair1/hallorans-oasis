@@ -1,5 +1,7 @@
 import originalUrl from '../IMG_4604.jpeg?url';
-import expressionUrl from '../assets/expressions/b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png?url';
+const expressionFiles = import.meta.glob('../assets/expressions/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string,string>;
+const expressionEntries = Object.entries(expressionFiles).sort(([a],[b])=>a.localeCompare(b));
+const defaultExpression = 'b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png';
 
 type Point = { x: number; y: number; z?: number };
 type FaceResult = { faceLandmarks: Point[][] };
@@ -10,12 +12,27 @@ const run = $<HTMLButtonElement>('run');
 const mesh = $<HTMLInputElement>('mesh');
 const exportButton = $<HTMLButtonElement>('export');
 const copyButton = $<HTMLButtonElement>('copy');
+const expressionSelect = $<HTMLSelectElement>('expression-select');
+for (const [path] of expressionEntries) {
+  const option = document.createElement('option');
+  option.value = path; option.textContent = path.split('/').pop()!;
+  expressionSelect.append(option);
+}
+expressionSelect.value = expressionEntries.find(([p])=>p.endsWith('/'+defaultExpression))?.[0] ?? expressionEntries[0]?.[0] ?? '';
 const originals = [$<HTMLImageElement>('original'), $<HTMLImageElement>('expression')];
 const canvases = [$<HTMLCanvasElement>('original-overlay'), $<HTMLCanvasElement>('expression-overlay')];
 const labels = [$<HTMLParagraphElement>('original-status'), $<HTMLParagraphElement>('expression-status')];
 const results: (Point[] | null)[] = [null, null];
 originals[0].src = originalUrl;
-originals[1].src = expressionUrl;
+originals[1].src = expressionFiles[expressionSelect.value] ?? '';
+expressionSelect.addEventListener('change', () => {
+  results[1] = null;
+  exportButton.disabled = true; copyButton.disabled = true;
+  labels[1].textContent = 'Reference changed. Tap Detect faces.';
+  originals[1].src = expressionFiles[expressionSelect.value] ?? '';
+  canvases[1].getContext('2d')?.clearRect(0,0,canvases[1].width,canvases[1].height);
+  status.textContent = 'Selected '+expressionSelect.selectedOptions[0]?.textContent+'. Tap Detect faces.';
+});
 const ready = (img: HTMLImageElement) => img.decode();
 function draw(i: number) {
   const img = originals[i], canvas = canvases[i], points = results[i];
@@ -43,7 +60,7 @@ function draw(i: number) {
     ctx.fillStyle='#ffce73';ctx.fillText(name,x+9,y-8);
   }
 }
-const imageNames = ['IMG_4604.jpeg', 'b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png'];
+const imageNames = () => ['IMG_4604.jpeg', expressionSelect.selectedOptions[0]?.textContent ?? 'unknown'];
 function faceMapJSON(): string {
   if (!results[0] || !results[1]) throw new Error('Detect both faces before exporting.');
   return JSON.stringify({
@@ -52,7 +69,7 @@ function faceMapJSON(): string {
     coordinateSystem: 'normalized image coordinates, x/y in [0,1], z relative',
     images: originals.map((img, i) => ({
       role: i === 0 ? 'locked-original' : 'expression-reference',
-      filename: imageNames[i],
+      filename: imageNames()[i],
       width: img.naturalWidth,
       height: img.naturalHeight,
       landmarkCount: results[i]!.length,
@@ -65,7 +82,7 @@ exportButton.addEventListener('click', () => {
     const blob = new Blob([faceMapJSON()], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    anchor.href = url; anchor.download = 'piper-face-maps-bite01.6.json';
+    anchor.href = url; anchor.download = 'piper-face-maps-bite01.7-' + imageNames()[1].replace(/\.[^.]+$/, '').slice(0,16) + '.json';
     document.body.append(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     status.textContent = 'JSON export requested. On iPhone, check Downloads or the Files app. If download is blocked, use Copy JSON.';
