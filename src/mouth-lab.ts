@@ -10,6 +10,7 @@ const storeKey='piper-mouth-lab-02-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
+let opening=0,showMarkers=true;
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
@@ -19,11 +20,23 @@ function draw(){
  svg.setAttribute('viewBox',`${cx-side/2} ${cy-side/2} ${side} ${side}`);
  svg.replaceChildren();
  const image=element('image');image.setAttribute('href',portraitUrl);image.setAttribute('width',String(w));image.setAttribute('height',String(h));svg.append(image);
+ // Geometry-only preview: a dark mouth aperture between the calibrated lip edges.
+ // This does not synthesize teeth or photorealistic inner-mouth imagery.
+ if(opening>0){
+   const left=points.leftCorner,right=points.rightCorner,top=points.upperCenter,bottom=points.lowerCenter;
+   const lx=left.x*w,rx=right.x*w,mid=(lx+rx)/2,cy=(top.y+bottom.y)*h/2;
+   const halfGap=opening*.036*h;
+   const path=element('path');
+   path.setAttribute('d',`M ${lx} ${left.y*h} Q ${mid} ${cy-halfGap} ${rx} ${right.y*h} Q ${mid} ${cy+halfGap} ${lx} ${left.y*h} Z`);
+   path.setAttribute('fill','#30131d');path.setAttribute('stroke','#8e4755');path.setAttribute('stroke-width',String(Math.min(w,h)*.0015));svg.append(path);
+ }
+ if(showMarkers){
  const line=element('polyline');line.setAttribute('points',keys.map(k=>`${points[k].x*w},${points[k].y*h}`).join(' '));line.setAttribute('class','line');svg.append(line);
  for(const key of keys){const p=points[key],x=p.x*w,y=p.y*h;
  const hit=element('circle');hit.setAttribute('cx',String(x));hit.setAttribute('cy',String(y));hit.setAttribute('r',String(side*.045));hit.setAttribute('class','hit');hit.setAttribute('data-key',key);svg.append(hit);
  const dot=element('circle');dot.setAttribute('cx',String(x));dot.setAttribute('cy',String(y));dot.setAttribute('r',String(side*.013));dot.setAttribute('class','point');dot.setAttribute('data-key',key);svg.append(dot);
  const label=element('text');label.setAttribute('x',String(x+side*.025));label.setAttribute('y',String(y-side*.017));label.setAttribute('fill','#ffe2a7');label.setAttribute('font-size',String(side*.022));label.textContent=key;svg.append(label);
+ }
  }
  output.textContent=JSON.stringify({version:1,image:'IMG_4604.jpeg',landmarks:points},null,2);
  localStorage.setItem(storeKey,JSON.stringify(points));
@@ -40,6 +53,9 @@ svg.addEventListener('pointerdown',e=>{
 });
 svg.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();points[active]=coords(e);draw();});
 const stop=()=>{active=null};svg.addEventListener('pointerup',stop);svg.addEventListener('pointercancel',stop);svg.addEventListener('lostpointercapture',stop);
+const slider=document.querySelector<HTMLInputElement>('#opening')!;
+slider.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
+document.querySelector('#toggleMarkers')!.addEventListener('click',e=>{showMarkers=!showMarkers;(e.currentTarget as HTMLButtonElement).textContent=showMarkers?'Hide markers':'Show markers';draw();});
 document.querySelector('#zoomIn')!.addEventListener('click',()=>{zoom=Math.min(10,zoom+1);draw();});
 document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(2,zoom-1);draw();});
 document.querySelector('#reset')!.addEventListener('click',()=>{points=structuredClone(defaults);draw();});
