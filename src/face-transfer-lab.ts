@@ -54,7 +54,7 @@ function paintContinuousMouth(reference:Point[],destination:Point[],strength:num
  mouthCtx.globalCompositeOperation='destination-in';
  mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
  const mask=mouthCtx.createRadialGradient(0,0,.70,0,0,1);
- mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
+ mask.addColorStop(Math.min(.94,tune.feather/100),'#000');mask.addColorStop(1,'transparent');
  mouthCtx.fillStyle=mask;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
  mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
  ctx.save();ctx.globalAlpha=Math.min(1,strength);ctx.drawImage(mouthCanvas,0,0);ctx.restore();
@@ -116,11 +116,39 @@ for(const name of visemeOrder){
 const speechButton=$<HTMLButtonElement>('play-speech'),speechLabel=$<HTMLElement>('speech-shape');
 let speechPlaying=false,speechFrame=0,speechStart=0,speechLast=0,speechAmount=0;
 let speechShape:SpeechViseme|'rest'='rest';
+type VisemeTuning={x:number;y:number;width:number;height:number;feather:number;blend:number};
+const tuningDefaults=():VisemeTuning=>({x:0,y:0,width:100,height:100,feather:57,blend:100});
+const visemeTuning=Object.fromEntries(visemeOrder.map(name=>[name,tuningDefaults()])) as Record<SpeechViseme,VisemeTuning>;
+const calibrationSelect=$<HTMLSelectElement>('viseme-calibration-shape');
+const calibrationControls=(['x','y','width','height','feather','blend'] as const).map(key=>({key,input:$<HTMLInputElement>('viseme-'+key),output:$<HTMLOutputElement>('viseme-'+key+'-value')}));
+let calibrationShape:SpeechViseme='oo',calibrationPreview=false;
+function syncCalibration(){
+ calibrationShape=calibrationSelect.value as SpeechViseme;
+ const tune=visemeTuning[calibrationShape];
+ for(const {key,input,output} of calibrationControls){input.value=String(tune[key]);output.textContent=String(tune[key])+(key==='x'||key==='y'?' px':'%');}
+ render();
+}
+calibrationSelect.addEventListener('change',()=>{stopSpeech();calibrationPreview=true;syncCalibration();});
+for(const {key,input} of calibrationControls)input.addEventListener('input',()=>{
+ visemeTuning[calibrationShape][key]=Number(input.value);calibrationPreview=true;
+ const output=$<HTMLOutputElement>('viseme-'+key+'-value');
+ output.textContent=input.value+(key==='x'||key==='y'?' px':'%');render();
+});
+$('viseme-preview').addEventListener('click',()=>{stopSpeech();calibrationPreview=!calibrationPreview;$('viseme-preview').textContent=calibrationPreview?'Hide selected mouth':'Preview selected mouth';render();});
+$('viseme-reset').addEventListener('click',()=>{visemeTuning[calibrationShape]=tuningDefaults();calibrationPreview=true;syncCalibration();});
+$('viseme-copy').addEventListener('click',()=>{
+ const data=JSON.stringify({shape:calibrationShape,...visemeTuning[calibrationShape]});
+ const field=$<HTMLTextAreaElement>('viseme-values');field.value=data;field.select();
+ if(navigator.clipboard?.writeText)navigator.clipboard.writeText(data).catch(()=>{});
+});
 const visemeCanvas=document.createElement('canvas'),visemeCtx=visemeCanvas.getContext('2d')!;
 const smooth=(x:number)=>{const q=Math.max(0,Math.min(1,x));return q*q*(3-2*q);};
 function paintViseme(destination:Point[],w:number,h:number){
- if(!speechPlaying||speechShape==='rest'||speechAmount<.002)return;
- const asset=visemeAssets.get(speechShape);if(!asset||!asset.image.complete||!asset.image.naturalWidth)return;
+ if(!calibrationPreview&&(!speechPlaying||speechShape==='rest'||speechAmount<.002))return;
+ const shape=calibrationPreview?calibrationShape:speechShape;
+ if(shape==='rest')return;
+ const tune=visemeTuning[shape];
+ const asset=visemeAssets.get(shape);if(!asset||!asset.image.complete||!asset.image.naturalWidth)return;
  const source=asset.map.images.find(i=>i.role==='locked-original')?.landmarks;
  const target=asset.map.images.find(i=>i.role==='expression-reference')?.landmarks;
  if(!source||!target)return;
@@ -140,21 +168,21 @@ function paintViseme(destination:Point[],w:number,h:number){
  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
  const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
  const mouthScale=.85;
- const cx=(destination[61].x+destination[291].x)/2,cy=destination[0].y-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10;
+ const cx=(destination[61].x+destination[291].x)/2+tune.x,cy=destination[0].y-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y;
  visemeCanvas.width=w;visemeCanvas.height=h;
  visemeCtx.save();
  visemeCtx.translate(cx,cy);
- visemeCtx.scale(bw*mouthScale/(rw*asset.image.naturalWidth),bh*mouthScale/(rh*asset.image.naturalHeight));
+ visemeCtx.scale(bw*mouthScale*tune.width/100/(rw*asset.image.naturalWidth),bh*mouthScale*tune.height/100/(rh*asset.image.naturalHeight));
  visemeCtx.translate(-(refBox.left+refBox.right)*asset.image.naturalWidth/2,-(refBox.top+refBox.bottom)*asset.image.naturalHeight/2);
  visemeCtx.drawImage(asset.image,0,0);visemeCtx.restore();
  // Soft feather restricts reference pixels to lips and immediate mouth contour.
  visemeCtx.globalCompositeOperation='destination-in';
- visemeCtx.save();visemeCtx.translate(cx,cy);visemeCtx.scale(Math.max(2,bw*.66*mouthScale),Math.max(2,bh*.94*mouthScale));
+ visemeCtx.save();visemeCtx.translate(cx,cy);visemeCtx.scale(Math.max(2,bw*.66*mouthScale*tune.width/100),Math.max(2,bh*.94*mouthScale*tune.height/100));
  const mask=visemeCtx.createRadialGradient(0,0,.57,0,0,1);
  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
  visemeCtx.fillStyle=mask;visemeCtx.beginPath();visemeCtx.arc(0,0,1,0,Math.PI*2);visemeCtx.fill();
  visemeCtx.restore();visemeCtx.globalCompositeOperation='source-over';
- ctx.save();ctx.globalAlpha=speechAmount;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
+ ctx.save();ctx.globalAlpha=(calibrationPreview?1:speechAmount)*tune.blend/100;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
 }
 function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test mapped visemes';render();}
 function animateSpeech(now:number){
@@ -168,7 +196,7 @@ function animateSpeech(now:number){
  speechLabel.textContent=speechShape.toUpperCase();render();
  speechFrame=requestAnimationFrame(animateSpeech);
 }
-speechButton.addEventListener('click',()=>{
+speechButton.addEventListener('click',()=>{calibrationPreview=false;$('viseme-preview').textContent='Preview selected mouth';
  if(speechPlaying){stopSpeech();return;}
  if(visemeAssets.size!==visemeOrder.length){status.textContent='Missing viseme JSON or matching reference photos. Found '+visemeAssets.size+'/5.';return;}
  stopAnimation();speechPlaying=true;speechStart=performance.now();speechLast=0;
@@ -179,7 +207,7 @@ function render(){if(!original.complete||!original.naturalWidth)return;const m=m
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
 const g=Number(geometry.value)/100*expressionBlend,t=Number(texture.value)/100*expressionBlend,f=Number(flush.value)/100*expressionBlend;
 for(const [id,input] of [['geometry-value',geometry],['texture-value',texture],['flush-value',flush]] as const)$(id).textContent=input.value+'%';
-if(!g&&!t&&!f&&!speechPlaying)return;
+if(!g&&!t&&!f&&!speechPlaying&&!calibrationPreview)return;
 const sb=bounds(src),tb=bounds(target),ratioX=sb.w/Math.max(tb.w,.001),ratioY=sb.h/Math.max(tb.h,.001);
 const source=src.map(p=>({x:p.x*w,y:p.y*h}));
 const destination=src.map((p,i)=>{const q=target[i];const nx=sb.minX+(q.x-tb.minX)*ratioX,ny=sb.minY+(q.y-tb.minY)*ratioY;return {x:(p.x+(nx-p.x)*g)*w,y:(p.y+(ny-p.y)*g)*h};});
@@ -209,7 +237,7 @@ paintViseme(destination,w,h);
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
 select.addEventListener('change',()=>{stopSpeech();stopAnimation();applyPreset();loadReference();});
 for(const control of [geometry,texture,flush])control.addEventListener('input',render);
-original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
+original.decode().then(()=>{applyPreset();loadReference();syncCalibration();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
 
 const playButton=$<HTMLButtonElement>('play-animation'),speed=$<HTMLSelectElement>('animation-speed');
 const playable=entries.map(([path])=>path).filter(path=>Boolean(savedPresets[path.split('/').pop()||'']));
