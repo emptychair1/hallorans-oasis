@@ -73,10 +73,14 @@ function draw(){
      for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
      // A soft shadow between upper and displaced lower seam; no pointed polygon.
      const apertureWidth=Math.max(0,1-u*u);
-     const top=upper+.002;
+     // Bite 07: at >70% only, bow the upper shadow into the mouth.
+     // The approved 0–70% rendering remains mathematically identical.
+     const highOpen=smooth((opening-.70)/.30);
+     const arch=Math.pow(Math.max(0,1-u*u),1.4);
+     const top=upper+.002+highOpen*.006*arch;
      const bottom=lower+displacement*.9;
-     const edge=smooth((yn-top)/.004)*(1-smooth((yn-bottom)/.004));
-     const dark=edge*horizontal*apertureWidth*opening*.8;
+     const edge=smooth((yn-top)/(.004+highOpen*.002))*(1-smooth((yn-bottom)/(.004+highOpen*.001)));
+     const dark=edge*horizontal*apertureWidth*opening*.8*(1-highOpen*.12);
      if(dark>0){
       frame.data[dest]=Math.round(frame.data[dest]*(1-dark)+38*dark);
       frame.data[dest+1]=Math.round(frame.data[dest+1]*(1-dark)+19*dark);
