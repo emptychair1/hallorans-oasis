@@ -281,3 +281,7 @@ Viseme Lab `viseme-lab.html` commit `eff8037` adds Speak and Stop controls; `src
 
 ## Viseme Bite 12
 User approved revised uploaded mouth calibration (lowerInner x corrected to 0.5031879091788592). `src/viseme-lab.ts` commits `6baf9e0`, `ca98cca` install calibration with fresh localStorage key, `0877615`, `b7a7f31` replace random speech loop with phrase-specific per-word viseme sequences, speech boundary event alignment where supported and duration fallback for iOS. `viseme-lab.html` `ba58801` labels Bite 12. Existing portrait and Mouth Lab unchanged. URL https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . This is approximate text-driven viseme animation, not phoneme-timestamp sync; deployment/user test not verified.
+
+
+## Viseme Bite 13
+User's live recording revealed mouth-only artifacts, not full-face pixelation. Bite 13 in Oasis `src/viseme-lab.ts` commits `d7246ec`, `4f98ba8` introduces requestAnimationFrame exponential interpolation (~95ms) for mouth opening, EE/OO horizontal deformation and M/B/P closure; speech shapes now route through interpolator. `viseme-lab.html` label updated `3fe4dfd`. Preserve approved landmarks, original IMG_4604.jpeg, production screen, Bite 12 word timing. No blanket blur. User audition and Cloudflare build not yet verified. Lab: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html
