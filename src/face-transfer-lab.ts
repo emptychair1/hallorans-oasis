@@ -433,11 +433,16 @@ $('studio-approve').addEventListener('click',()=>{
  if(studioPersist()){studioStatus.textContent='Approved and saved on this device. Export a backup to preserve it elsewhere.';studioRefreshCount();}
 });
 $('studio-next').addEventListener('click',()=>{
+ const previousTuning={...visemeTuning[studioShape.value as SpeechViseme]};
  const index=entries.findIndex(([path])=>path===studioExpression.value);
  const shapeIndex=visemeOrder.indexOf(studioShape.value as SpeechViseme);
  if(shapeIndex<visemeOrder.length-1)studioShape.value=visemeOrder[shapeIndex+1];
  else{studioShape.value=visemeOrder[0];studioExpression.value=entries[(index+1)%entries.length][0];}
- // For uncalibrated combinations, inherit the preceding mouth's settings as a draft.
+ // New combinations inherit the preceding adjustment without overwriting saved work.
+ if(!studioRecords[studioKey()]){
+  studioRecords[studioKey()]={tuning:previousTuning,approved:false,updatedAt:new Date().toISOString()};
+  studioPersist();
+ }
  studioShow();
 });
 $('studio-inherit').addEventListener('click',()=>{
