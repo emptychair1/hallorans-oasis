@@ -1,0 +1,91 @@
+{
+  "schema": "piper-expression-presets-v1",
+  "description": "Artist-approved slider values transcribed from October 11, 2026 screenshots. Keys match data/face-maps filenames exactly. Unlisted expressions remain untuned.",
+  "presets": {
+    "wanting.json": {
+      "geometry": 96,
+      "texture": 98,
+      "cheekWarmth": 85
+    },
+    "thinking.json": {
+      "geometry": 81,
+      "texture": 93,
+      "cheekWarmth": 0
+    },
+    "surprised.json": {
+      "geometry": 82,
+      "texture": 82,
+      "cheekWarmth": 0
+    },
+    "smile2.json": {
+      "geometry": 88,
+      "texture": 82,
+      "cheekWarmth": 0
+    },
+    "smile.json": {
+      "geometry": 84,
+      "texture": 88,
+      "cheekWarmth": 0
+    },
+    "sad2.json": {
+      "geometry": 81,
+      "texture": 36,
+      "cheekWarmth": 47
+    },
+    "sad.json": {
+      "geometry": 81,
+      "texture": 87,
+      "cheekWarmth": 0
+    },
+    "neutral.json": {
+      "geometry": 0,
+      "texture": 0,
+      "cheekWarmth": 0
+    },
+    "mischievous.json": {
+      "geometry": 56,
+      "texture": 100,
+      "cheekWarmth": 0
+    },
+    "mad.json": {
+      "geometry": 82,
+      "texture": 83,
+      "cheekWarmth": 0
+    },
+    "horny.json": {
+      "geometry": 93,
+      "texture": 87,
+      "cheekWarmth": 82
+    },
+    "full-smile.json": {
+      "geometry": 84,
+      "texture": 63,
+      "cheekWarmth": 10
+    },
+    "full-laugh.json": {
+      "geometry": 83,
+      "texture": 63,
+      "cheekWarmth": 0
+    },
+    "flush.json": {
+      "geometry": 69,
+      "texture": 49,
+      "cheekWarmth": 100
+    },
+    "flirt.json": {
+      "geometry": 95,
+      "texture": 95,
+      "cheekWarmth": 18
+    },
+    "excited.json": {
+      "geometry": 100,
+      "texture": 100,
+      "cheekWarmth": 8
+    },
+    "embarrassed2.json": {
+      "geometry": 100,
+      "texture": 20,
+      "cheekWarmth": 100
+    }
+  }
+}
