@@ -287,3 +287,23 @@ playButton.addEventListener('click',()=>{
  stopSpeech();playing=true;cycleIndex=playable.indexOf(select.value)-1;playButton.textContent='■ Stop animation';
  nextExpression();frame=requestAnimationFrame(animate);
 });
+
+ // Bite 04.5: independent clocks for approved expressions and calibrated visemes.
+ const auditionButton=$<HTMLButtonElement>('play-audition');
+ let auditionPlaying=false;
+ auditionButton.addEventListener('click',()=>{
+  if(auditionPlaying){
+   auditionPlaying=false;stopAnimation();stopSpeech();
+   auditionButton.textContent='▶ Play audition';return;
+  }
+  if(!playable.length||visemeAssets.size!==visemeOrder.length){
+   status.textContent='Audition assets incomplete: expressions '+playable.length+', visemes '+visemeAssets.size+'/5';return;
+  }
+  calibrationPreview=false;stopAnimation();stopSpeech();
+  auditionPlaying=true;playing=true;
+  cycleIndex=playable.indexOf(select.value)-1;
+  nextExpression();frame=requestAnimationFrame(animate);
+  speechPlaying=true;speechStart=performance.now();speechLast=0;speechAmount=0;
+  speechFrame=requestAnimationFrame(animateSpeech);
+  auditionButton.textContent='■ Stop audition';
+ });
