@@ -28,15 +28,16 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
  const upper=[a,{x:(u1.x+u2.x)/2,y:(u1.y+u2.y)/2},b];
  const lower=[a,{x:(l1.x+l2.x)/2,y:(l1.y+l2.y)/2},b];
  // Build a closed lid silhouette whose central edge travels from the open eye contour to a curved closed seam.
- const top=[],bottom=[];
- for(let i=0;i<=18;i++){const t=i/18;const p=curve(upper,t),q=curve(lower,t);const h=(p.y+q.y)/2;top.push({x:p.x,y:p.y+(h-p.y)*amount});bottom.push({x:q.x,y:q.y+(h-q.y)*amount});}
- ctx.save();ctx.beginPath();ctx.moveTo(top[0].x,top[0].y);for(const p of top.slice(1))ctx.lineTo(p.x,p.y);for(const p of bottom.slice().reverse())ctx.lineTo(p.x,p.y);ctx.closePath();
- ctx.fillStyle=skin;ctx.fill();
- // Lid crease fades in as the eye closes, using a sampled skin tone rather than a flat black patch.
- const seam=top.map((p,i)=>({x:p.x,y:p.y+(bottom[i].y-p.y)*Math.max(0,amount-.15)*.78}));
+ const top=[],bottom=[],movingTop=[],movingBottom=[];
+ for(let i=0;i<=18;i++){const t=i/18;const p=curve(upper,t),q=curve(lower,t);const h=(p.y+q.y)/2;top.push(p);bottom.push(q);movingTop.push({x:p.x,y:p.y+(h-p.y)*amount});movingBottom.push({x:q.x,y:q.y+(h-q.y)*amount});}
+ ctx.save();ctx.fillStyle=skin;
+ // Upper and lower lids move inward as separate skin bands, leaving the eye visible until closure.
+ const fillBand=(outer:{x:number;y:number}[],inner:{x:number;y:number}[])=>{ctx.beginPath();ctx.moveTo(outer[0].x,outer[0].y);for(const p of outer.slice(1))ctx.lineTo(p.x,p.y);for(const p of inner.slice().reverse())ctx.lineTo(p.x,p.y);ctx.closePath();ctx.fill();};
+ fillBand(top,movingTop);fillBand(bottom,movingBottom);
+ // Closed-lid seam follows the converging upper/lower contours.
+ const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
  if(amount>.08){ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(67,42,39,'+(0.12+amount*.30)+')';ctx.lineWidth=Math.max(1,w*.012);ctx.stroke();}
- // Lash line appears only near full closure; it follows the eye's natural slant.
- if(amount>.42&&lash>0){ctx.beginPath();const edge=top.map((p,i)=>({x:p.x,y:p.y+(bottom[i].y-p.y)*Math.min(1,amount)}));ctx.moveTo(edge[0].x,edge[0].y);for(const p of edge.slice(1))ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(32,22,25,'+(lash/100*.9)+')';ctx.lineWidth=Math.max(.8,w*(.003+lash/100*.012));ctx.stroke();}
+ if(amount>.42&&lash>0){ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);ctx.strokeStyle='rgba(32,22,25,'+(lash/100*.9)+')';ctx.lineWidth=Math.max(.8,w*(.003+lash/100*.012));ctx.stroke();}
  ctx.restore();
 }
 function draw(){
