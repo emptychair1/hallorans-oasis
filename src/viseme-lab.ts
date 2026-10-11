@@ -1,5 +1,48 @@
 import { warpCalibratedMouth, VISEME_AMOUNTS, shapeValue } from './shared-viseme-engine';
 import portraitUrl from '../IMG_4604.jpeg?url';
+
+import neutralMap from '../data/face-maps/neutral.json';
+import closedUrl from '../assets/ad3261163d764c34291dd6dfb0612bfa7f0a42ea92becd0ab5d9549211479970.png?url';
+const liveBlink=new URLSearchParams(location.search).has('live');
+const closedEyePhoto=new Image();closedEyePhoto.src=closedUrl;
+const eyePts=(neutralMap as {images:{role:string;landmarks:{x:number;y:number}[]}[]}).images.find(i=>i.role==='locked-original')!.landmarks;
+const eyeMask=document.createElement('canvas'),eyeMaskCtx=eyeMask.getContext('2d')!;
+let blinkClosure=0,blinkBegan=0,nextBlinkAt=performance.now()+2500,blinkRaf=0;
+function drawPhotoBlink(ctx:CanvasRenderingContext2D){
+ if(!liveBlink||blinkClosure<=0||!closedEyePhoto.complete||!closedEyePhoto.naturalWidth)return;
+ if(eyeMask.width!==w||eyeMask.height!==h){eyeMask.width=w;eyeMask.height=h;}
+ const k=1.15;
+ for(const ids of [[33,133,159,145],[263,362,386,374]]){
+  const [a,b,t,d]=ids.map(i=>eyePts[i]);
+  const width=Math.hypot((b.x-a.x)*w,(b.y-a.y)*h),cx=(a.x+b.x)*w/2,cy=(t.y+d.y)*h/2;
+  eyeMaskCtx.setTransform(1,0,0,1,0,0);eyeMaskCtx.clearRect(0,0,w,h);
+  eyeMaskCtx.globalCompositeOperation='source-over';
+  eyeMaskCtx.drawImage(closedEyePhoto,(w-closedEyePhoto.naturalWidth*k)/2,(h-closedEyePhoto.naturalHeight*k)/2,closedEyePhoto.naturalWidth*k,closedEyePhoto.naturalHeight*k);
+  eyeMaskCtx.globalCompositeOperation='destination-in';
+  eyeMaskCtx.save();eyeMaskCtx.translate(cx,cy);eyeMaskCtx.scale(width*.70,width*.39);
+  const gradient=eyeMaskCtx.createRadialGradient(0,0,.38,0,0,1);
+  gradient.addColorStop(0,'rgba(0,0,0,1)');gradient.addColorStop(.65,'rgba(0,0,0,1)');gradient.addColorStop(1,'rgba(0,0,0,0)');
+  eyeMaskCtx.fillStyle=gradient;eyeMaskCtx.beginPath();eyeMaskCtx.arc(0,0,1,0,Math.PI*2);eyeMaskCtx.fill();eyeMaskCtx.restore();
+  eyeMaskCtx.globalCompositeOperation='source-over';
+  ctx.save();ctx.globalAlpha=blinkClosure;ctx.drawImage(eyeMask,0,0);ctx.restore();
+ }
+}
+function tickBlink(now:number){
+ if(!blinkBegan&&now>=nextBlinkAt)blinkBegan=now;
+ if(blinkBegan){
+  const t=now-blinkBegan;
+  blinkClosure=t<100?t/100:t<210?1-(t-100)/110:0;
+  if(t>=210){blinkBegan=0;nextBlinkAt=now+2900+Math.random()*3400;}
+  draw();
+ }
+ blinkRaf=requestAnimationFrame(tickBlink);
+}
+if(liveBlink){
+ closedEyePhoto.addEventListener('load',()=>draw());
+ blinkRaf=requestAnimationFrame(tickBlink);
+ window.addEventListener('pagehide',()=>cancelAnimationFrame(blinkRaf),{once:true});
+}
+
 type PhotoViseme='oo'|'mbp'|'ah'|'ee'|'fv';
 type VisemePhotoMap={images:{role:string;filename:string}[]};
 const photoMaps=import.meta.glob('../assets/visemes/*.json',{eager:true,import:'default'}) as Record<string,VisemePhotoMap>;
@@ -74,6 +117,7 @@ function draw(){
   warpCtx.setTransform(scale,0,0,scale,-(cx-side/2)*scale,-(cy-side/2)*scale);
   warpCtx.clearRect(0,0,w,h);
   warpCtx.drawImage(photo,0,0,w,h);
+   drawPhotoBlink(warpCtx);
   warpCtx.setTransform(1,0,0,1,0,0);
   if(opening>.0001||mbpBlend>.0001||Math.abs(shapeBlend)>.0001){
    warpCalibratedMouth(warpCtx,size,size,w,h,points,opening,shapeBlend,mbpBlend,cx-side/2,cy-side/2,scale);
