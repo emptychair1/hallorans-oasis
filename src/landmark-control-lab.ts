@@ -1,5 +1,5 @@
 import {FaceLandmarker} from '@mediapipe/tasks-vision';
-import {approvedExpressions,type Point} from './calibrated-expression-renderer';
+import {approvedExpressions,drawCalibratedFace,type Point} from './calibrated-expression-renderer';
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
 const ctx=canvas.getContext('2d')!;
 const select=document.querySelector<HTMLSelectElement>('#expression')!;
@@ -8,6 +8,11 @@ const names=['brows','eyes','cheeks','mouth'] as const;
 type Region=typeof names[number];
 const controls=Object.fromEntries(names.map(n=>[n,document.querySelector<HTMLInputElement>('#'+n)!])) as Record<Region,HTMLInputElement>;
 const original=new Image();original.src=new URL('../IMG_4604.jpeg',import.meta.url).href;
+const photos=new Map<string,HTMLImageElement>();
+const expressionCanvas=document.createElement('canvas');
+const expressionCtx=expressionCanvas.getContext('2d')!;
+let cachedExpression='';
+for(const e of approvedExpressions){const photo=new Image();photo.src=e.photoUrl;photo.onload=()=>{cachedExpression='';draw();};photos.set(e.filename,photo);}
 const indices=(edges:readonly {start:number;end:number}[])=>new Set(edges.flatMap(e=>[e.start,e.end]));
 const mouth=indices(FaceLandmarker.FACE_LANDMARKS_LIPS);
 const leftEye=indices(FaceLandmarker.FACE_LANDMARKS_LEFT_EYE),rightEye=indices(FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE);
@@ -88,6 +93,43 @@ function draw(){
   return {x:from[i].x+deltaX*(1-mix)+nx/neighbors.size*mix,y:from[i].y+deltaY*(1-mix)+ny/neighbors.size*mix};
  });
  warp(from,smooth,w,h);
+ // Approved reference textures supply visible skin, lip and eye changes.
+ // The mesh above handles geometry; soft anatomical masks independently blend
+ // each region of the already-approved photographic expression.
+ const photo=photos.get(expression.filename);
+ if(photo?.complete&&photo.naturalWidth){
+  if(cachedExpression!==expression.filename){
+   const result=drawCalibratedFace(expressionCtx,original,photo,expression.map,expression.filename,expression.preset,1);
+   cachedExpression=result?expression.filename:'';
+  }
+  if(cachedExpression){
+   const maskCanvas=document.createElement('canvas');
+   maskCanvas.width=w;maskCanvas.height=h;
+   const mc=maskCanvas.getContext('2d')!;
+   const groupPoints=(r:Region)=>{
+    const ids=r==='mouth'?mouth:r==='eyes'?eye:r==='brows'?brow:new Set<number>([50,101,117,118,119,120,121,123,205,206,207,280,330,346,347,348,349,350,352,425,426,427]);
+    return [...ids].map(i=>from[i]).filter(Boolean);
+   };
+   for(const r of names){
+    const alpha=factors[r];if(alpha<=0)continue;
+    const pts=groupPoints(r);if(!pts.length)continue;
+    const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+    const cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
+    const rx=Math.max(20,(Math.max(...xs)-Math.min(...xs))/2)*(r==='cheeks'?1.55:1.65);
+    const ry=Math.max(15,(Math.max(...ys)-Math.min(...ys))/2)*(r==='mouth'?2.0:r==='brows'?2.0:1.65);
+    mc.clearRect(0,0,w,h);mc.globalCompositeOperation='source-over';mc.globalAlpha=1;
+    mc.drawImage(expressionCanvas,0,0);
+    mc.globalCompositeOperation='destination-in';
+    mc.save();mc.translate(cx,cy);mc.scale(rx,ry);
+    const gradient=mc.createRadialGradient(0,0,.40,0,0,1);
+    gradient.addColorStop(0,'#000');gradient.addColorStop(1,'rgba(0,0,0,0)');
+    mc.fillStyle=gradient;mc.beginPath();mc.arc(0,0,1,0,Math.PI*2);mc.fill();mc.restore();
+    mc.globalCompositeOperation='source-over';
+    ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(maskCanvas,0,0);ctx.restore();
+   }
+  }
+ }else status.textContent='Waiting for approved expression photo…';
+
  // Sparse diagnostic landmarks remain visible for inspection.
  ctx.save();
  for(let i=0;i<src.length;i+=8){
@@ -95,7 +137,7 @@ function draw(){
   ctx.beginPath();ctx.arc(smooth[i].x,smooth[i].y,2,0,Math.PI*2);ctx.fill();
  }
  ctx.restore();
- status.textContent=expression.name+' · photographic mesh warp · 478 mapped points · '+names.map(n=>n+' '+Math.round(factors[n]*100)+'%').join(' · ');
+ status.textContent=expression.name+' · photographic texture + mesh · 478 mapped points · '+names.map(n=>n+' '+Math.round(factors[n]*100)+'%').join(' · ');
 }
 for(const n of names)controls[n].oninput=()=>{epoch++;cancelAnimationFrame(raf);document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=controls[n].value+'%';draw();};
 select.onchange=()=>{epoch++;cancelAnimationFrame(raf);draw();};
