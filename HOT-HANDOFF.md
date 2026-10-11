@@ -1,3 +1,8 @@
+## 2026-10-11 · BITE 04 BUILD REPAIR
+- Josh reported the image missing on Bite 04 page. Inspection identified a TypeScript mismatch: Key union expanded to 14 landmarks but defaults Record<Key,Point> literal initially only had the original 8, with 6 assigned afterward. This can break Vite TypeScript build.
+- Fixed declaration with explicit Record<Key,Point> assertion before assigning new inner defaults, commit 34ea73c. Portrait IMG_4604.jpeg unchanged. This is a probable build fix, not a verified live fix; Cloudflare deployment and browser image still need confirmation.
+- Do not proceed to lip warping until user confirms portrait and draggable markers appear again.
+
 ## 2026-10-11 · PIPER MOUTH LAB BITE 04
 - User shared screenshot of Bite 03: dark pointed mouth aperture overlay, original lower lip largely static; Bite 03 fails visual realism despite slider functioning.
 - Bite 04 isolated /mouth-lab.html calibration page now has SIX new inner lip seam markers (upperInnerLeft, upperInner, upperInnerRight, lowerInnerLeft, lowerInner, lowerInnerRight), shown cyan, plus original EIGHT calibrated outer markers. Original outer defaults preserved. New inner positions are estimates requiring user calibration.
