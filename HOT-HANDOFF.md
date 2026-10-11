@@ -1,3 +1,8 @@
+## 2026-10-11 · LIVING FACE · BITE 01 (face mapping)
+- New isolated `/face-map-lab.html` and `src/face-map-lab.ts`, Vite entry added. Original `IMG_4604.jpeg` and expression `assets/expressions/b017e04480c791dd998208cd70049c066ffc3d67a00aa412d94ed959833ee1b2.png` loaded read-only.
+- User taps Detect faces; MediaPipe Face Landmarker loaded from jsDelivr with official Google-hosted model; overlay shows all landmarks plus eye/brow/nose/lip/chin anchors and detection counts. Requires network access for model/CDN; no uploads, no image changes, no production voice or mouth changes.
+- Commits 77c8ffd (HTML), 42bae1a (TS), b7c5912 (Vite). Build and live Cloudflare deployment NOT verified; user must confirm page loads and both images detect before Bite 02. Next: transplant only after Bite 01 visually approved.
+
 ## 2026-10-11 · MOUTH LAB BITE 06
 - Josh shared iPhone screenshot of Bite 05 at 99% opening: hard horizontal seam, duplicated lower lip, flat dark opening. User approved Bite 06.
 - Bite 06 changes only isolated mouth-lab.html and src/mouth-lab.ts: HTML full-frame canvas; inverse image-data sampling over localized mouth ROI, smooth x falloff toward cheeks and y falloff toward chin, soft dark aperture instead of sharp SVG polygon. No translated duplicate SVG image. Original IMG_4604.jpeg still used, original eight + calibrated six coordinates preserved. Commits 2e31780 (HTML) and 623073d (TS). New storage key piper-mouth-lab-06-calibrated.
