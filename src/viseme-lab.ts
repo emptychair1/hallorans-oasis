@@ -198,7 +198,7 @@ speakButton.addEventListener('click',()=>{
 // Live Oasis: use the original audio-level signal with approved full-face photos.
 if(new URLSearchParams(location.search).has('live')){
  let last='rest';
- let changedAt=0;
+ 
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
@@ -206,7 +206,7 @@ if(new URLSearchParams(location.search).has('live')){
    const shape=(event.data as {shape?:string}).shape||'rest';
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
    if(shape===last)return;
-   changedAt=performance.now();last=shape;
+   last=shape;
    if(shape==='fv')facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
    else setSpeechShape(shape as Viseme);
   }
