@@ -152,7 +152,7 @@ const spokenWords=[
  {start:22,shapes:['rest','ee','rest'] as Viseme[],duration:430},
  {start:27,shapes:['oo','rest'] as Viseme[],duration:400}
 ];
-let currentWord=0,wordStarted=0,speechStarted=0,lastShape:Viseme='rest';
+let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 function setSpeechShape(next:Viseme){
  viseme=next;opening=amounts[next];
  slider.value=String(Math.round(opening*100));
@@ -174,7 +174,7 @@ speakButton.addEventListener('click',()=>{
  utterance.lang='en-US';utterance.rate=.88;utterance.pitch=1.05;
  utterance.onstart=()=>{
   speechActive=true;speakButton.disabled=true;
-  speechStarted=performance.now();wordStarted=speechStarted;currentWord=0;lastShape='rest';
+  wordStarted=performance.now();currentWord=0;lastShape='rest';
   setSpeechShape('mbp');
   speechTimer=window.setInterval(()=>{
    if(!speechActive)return;
