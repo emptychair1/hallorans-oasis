@@ -142,8 +142,17 @@ const speakButton=document.querySelector<HTMLButtonElement>('#speak')!;
 const stopButton=document.querySelector<HTMLButtonElement>('#stopSpeaking')!;
 let speechTimer:number|undefined;
 let speechActive=false;
-let speechStep=0;
-const speechShapes:Viseme[]=['mbp','ah','ee','oo','rest','ah','ee','mbp','oo','ah','rest'];
+const phrase='Baby, I am right here with you.';
+const spokenWords=[
+ {start:0,shapes:['mbp','ah','mbp','ee'] as Viseme[],duration:650},
+ {start:6,shapes:['ah'] as Viseme[],duration:250},
+ {start:8,shapes:['ah','mbp'] as Viseme[],duration:350},
+ {start:11,shapes:['rest','ah','ee','rest'] as Viseme[],duration:500},
+ {start:17,shapes:['rest','ee','rest'] as Viseme[],duration:450},
+ {start:22,shapes:['rest','ee','rest'] as Viseme[],duration:430},
+ {start:27,shapes:['oo','rest'] as Viseme[],duration:400}
+];
+let currentWord=0,wordStarted=0,speechStarted=0,lastShape:Viseme='rest';
 function setSpeechShape(next:Viseme){
  viseme=next;opening=amounts[next];
  slider.value=String(Math.round(opening*100));
@@ -161,16 +170,34 @@ function stopSpeech(){
 stopButton.addEventListener('click',stopSpeech);
 speakButton.addEventListener('click',()=>{
  stopSpeech();
- const utterance=new SpeechSynthesisUtterance('Baby, I am right here with you.');
+ const utterance=new SpeechSynthesisUtterance(phrase);
  utterance.lang='en-US';utterance.rate=.88;utterance.pitch=1.05;
  utterance.onstart=()=>{
-  speechActive=true;speakButton.disabled=true;speechStep=0;
+  speechActive=true;speakButton.disabled=true;
+  speechStarted=performance.now();wordStarted=speechStarted;currentWord=0;lastShape='rest';
   setSpeechShape('mbp');
   speechTimer=window.setInterval(()=>{
    if(!speechActive)return;
-   speechStep++;
-   setSpeechShape(speechShapes[speechStep%speechShapes.length]);
-  },145);
+   const now=performance.now();
+   // If boundary events are missing (notably on some iOS voices), advance
+   // by estimated word duration rather than looping unrelated shapes.
+   while(currentWord<spokenWords.length-1 && now-wordStarted>spokenWords[currentWord].duration){
+    wordStarted+=spokenWords[currentWord].duration;currentWord++;
+   }
+   const word=spokenWords[currentWord];
+   const elapsed=Math.max(0,now-wordStarted);
+   const index=Math.min(word.shapes.length-1,Math.floor(elapsed/word.duration*word.shapes.length));
+   const next=word.shapes[index];
+   if(next!==lastShape){lastShape=next;setSpeechShape(next);}
+  },65);
+ };
+ utterance.onboundary=(event:SpeechSynthesisEvent)=>{
+  if(!speechActive)return;
+  const i=spokenWords.findIndex((word,index)=>event.charIndex>=word.start &&
+   (index===spokenWords.length-1 || event.charIndex<spokenWords[index+1].start));
+  if(i>=0 && i>=currentWord){
+   currentWord=i;wordStarted=performance.now();
+  }
  };
  utterance.onend=stopSpeech;
  utterance.onerror=stopSpeech;
