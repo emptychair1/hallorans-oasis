@@ -26,7 +26,32 @@ const triangles:number[][]=[], seen=new Set<string>();
 for(const [a,neighbors] of adjacency)for(const b of neighbors)for(const c of neighbors){if(b===c||!adjacency.get(b)?.has(c))continue;const ids=[a,b,c].sort((x,y)=>x-y),key=ids.join('-');if(!seen.has(key)){seen.add(key);triangles.push(ids);}}
 function bounds(points:Point[]){const x=points.map(p=>p.x),y=points.map(p=>p.y);return {minX:Math.min(...x),minY:Math.min(...y),w:Math.max(...x)-Math.min(...x),h:Math.max(...y)-Math.min(...y)};}
 function affine(a:Point,b:Point,c:Point,d:Point,e:Point,f:Point){const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);if(Math.abs(det)<1e-7)return null;const u=(e.x-d.x),v=(f.x-d.x),w=(e.y-d.y),z=(f.y-d.y);const A=(u*(c.y-a.y)-v*(b.y-a.y))/det,B=(w*(c.y-a.y)-z*(b.y-a.y))/det,C=(v*(b.x-a.x)-u*(c.x-a.x))/det,D=(z*(b.x-a.x)-w*(c.x-a.x))/det;return [A,B,C,D,d.x-A*a.x-C*a.y,d.y-B*a.x-D*a.y] as const;}
-function paint(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,overlap=0){if(!alpha)return;ctx.save();ctx.globalAlpha=alpha;for(const ids of triangles){const [i,j,k]=ids;const a=from[i],b=from[j],c=from[k],d=to[i],e=to[j],f=to[k];const matrix=affine(a,b,c,d,e,f);if(!matrix)continue;ctx.save();ctx.beginPath();const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;const expand=(p:Point)=>{const dx=p.x-mx,dy=p.y-my,len=Math.hypot(dx,dy)||1;return {x:p.x+overlap*dx/len,y:p.y+overlap*dy/len};};const da=expand(d),ea=expand(e),fa=expand(f);ctx.moveTo(da.x,da.y);ctx.lineTo(ea.x,ea.y);ctx.lineTo(fa.x,fa.y);ctx.closePath();ctx.clip();ctx.setTransform(...matrix);ctx.drawImage(source,0,0);ctx.restore();}ctx.restore();}
+function paint(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,overlap=0,out:CanvasRenderingContext2D=ctx){if(!alpha)return;out.save();out.globalAlpha=alpha;for(const ids of triangles){const [i,j,k]=ids;const a=from[i],b=from[j],c=from[k],d=to[i],e=to[j],f=to[k];const matrix=affine(a,b,c,d,e,f);if(!matrix)continue;out.save();out.beginPath();const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;const expand=(p:Point)=>{const dx=p.x-mx,dy=p.y-my,len=Math.hypot(dx,dy)||1;return {x:p.x+overlap*dx/len,y:p.y+overlap*dy/len};};const da=expand(d),ea=expand(e),fa=expand(f);out.moveTo(da.x,da.y);out.lineTo(ea.x,ea.y);out.lineTo(fa.x,fa.y);out.closePath();out.clip();out.setTransform(...matrix);out.drawImage(source,0,0);out.restore();}out.restore();}
+
+// Isolated reference-mouth layer: replace the ghosted interior with one source mouth.
+// The soft oval mask avoids the hard rectangular boundaries of earlier experiments.
+const mouthCanvas=document.createElement('canvas');
+const mouthCtx=mouthCanvas.getContext('2d')!;
+const lipIndices=[...new Set(FaceLandmarker.FACE_LANDMARKS_LIPS.flatMap(e=>[e.start,e.end]))];
+function paintMouth(reference:Point[],destination:Point[],strength:number,w:number,h:number){
+ if(strength<=0)return;
+ const pts=lipIndices.map(i=>destination[i]);
+ const left=Math.min(...pts.map(p=>p.x)),right=Math.max(...pts.map(p=>p.x));
+ const top=Math.min(...pts.map(p=>p.y)),bottom=Math.max(...pts.map(p=>p.y));
+ const cx=(left+right)/2,cy=(top+bottom)/2;
+ const rx=Math.max(2,(right-left)*.61),ry=Math.max(2,(bottom-top)*.77);
+ mouthCanvas.width=w;mouthCanvas.height=h;
+ paint(ref,reference,destination,1,.45,mouthCtx);
+ mouthCtx.globalCompositeOperation='destination-in';
+ const radius=Math.max(rx,ry);
+ // Elliptical radial falloff: full reference mouth at center, feathered lip perimeter.
+ mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx/radius,ry/radius);
+ const mask=mouthCtx.createRadialGradient(0,0,radius*.58,0,0,radius);
+ mask.addColorStop(0,'rgba(0,0,0,1)');mask.addColorStop(1,'rgba(0,0,0,0)');
+ mouthCtx.fillStyle=mask;mouthCtx.beginPath();mouthCtx.arc(0,0,radius,0,Math.PI*2);mouthCtx.fill();
+ mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
+ ctx.save();ctx.globalAlpha=Math.min(1,strength);ctx.drawImage(mouthCanvas,0,0);ctx.restore();
+}
 let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
@@ -37,7 +62,7 @@ const sb=bounds(src),tb=bounds(target),ratioX=sb.w/Math.max(tb.w,.001),ratioY=sb
 const source=src.map(p=>({x:p.x*w,y:p.y*h}));
 const destination=src.map((p,i)=>{const q=target[i];const nx=sb.minX+(q.x-tb.minX)*ratioX,ny=sb.minY+(q.y-tb.minY)*ratioY;return {x:(p.x+(nx-p.x)*g)*w,y:(p.y+(ny-p.y)*g)*h};});
 if(g){ctx.clearRect(0,0,w,h);ctx.drawImage(original,0,0);paint(original,source,destination,1,select.value.endsWith('/smile.json')?0.7:0);}
-if(t&&ref.complete&&ref.naturalWidth){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);}
+if(t&&ref.complete&&ref.naturalWidth){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);paintMouth(reference,destination,expressionBlend,w,h);}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
