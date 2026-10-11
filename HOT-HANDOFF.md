@@ -269,3 +269,7 @@ User approves 50–70 percent. At full opening, screenshot showed horizontal dar
 
 ## Viseme Lab 01
 User approved Bite 06 as closest visual baseline and requested a separate viseme audition before audio synchronization. Added isolated `viseme-lab.html` (`9a7a4b3`), `src/viseme-lab.ts` (`e587767`) and Vite multi-page entry (`3ee31c6`). REST, AH, EE, OO experimental presets; calibrated landmarks copied, local storage key separate. No changes to approved Mouth Lab or main Oasis. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . GitHub commits complete; Cloudflare build and user visual acceptance unverified. Next: review individual shapes, especially horizontal EE/OO warp, before adding more visemes or voice sync.
+
+
+## Viseme Bite 10 M/B/P
+Retry succeeded. `src/viseme-lab.ts` commit `679990b` adds MBP lip deformation, after earlier commit `b3147e6` added its selection state. `viseme-lab.html` commit `432e471` exposes M/B/P button and Bite 10 label. Rest, AH, EE, OO and original Mouth Lab remain unchanged. Cloudflare deployment and visual review pending. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html .
