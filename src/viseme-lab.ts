@@ -184,6 +184,9 @@ const spokenWords=[
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
 const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
+// In live mode the speechFace overlay sits above the animated canvas (z-index:5).
+// Hide only that static overlay so the blink and calibrated mouth canvas is visible.
+if(liveBlink)facePhoto.style.display='none';
  // Gentle idle life for Live Oasis: restrained breathing drift plus a quick blink.
  // Keep motion on the portrait only; expression calibration and lip-sync geometry stay untouched.
  if(new URLSearchParams(location.search).has('live')){
