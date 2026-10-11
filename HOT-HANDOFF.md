@@ -1,3 +1,8 @@
+## 2026-10-11 · MOUTH LAB BITE 06
+- Josh shared iPhone screenshot of Bite 05 at 99% opening: hard horizontal seam, duplicated lower lip, flat dark opening. User approved Bite 06.
+- Bite 06 changes only isolated mouth-lab.html and src/mouth-lab.ts: HTML full-frame canvas; inverse image-data sampling over localized mouth ROI, smooth x falloff toward cheeks and y falloff toward chin, soft dark aperture instead of sharp SVG polygon. No translated duplicate SVG image. Original IMG_4604.jpeg still used, original eight + calibrated six coordinates preserved. Commits 2e31780 (HTML) and 623073d (TS). New storage key piper-mouth-lab-06-calibrated.
+- Caution: not photorealistic and not live build/visual verified; user must check Cloudflare green and test 0%, 50%, 99% with markers hidden. Canvas getImageData on iPhone may be computationally heavy. If failed, inspect build log before changes. Oasis main screen and voice untouched.
+
 ## 2026-10-11 · MOUTH LAB BITE 05
 - User supplied piper-mouth-landmarks(1).json, version 2, image IMG_4604.jpeg. Six inner calibration coordinates from user locked as defaults: upperInner (.4844248013743109,.6995207244531921), lowerInner (.49152926250066264,.7111550853463564), upperInnerLeft (.4461699429965808,.6995207244531921), upperInnerRight (.5226796597520409,.6967506310289929), lowerInnerLeft (.46529734630115566,.7089390315993122), lowerInnerRight (.5407141247879559,.7039528844280686). Eight original outer defaults unchanged.
 - Commits: 913853d calibration; 3556efa Bite 05 HTML slider; 045d277 experimental SVG clipped photo region translated downward with dark opening and anchored upper edge. Storage key changed to piper-mouth-lab-05-calibrated to avoid prior saved coordinates overriding approved defaults.
