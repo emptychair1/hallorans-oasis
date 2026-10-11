@@ -1,3 +1,4 @@
+import { LighterSync } from 'lighter-sync';
 type VoiceMessage = { role: 'user' | 'assistant'; content: string };
 type VoiceState = 'idle' | 'opening' | 'listening' | 'transcribing' | 'thinking' | 'speaking' | 'error';
 
@@ -214,6 +215,13 @@ export class OasisPiperVoice {
       if (!this.wanted || generation !== this.generation || !this.context) return;
       const audioBuffer = await this.context.decodeAudioData(bytes);
       if (!this.wanted || generation !== this.generation || !this.context) return;
+      let alignment: LighterSync | null = null;
+      try {
+        const candidate = new LighterSync({mode:'simple'});
+        await candidate.prepare(audioBuffer, reply);
+        if(candidate.keyframes.length) alignment=candidate;
+      } catch(error) { console.warn('LighterSync unavailable, using audio fallback',error); }
+      if (!this.wanted || generation !== this.generation || !this.context) return;
       const source = this.context.createBufferSource();
       this.activeSource = source;
       source.buffer = audioBuffer;
@@ -238,7 +246,11 @@ export class OasisPiperVoice {
         const slice=(a:number,b:number)=>{let sum=0;for(let i=a;i<b;i++)sum+=spectrum[i];return sum/(b-a);};
         const low=slice(4,14),mid=slice(14,40),high=slice(40,90),hiss=slice(90,160);
         const shape=rms<.012?'rest':hiss>high*1.5?'fv':high>low*1.3?'ee':low>mid*1.4?'oo':mid>low*.85?'ah':'mbp';
-        this.onViseme(shape);
+        if(alignment){
+          const cue=alignment.getFrame(Math.max(0,(this.context?.currentTime||0)-speechStartedAt)).visemeId;
+          const mapped=cue==='SILENT'?'rest':cue==='CLOSED'?'mbp':cue==='FRICATIVE'?'fv':cue==='ROUND'?'oo':cue==='OPEN'?'ah':'ee';
+          this.onViseme(mapped);
+        }else this.onViseme(shape);
         this.onSpeechTiming({type:'frame',elapsed:Math.max(0,(this.context?.currentTime||0)-speechStartedAt),level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
       };
