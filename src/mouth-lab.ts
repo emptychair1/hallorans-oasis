@@ -68,38 +68,15 @@ function draw(){
      const below=smooth((yn-(upper-.007))/.022);
      const chinFade=1-smooth((yn-(points.lowerCenter.y+.012))/.07);
      const displacement=shift*horizontal*below*chinFade;
-     const sampleY=Math.max(0,Math.min(size-1,py-displacement*h*scale));
-     const sy=Math.round(sampleY);
+     const sy=Math.max(0,Math.min(size-1,Math.round(py-displacement*h*scale)));
      const dest=(py*size+px)*4,from=(sy*size+px)*4;
-     // Bite 08: keep approved <=70% sampling byte-for-byte unchanged.
-     // Above 70%, interpolate the stretched upper-mouth texture to reduce
-     // nearest-neighbor stepping and subtle vertical striping.
-     const textureBlend=smooth((opening-.70)/.30)*
-       smooth((yn-(upper-.009))/.009)*
-       (1-smooth((yn-(lower+.016))/.025));
-     if(textureBlend>0){
-      const y0=Math.floor(sampleY),y1=Math.min(size-1,y0+1),t=sampleY-y0;
-      const x0=Math.max(0,px-1),x1=Math.min(size-1,px+1);
-      for(let ch=0;ch<3;ch++){
-       const center=src[(y0*size+px)*4+ch]*(1-t)+src[(y1*size+px)*4+ch]*t;
-       const leftSample=src[(y0*size+x0)*4+ch]*(1-t)+src[(y1*size+x0)*4+ch]*t;
-       const rightSample=src[(y0*size+x1)*4+ch]*(1-t)+src[(y1*size+x1)*4+ch]*t;
-       const softened=center*.7+(leftSample+rightSample)*.15;
-       frame.data[dest+ch]=Math.round(src[from+ch]*(1-textureBlend)+softened*textureBlend);
-      }
-     }else{
-      for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
-     }
+     for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
      // A soft shadow between upper and displaced lower seam; no pointed polygon.
      const apertureWidth=Math.max(0,1-u*u);
-     // Bite 07: at >70% only, bow the upper shadow into the mouth.
-     // The approved 0–70% rendering remains mathematically identical.
-     const highOpen=smooth((opening-.70)/.30);
-     const arch=Math.pow(Math.max(0,1-u*u),1.4);
-     const top=upper+.002+highOpen*.006*arch;
+     const top=upper+.002;
      const bottom=lower+displacement*.9;
-     const edge=smooth((yn-top)/(.004+highOpen*.002))*(1-smooth((yn-bottom)/(.004+highOpen*.001)));
-     const dark=edge*horizontal*apertureWidth*opening*.8*(1-highOpen*.12);
+     const edge=smooth((yn-top)/.004)*(1-smooth((yn-bottom)/.004));
+     const dark=edge*horizontal*apertureWidth*opening*.8;
      if(dark>0){
       frame.data[dest]=Math.round(frame.data[dest]*(1-dark)+38*dark);
       frame.data[dest+1]=Math.round(frame.data[dest+1]*(1-dark)+19*dark);
