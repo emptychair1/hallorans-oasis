@@ -223,7 +223,7 @@ export class OasisPiperVoice {
       try {
         const candidate = new LighterSync({mode:'simple'});
         await candidate.prepare(audioBuffer, reply);
-        if(candidate.keyframes.length) { alignment=candidate; console.info('[BITE 08D] LighterSync keyframes',candidate.keyframes.slice(0,20)); }
+        if(candidate.keyframes.length) { alignment=candidate; console.info('[BITE 08E] LighterSync keyframes',candidate.keyframes.slice(0,20)); }
       } catch(error) { console.warn('LighterSync unavailable, using audio fallback',error); }
       if (!this.wanted || generation !== this.generation || !this.context) return;
       const source = this.context.createBufferSource();
@@ -252,7 +252,7 @@ export class OasisPiperVoice {
         const shape=rms<.012?'rest':hiss>high*1.5?'fv':high>low*1.3?'ee':low>mid*1.4?'oo':mid>low*.85?'ah':'mbp';
         if(alignment){
           const cue=alignment.getFrame(Math.max(0,(this.context?.currentTime||0)-speechStartedAt+this.lipOffset)).visemeId;
-          const mapped: string = ({SILENT:'rest',CLOSED:'mbp',FRICATIVE:'fv',ROUND:'oo',OPEN:'ah',WIDE:'ee'} as Record<string,string>)[cue] ?? (rms > .018 ? shape : 'rest');
+          const mapped: string = ({SILENT:'rest',CLOSED:'mbp',FRICATIVE:'fv',ROUND:'oo',OPEN:'ah',WIDE:'ee'} as Record<string,string>)[String(cue).trim().toUpperCase()] ?? (rms > .018 ? shape : 'rest');
           const now=performance.now();
           if(mapped!==this.lastLip&&(mapped==='rest'||now-this.lastLipAt>=this.lipHold)){
             this.lastLip=mapped;this.lastLipAt=now;this.onViseme(mapped);
