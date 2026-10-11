@@ -1,5 +1,18 @@
 import { warpCalibratedMouth, VISEME_AMOUNTS, shapeValue } from './shared-viseme-engine';
 import portraitUrl from '../IMG_4604.jpeg?url';
+type PhotoViseme='oo'|'mbp'|'ah'|'ee'|'fv';
+type VisemePhotoMap={images:{role:string;filename:string}[]};
+const photoMaps=import.meta.glob('../assets/visemes/*.json',{eager:true,import:'default'}) as Record<string,VisemePhotoMap>;
+const photoUrls=import.meta.glob('../assets/visemes/*.{png,jpg,jpeg,webp}',{eager:true,query:'?url',import:'default'}) as Record<string,string>;
+const speechPhotos=new Map<PhotoViseme,HTMLImageElement>();
+for(const name of ['oo','mbp','ah','ee','fv'] as const){
+ const map=Object.entries(photoMaps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
+ const filename=map?.images.find(image=>image.role==='expression-reference')?.filename;
+ const url=Object.entries(photoUrls).find(([path])=>path.endsWith('/'+filename))?.[1];
+ if(!url)continue;
+ const img=new Image();img.src=url;speechPhotos.set(name,img);
+}
+
 type Point = {x:number;y:number};
 type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight'|'upperInner'|'lowerInner'|'upperInnerLeft'|'upperInnerRight'|'lowerInnerLeft'|'lowerInnerRight';
 const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorner','lowerRight','lowerCenter','lowerLeft','upperInner','lowerInner','upperInnerLeft','upperInnerRight','lowerInnerLeft','lowerInnerRight'];
@@ -126,13 +139,17 @@ const spokenWords=[
  {start:27,shapes:['oo','rest'] as Viseme[],duration:400}
 ];
 let currentWord=0,wordStarted=0,lastShape:Viseme='rest';
+const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
 function setSpeechShape(next:Viseme){
- aimMouth(next,amounts[next]);
+ // One complete photographic face per viseme, never a second mouth overlay.
+ viseme=next;
+ const image=next==='rest'?null:speechPhotos.get(next as PhotoViseme);
+ facePhoto.src=image?.src||portraitUrl;
  slider.value=String(Math.round(amounts[next]*100));
  document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
  choices.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viseme===next)));
- draw();
 }
+
 function stopSpeech(){
  speechActive=false;
  if(speechTimer!==undefined){window.clearInterval(speechTimer);speechTimer=undefined;}
