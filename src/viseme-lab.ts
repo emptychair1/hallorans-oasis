@@ -143,9 +143,6 @@ const facePhoto=document.querySelector<HTMLImageElement>('#speechFace')!;
  // Gentle idle life for Live Oasis: restrained breathing drift plus a quick blink.
  // Keep motion on the portrait only; expression calibration and lip-sync geometry stay untouched.
  if(new URLSearchParams(location.search).has('live')){
-  facePhoto.style.transformOrigin='50% 54%';
-  facePhoto.style.willChange='transform, filter';
-  facePhoto.style.animation='oasis-idle-breathe 5.8s ease-in-out infinite';
   // True eyelid motion is being developed in blinking-lab.html; never fake a blink by scaling the full portrait.
  }
 import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
