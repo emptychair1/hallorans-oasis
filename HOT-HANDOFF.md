@@ -261,3 +261,7 @@ Josh approved a reversible realism test after verifying the hair repair in 10.11
 
 ## 2026-10-10 · Mouth Lab normal-distance review
 Josh approved Bite 06 visually as natural; do not modify its pixel-warp algorithm. He requested a proper viewing distance. Updated `emptychair1/hallorans-oasis` `src/mouth-lab.ts` and `mouth-lab.html`: default zoom 5 → 2, calibration markers hidden, opening preset 65% for inspection, controls reflect those values. Commits `c26cc73`, `c8c3771`. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/mouth-lab.html . GitHub committed; Cloudflare deployment and visual acceptance still need confirmation. Main Oasis portrait and voice untouched.
+
+
+## Mouth Lab Bites 07–08
+User approves 50–70 percent. At full opening, screenshot showed horizontal dark band and vertical striping. Bite 07 b70033c softened and curved high-opening shadow. Bite 08 bf5e951 interpolated upper-mouth texture above 70 percent, preserving all geometry and lower range. HTML label updated to Bite 08 in 6999096. User and Cloudflare verification pending; main Oasis unchanged.
