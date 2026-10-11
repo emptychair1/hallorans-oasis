@@ -195,40 +195,24 @@ speakButton.addEventListener('click',()=>{
 });
 
 
-// Live speech photo renderer: approximate word-to-mouth mapping against the actual playback clock.
+// Live Oasis: use the original audio-level signal with approved full-face photos.
 if(new URLSearchParams(location.search).has('live')){
- let words:string[]=[];
- let duration=1;
- let previous='';
+ let last='rest';
+ const update=(level:number)=>{
+  const n=Math.max(0,Math.min(1,level));
+  const shape=n<.045?'rest':n<.16?'mbp':n<.32?'oo':n<.55?'ee':n<.78?'ah':'fv';
+  if(shape===last)return;
+  last=shape;
+  if(shape==='fv'){
+   facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
+  }else{
+   setSpeechShape(shape as Viseme);
+  }
+ };
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
-  const d=event.data as {type?:string;text?:string;duration?:number;elapsed?:number;level?:number};
-  if(d?.type!=='piper-speech-timing')return;
-  if(d.type==='start'){
-   words=(d.text||'').split(/\s+/).filter(Boolean);
-   duration=Math.max(.01,Number(d.duration)||1);
-   previous='';setSpeechShape('rest');return;
-  }
-  if(d.type==='stop'){previous='';setSpeechShape('rest');return;}
-  if(d.type!=='frame')return;
-  const level=Number(d.level)||0;
-  const index=Math.min(words.length-1,Math.floor(Math.max(0,Math.min(.999,(Number(d.elapsed)||0)/duration))*words.length));
-  const word=(words[index]||'').toLowerCase();
-  let shape='rest';
-  if(words.length){
-   if(/^[mbp]/.test(word))shape='mbp';
-   else if(/^[fv]/.test(word))shape='fv';
-   else if(/oo|ou|ow|u/.test(word))shape='oo';
-   else if(/ee|ea|ey|ie|i/.test(word))shape='ee';
-   else shape='ah';
-  }
-  const phase=((Number(d.elapsed)||0)*7)%1;
-  if(phase>.78 && shape!=='rest')shape='mbp';
-  if(shape===previous)return;
-  previous=shape;
-  if(shape==='fv'){
-   const image=speechPhotos.get('fv');
-   facePhoto.src=image?.src||portraitUrl;
-  }else setSpeechShape(shape as Viseme);
+  const d=event.data as {type?:string;level?:number};
+  if(d?.type==='piper-speech-level')update(Number(d.level)||0);
+  if(d?.type==='piper-speech-timing'&&d.type==='stop')update(0);
  });
 }
