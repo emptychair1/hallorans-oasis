@@ -354,3 +354,121 @@ playButton.addEventListener('click',()=>{
   speechFrame=requestAnimationFrame(animateSpeech);
   auditionButton.textContent='■ Stop audition';
  });
+
+// Bite 04.6: independent, locally durable 17 × 5 combination calibration studio.
+// Never mutate the approved expression presets or the five base viseme calibrations.
+type CombinationRecord={tuning:VisemeTuning;approved:boolean;updatedAt:string};
+const studioStorageKey='piper-oasis-combinations-v1';
+const studioRecords:Record<string,CombinationRecord>={};
+try {
+ const stored=JSON.parse(localStorage.getItem(studioStorageKey)||'{}');
+ if(stored&&typeof stored==='object'&&!Array.isArray(stored)){
+  for(const [key,value] of Object.entries(stored)){
+   const record=value as CombinationRecord;
+   if(record?.tuning&&typeof record.approved==='boolean'&&
+      (['x','y','width','height','feather','blend'] as const).every(k=>Number.isFinite(record.tuning[k])))
+    studioRecords[key]=record;
+  }
+ }
+}catch(e){console.warn('Combination storage could not be loaded',e);}
+const studioExpression=$<HTMLSelectElement>('studio-expression');
+const studioShape=$<HTMLSelectElement>('studio-shape');
+const studioStatus=$<HTMLElement>('studio-status');
+const studioCount=$<HTMLElement>('studio-count');
+const studioSliders=(['x','y','width','height','feather','blend'] as const).map(key=>({
+ key,input:$<HTMLInputElement>('studio-'+key),output:$<HTMLElement>('studio-'+key+'-value')
+}));
+for(const [path,map] of entries){
+ const option=document.createElement('option');option.value=path;
+ option.textContent=map.expressionName||path.split('/').pop()!.replace('.json','');
+ studioExpression.append(option);
+}
+for(const shape of visemeOrder){const option=document.createElement('option');option.value=shape;option.textContent=shape.toUpperCase();studioShape.append(option);}
+studioExpression.value=select.value;studioShape.value='oo';
+let studioActive=false;
+const studioKey=()=>studioExpression.value.split('/').pop()+'|'+studioShape.value;
+const studioTotal=entries.length*visemeOrder.length;
+const studioPersist=()=>{
+ try{localStorage.setItem(studioStorageKey,JSON.stringify(studioRecords));return true;}
+ catch(e){studioStatus.textContent='Storage failed. Export your calibration JSON before leaving this page.';return false;}
+};
+function studioRefreshCount(){
+ const valid=new Set(entries.flatMap(([path])=>visemeOrder.map(shape=>path.split('/').pop()+'|'+shape)));
+ const approved=Object.entries(studioRecords).filter(([key,r])=>valid.has(key)&&r.approved).length;
+ studioCount.textContent=approved+' / '+studioTotal+' approved';
+}
+function studioRead(){
+ const record=studioRecords[studioKey()];
+ const values=record?.tuning||approvedVisemeTuning[studioShape.value as SpeechViseme];
+ for(const {key,input,output} of studioSliders){input.value=String(values[key]);output.textContent=String(values[key])+(key==='x'||key==='y'?' px':'%');}
+ studioStatus.textContent=record?(record.approved?'Approved and saved':'Draft saved, not approved'):'Not yet calibrated. Starting from the approved base mouth.';
+ studioRefreshCount();
+}
+function studioShow(){
+ studioActive=true;
+ stopAnimation();stopSpeech();
+ select.value=studioExpression.value;applyPreset();loadReference();
+ calibrationShape=studioShape.value as SpeechViseme;
+ const record=studioRecords[studioKey()];
+ visemeTuning[calibrationShape]={...(record?.tuning||approvedVisemeTuning[calibrationShape])};
+ calibrationPreview=true;studioRead();render();
+}
+for(const element of [studioExpression,studioShape])element.addEventListener('change',studioShow);
+for(const {key,input,output} of studioSliders)input.addEventListener('input',()=>{
+ if(!studioActive)studioShow();
+ const shape=studioShape.value as SpeechViseme;
+ const current=studioRecords[studioKey()]?.tuning||{...approvedVisemeTuning[shape]};
+ const tuning={...current,[key]:Number(input.value)};
+ studioRecords[studioKey()]={tuning,approved:false,updatedAt:new Date().toISOString()};
+ visemeTuning[shape]={...tuning};
+ output.textContent=input.value+(key==='x'||key==='y'?' px':'%');
+ if(studioPersist())studioStatus.textContent='Draft autosaved on this device. Approval required.';
+ studioRefreshCount();render();
+});
+$('studio-approve').addEventListener('click',()=>{
+ if(!studioActive)studioShow();
+ const shape=studioShape.value as SpeechViseme;
+ const tuning=studioRecords[studioKey()]?.tuning||{...approvedVisemeTuning[shape]};
+ studioRecords[studioKey()]={tuning:{...tuning},approved:true,updatedAt:new Date().toISOString()};
+ if(studioPersist()){studioStatus.textContent='Approved and saved on this device. Export a backup to preserve it elsewhere.';studioRefreshCount();}
+});
+$('studio-next').addEventListener('click',()=>{
+ const index=entries.findIndex(([path])=>path===studioExpression.value);
+ const shapeIndex=visemeOrder.indexOf(studioShape.value as SpeechViseme);
+ if(shapeIndex<visemeOrder.length-1)studioShape.value=visemeOrder[shapeIndex+1];
+ else{studioShape.value=visemeOrder[0];studioExpression.value=entries[(index+1)%entries.length][0];}
+ // For uncalibrated combinations, inherit the preceding mouth's settings as a draft.
+ studioShow();
+});
+$('studio-inherit').addEventListener('click',()=>{
+ const shape=studioShape.value as SpeechViseme;
+ const tuning={...visemeTuning[shape]};
+ studioRecords[studioKey()]={tuning,approved:false,updatedAt:new Date().toISOString()};
+ studioPersist();studioShow();
+ studioStatus.textContent='Current settings copied as a draft. Adjust and approve when ready.';
+});
+$('studio-export').addEventListener('click',()=>{
+ const blob=new Blob([JSON.stringify({format:'piper-combination-studio-v1',records:studioRecords},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='piper-85-combinations-backup.json';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$<HTMLInputElement>('studio-import').addEventListener('change',async event=>{
+ const input=event.currentTarget as HTMLInputElement,file=input.files?.[0];if(!file)return;
+ try{
+  const payload=JSON.parse(await file.text());
+  if(payload?.format!=='piper-combination-studio-v1'||!payload.records||typeof payload.records!=='object')throw Error('Invalid studio backup');
+  const allowed=new Set(entries.flatMap(([path])=>visemeOrder.map(shape=>path.split('/').pop()+'|'+shape)));
+  let imported=0;
+  for(const [key,value] of Object.entries(payload.records)){
+   const record=value as CombinationRecord;
+   if(!allowed.has(key)||!record?.tuning||typeof record.approved!=='boolean'||
+      !(['x','y','width','height','feather','blend'] as const).every(k=>Number.isFinite(record.tuning[k])))continue;
+   studioRecords[key]={tuning:{...record.tuning},approved:record.approved,updatedAt:String(record.updatedAt||'')};imported++;
+  }
+  if(!studioPersist())return;
+  studioShow();studioStatus.textContent=imported+' combinations imported. Existing matching records were replaced.';
+ }catch(e){studioStatus.textContent='Import failed: '+String(e);}
+ finally{input.value='';}
+});
+$('studio-open').addEventListener('click',studioShow);
+studioRefreshCount();
