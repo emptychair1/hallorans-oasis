@@ -163,7 +163,6 @@ function stopSpeech(){
 }
 stopButton.addEventListener('click',stopSpeech);
 speakButton.addEventListener('click',()=>{
- if(!('speechSynthesis' in window)){window.alert('Browser speech synthesis is unavailable here.');return;}
  stopSpeech();
  const utterance=new SpeechSynthesisUtterance('Baby, I am right here with you.');
  utterance.lang='en-US';utterance.rate=.88;utterance.pitch=1.05;
