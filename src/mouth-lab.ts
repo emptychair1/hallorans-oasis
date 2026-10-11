@@ -1,12 +1,13 @@
 import portraitUrl from '../IMG_4604.jpeg?url';
 type Point = {x:number;y:number};
-type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight';
-const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorner','lowerRight','lowerCenter','lowerLeft'];
+type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight'|'upperInner'|'lowerInner';
+const keys:Key[]=['leftCorner','cupidLeft','upperCenter','cupidRight','rightCorner','lowerRight','lowerCenter','lowerLeft','upperInner','lowerInner'];
 // Calibrated by Josh on the original IMG_4604.jpeg; do not overwrite with estimates.
 const defaults:Record<Key,Point>={"leftCorner":{"x":0.3986245916494381,"y":0.7050609113015908},"cupidLeft":{"x":0.46311136622667515,"y":0.6756980154704966},"upperCenter":{"x":0.48169230039692007,"y":0.6873323763636608},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5942709472242101,"y":0.698966737256825},"lowerRight":{"x":0.5407141247879559,"y":0.7288836202842863},"lowerCenter":{"x":0.4991802445299247,"y":0.735531834006207},"lowerLeft":{"x":0.43578645998992793,"y":0.7316537137084856}};
 const svg=document.querySelector<SVGSVGElement>('#overlay')!;
 const output=document.querySelector<HTMLElement>('#output')!;
-const storeKey='piper-mouth-lab-02-calibrated';
+defaults.upperInner={x:.5,y:.704};defaults.lowerInner={x:.5,y:.712};
+const storeKey='piper-mouth-lab-04-inner';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=5,active:Key|null=null,w=1000,h=1000;
@@ -23,7 +24,7 @@ function draw(){
  const image=element('image');image.setAttribute('href',portraitUrl);image.setAttribute('width',String(w));image.setAttribute('height',String(h));svg.append(image);
  // Bite 03: experimental pixel-warping of the lower lip and nearby skin.
  // This does not synthesize teeth or photorealistic inner-mouth imagery.
- if(opening>0){
+ if(false && opening>0){
    const left=points.leftCorner,right=points.rightCorner,top=points.upperCenter,bottom=points.lowerCenter;
    const lx=left.x*w,rx=right.x*w,mid=(lx+rx)/2,cy=(top.y+bottom.y)*h/2;
    const halfGap=opening*.018*h;
@@ -81,8 +82,8 @@ svg.addEventListener('pointerdown',e=>{
 });
 svg.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();points[active]=coords(e);draw();});
 const stop=()=>{active=null};svg.addEventListener('pointerup',stop);svg.addEventListener('pointercancel',stop);svg.addEventListener('lostpointercapture',stop);
-const slider=document.querySelector<HTMLInputElement>('#opening')!;
-slider.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
+const slider=document.querySelector<HTMLInputElement>('#opening');
+slider?.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
 document.querySelector('#toggleMarkers')!.addEventListener('click',e=>{showMarkers=!showMarkers;(e.currentTarget as HTMLButtonElement).textContent=showMarkers?'Hide markers':'Show markers';draw();});
 document.querySelector('#zoomIn')!.addEventListener('click',()=>{zoom=Math.min(10,zoom+1);draw();});
 document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(2,zoom-1);draw();});
