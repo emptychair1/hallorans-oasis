@@ -257,3 +257,7 @@ Josh's screenshot of BUILD 10.11.3.1 showed Mesh / lambert10 with transparent=tr
 
 ## Study 10.12 · cinematic audition
 Josh approved a reversible realism test after verifying the hair repair in 10.11.4. Added CURRENT/CINEMATIC toggle, subtle supplementary lights and roughness variants on eligible opaque avatar materials. Hair material and geometry unchanged, face camera/voice intact. Visible BUILD 10.12.0. CSS write was blocked, so button reuses existing face-toggle style with an offset. Cloudflare and visual comparison not yet verified.
+
+
+## 2026-10-10 · Mouth Lab normal-distance review
+Josh approved Bite 06 visually as natural; do not modify its pixel-warp algorithm. He requested a proper viewing distance. Updated `emptychair1/hallorans-oasis` `src/mouth-lab.ts` and `mouth-lab.html`: default zoom 5 → 2, calibration markers hidden, opening preset 65% for inspection, controls reflect those values. Commits `c26cc73`, `c8c3771`. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/mouth-lab.html . GitHub committed; Cloudflare deployment and visual acceptance still need confirmation. Main Oasis portrait and voice untouched.
