@@ -151,6 +151,8 @@ $('viseme-copy').addEventListener('click',()=>{
  const field=$<HTMLTextAreaElement>('viseme-values');field.value=data;field.select();
  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(data).catch(()=>{});
 });
+const expressionTextureCanvas=document.createElement('canvas');
+const expressionTextureCtx=expressionTextureCanvas.getContext('2d')!;
 const visemeCanvas=document.createElement('canvas'),visemeCtx=visemeCanvas.getContext('2d')!;
 const smooth=(x:number)=>{const q=Math.max(0,Math.min(1,x));return q*q*(3-2*q);};
 function paintViseme(destination:Point[],w:number,h:number){
@@ -244,7 +246,36 @@ if(g){
 }
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
-if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(select.value.split('/').pop()||''))paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
+const speechMouthActive=calibrationPreview||(speechPlaying&&speechShape!=='rest'&&speechAmount>.002);
+if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){
+ const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));
+ const forehead=foreheadRepairs.has(select.value.split('/').pop()||'');
+ if(speechMouthActive){
+  // Isolate expression texture: remove its lips/teeth before compositing the scanned viseme.
+  expressionTextureCanvas.width=w;expressionTextureCanvas.height=h;
+  if(forehead)paintFeatheredForeheadTexture(reference,destination,t*.55,w,h,expressionTextureCtx);
+  else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0,expressionTextureCtx);
+  const lips=lipIndices.map(i=>destination[i]);
+  const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
+  const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
+  expressionTextureCtx.save();
+  expressionTextureCtx.globalCompositeOperation='destination-out';
+  expressionTextureCtx.translate((left+right)/2,(top+bottom)/2);
+  expressionTextureCtx.scale(Math.max(3,(right-left)*.78),Math.max(3,(bottom-top)*1.2));
+  const matte=expressionTextureCtx.createRadialGradient(0,0,.52,0,0,1);
+  matte.addColorStop(0,'#000');matte.addColorStop(1,'transparent');
+  expressionTextureCtx.fillStyle=matte;expressionTextureCtx.beginPath();
+  expressionTextureCtx.arc(0,0,1,0,Math.PI*2);expressionTextureCtx.fill();
+  expressionTextureCtx.restore();
+  ctx.drawImage(expressionTextureCanvas,0,0);
+ }else{
+  // Unmodified rendering path for all approved expressions when not speaking.
+  if(forehead)paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);
+  else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);
+  if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);
+  else paintMouth(reference,destination,expressionBlend,w,h);
+ }
+}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 paintViseme(destination,w,h);
 }
