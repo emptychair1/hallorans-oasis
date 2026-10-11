@@ -12,7 +12,7 @@ defaults.lowerInnerLeft={x:0.46529734630115566,y:0.7089390315993122};defaults.lo
 const storeKey='piper-viseme-lab-01-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
-let zoom=2,active:Key|null=null,w=1000,h=1000;
+let zoom=1,active:Key|null=null,w=1000,h=1000;
 let showMarkers=false,opening=0;
 type Viseme='rest'|'ah'|'ee'|'oo'|'mbp';
 let viseme:Viseme='rest';
@@ -24,7 +24,7 @@ const warp=document.querySelector<HTMLCanvasElement>('#warp')!;
 const warpCtx=warp.getContext('2d',{willReadFrequently:true});
 photo.src=portraitUrl;
 function draw(){
- const side=Math.min(w,h)/zoom, cx=.5*w,cy=.707*h;
+ const side=Math.min(w,h)/zoom, cx=.5*w,cy=(zoom===1?.5:.707)*h;
  svg.setAttribute('viewBox',`${cx-side/2} ${cy-side/2} ${side} ${side}`);
  svg.replaceChildren();
  // Keep the portrait in HTML instead of an SVG <image>, which can fail on mobile.
@@ -135,7 +135,7 @@ choices.forEach(button=>button.addEventListener('click',()=>{
 slider.addEventListener('input',()=>{opening=Number(slider.value)/100;document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';draw();});
 document.querySelector('#toggleMarkers')!.addEventListener('click',e=>{showMarkers=!showMarkers;(e.currentTarget as HTMLButtonElement).textContent=showMarkers?'Hide markers':'Show markers';draw();});
 document.querySelector('#zoomIn')!.addEventListener('click',()=>{zoom=Math.min(10,zoom+1);draw();});
-document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(2,zoom-1);draw();});
+document.querySelector('#zoomOut')!.addEventListener('click',()=>{zoom=Math.max(1,zoom-1);draw();});
 document.querySelector('#reset')!.addEventListener('click',()=>{points=structuredClone(defaults);draw();});
 document.querySelector('#copy')!.addEventListener('click',async()=>{await navigator.clipboard.writeText(output.textContent||'');});
 document.querySelector('#download')!.addEventListener('click',()=>{const blob=new Blob([output.textContent||''],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='piper-mouth-landmarks.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
