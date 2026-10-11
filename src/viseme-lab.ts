@@ -76,7 +76,8 @@ function draw(){
      const shape=viseme==='ee' ? -.12 : viseme==='oo' ? .18 : 0;
      const xShift=shape*halfWidth*u*horizontal*lipVertical;
      const sx=Math.max(0,Math.min(size-1,Math.round(px+xShift*w*scale)));
-     const sy=Math.max(0,Math.min(size-1,Math.round(py-displacement*h*scale)));
+     const mbpOffset=viseme==='mbp' ? .003*horizontal*(yn<upper+.006?-1:1) : 0;
+     const sy=Math.max(0,Math.min(size-1,Math.round(py-(displacement+mbpOffset)*h*scale)));
      const dest=(py*size+px)*4,from=(sy*size+sx)*4;
      for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
      // A soft shadow between upper and displaced lower seam; no pointed polygon.
