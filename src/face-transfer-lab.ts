@@ -125,7 +125,6 @@ function applySpeech(destination:Point[],w:number,h:number){
  lc.save();lc.translate(cx,cy);lc.scale(sx,sy);lc.translate(-cx,-cy);
  lc.drawImage(speechSource,0,0);lc.restore();
  lc.globalCompositeOperation='destination-in';
- const mask=lc.createRadialGradient(cx,cy,ry*.32,cx,cy,ry);
  lc.save();lc.translate(cx,cy);lc.scale(1,ry/rx);
  const oval=lc.createRadialGradient(0,0,rx*.52,0,0,rx);
  oval.addColorStop(0,'#000');oval.addColorStop(1,'transparent');
