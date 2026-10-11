@@ -26,7 +26,7 @@ const triangles:number[][]=[], seen=new Set<string>();
 for(const [a,neighbors] of adjacency)for(const b of neighbors)for(const c of neighbors){if(b===c||!adjacency.get(b)?.has(c))continue;const ids=[a,b,c].sort((x,y)=>x-y),key=ids.join('-');if(!seen.has(key)){seen.add(key);triangles.push(ids);}}
 function bounds(points:Point[]){const x=points.map(p=>p.x),y=points.map(p=>p.y);return {minX:Math.min(...x),minY:Math.min(...y),w:Math.max(...x)-Math.min(...x),h:Math.max(...y)-Math.min(...y)};}
 function affine(a:Point,b:Point,c:Point,d:Point,e:Point,f:Point){const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);if(Math.abs(det)<1e-7)return null;const u=(e.x-d.x),v=(f.x-d.x),w=(e.y-d.y),z=(f.y-d.y);const A=(u*(c.y-a.y)-v*(b.y-a.y))/det,B=(w*(c.y-a.y)-z*(b.y-a.y))/det,C=(v*(b.x-a.x)-u*(c.x-a.x))/det,D=(z*(b.x-a.x)-w*(c.x-a.x))/det;return [A,B,C,D,d.x-A*a.x-C*a.y,d.y-B*a.x-D*a.y] as const;}
-function paint(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,overlap=0,out:CanvasRenderingContext2D){if(!alpha)return;out.save();out.globalAlpha=alpha;for(const ids of triangles){const [i,j,k]=ids;const a=from[i],b=from[j],c=from[k],d=to[i],e=to[j],f=to[k];const matrix=affine(a,b,c,d,e,f);if(!matrix)continue;out.save();out.beginPath();const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;const expand=(p:Point)=>{const dx=p.x-mx,dy=p.y-my,len=Math.hypot(dx,dy)||1;return {x:p.x+overlap*dx/len,y:p.y+overlap*dy/len};};const da=expand(d),ea=expand(e),fa=expand(f);out.moveTo(da.x,da.y);out.lineTo(ea.x,ea.y);out.lineTo(fa.x,fa.y);out.closePath();out.clip();out.setTransform(...matrix);out.drawImage(source,0,0);out.restore();}out.restore();}
+export function paintFaceMesh(source:HTMLImageElement,from:Point[],to:Point[],alpha:number,overlap=0,out:CanvasRenderingContext2D){if(!alpha)return;out.save();out.globalAlpha=alpha;for(const ids of triangles){const [i,j,k]=ids;const a=from[i],b=from[j],c=from[k],d=to[i],e=to[j],f=to[k];const matrix=affine(a,b,c,d,e,f);if(!matrix)continue;out.save();out.beginPath();const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;const expand=(p:Point)=>{const dx=p.x-mx,dy=p.y-my,len=Math.hypot(dx,dy)||1;return {x:p.x+overlap*dx/len,y:p.y+overlap*dy/len};};const da=expand(d),ea=expand(e),fa=expand(f);out.moveTo(da.x,da.y);out.lineTo(ea.x,ea.y);out.lineTo(fa.x,fa.y);out.closePath();out.clip();out.setTransform(...matrix);out.drawImage(source,0,0);out.restore();}out.restore();}
 
 // Isolated reference-mouth layer: replace the ghosted interior with one source mouth.
 // The soft oval mask avoids the hard rectangular boundaries of earlier experiments.
@@ -68,7 +68,7 @@ function paintMouth(ctx:CanvasRenderingContext2D,ref:HTMLImageElement,reference:
  const cx=(left+right)/2,cy=(top+bottom)/2;
  const rx=Math.max(2,(right-left)*.61),ry=Math.max(2,(bottom-top)*.77);
  mouthCanvas.width=w;mouthCanvas.height=h;
- paint(ref,reference,destination,1,.45,mouthCtx);
+ paintFaceMesh(ref,reference,destination,1,.45,mouthCtx);
  mouthCtx.globalCompositeOperation='destination-in';
  const radius=Math.max(rx,ry);
  // Elliptical radial falloff: full reference mouth at center, feathered lip perimeter.
@@ -84,7 +84,7 @@ const foreheadCanvas=document.createElement('canvas');
 const foreheadCtx=foreheadCanvas.getContext('2d')!;
 function paintFeatheredForeheadTexture(ctx:CanvasRenderingContext2D,ref:HTMLImageElement,reference:Point[],destination:Point[],alpha:number,w:number,h:number){
  foreheadCanvas.width=w;foreheadCanvas.height=h;
- paint(ref,reference,destination,1,0,foreheadCtx);
+ paintFaceMesh(ref,reference,destination,1,0,foreheadCtx);
  // Keep the cheeks and lower face; gradually restore the original forehead.
  const browY=Math.min(destination[70].y,destination[300].y);
  const fadeStart=Math.max(0,browY-h*.12),fadeEnd=browY+h*.045;
@@ -115,7 +115,7 @@ if(g){
   // Preserve the original hairline and upper forehead; mouth rendering stays unchanged.
   const layer=document.createElement('canvas');layer.width=w;layer.height=h;
   const layerCtx=layer.getContext('2d')!;
-  paint(original,source,destination,1,0,layerCtx);
+  paintFaceMesh(original,source,destination,1,0,layerCtx);
   const browY=Math.min(destination[70].y,destination[300].y);
   const fadeStart=Math.max(0,browY-h*.13),fadeEnd=browY+h*.06;
   layerCtx.globalCompositeOperation='destination-in';
@@ -123,11 +123,11 @@ if(g){
   fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,1)');
   layerCtx.fillStyle=fade;layerCtx.fillRect(0,0,w,h);
   layerCtx.globalCompositeOperation='source-over';ctx.drawImage(layer,0,0);
- }else paint(original,source,destination,1,selection.endsWith('/smile.json')?0.7:0,ctx);
+ }else paintFaceMesh(original,source,destination,1,selection.endsWith('/smile.json')?0.7:0,ctx);
 }
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
-if(t&&ref.complete&&ref.naturalWidth&&!selection.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(selection.split('/').pop()||''))paintFeatheredForeheadTexture(ctx,ref,reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,selection.endsWith('/smile.json')?0.7:0,ctx);// Historical fix 58c25b5: avoid a second expression-mouth repair layer when a speech mouth is active.
+if(t&&ref.complete&&ref.naturalWidth&&!selection.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(selection.split('/').pop()||''))paintFeatheredForeheadTexture(ctx,ref,reference,destination,t*.55,w,h);else paintFaceMesh(ref,reference,destination,t*.55,selection.endsWith('/smile.json')?0.7:0,ctx);// Historical fix 58c25b5: avoid a second expression-mouth repair layer when a speech mouth is active.
  if(!suppressExpressionMouth){
   if(selection.endsWith('/full-laugh.json')||mouthRepairs.has(selection.split('/').pop()||''))paintContinuousMouth(ctx,ref,reference,destination,expressionBlend,w,h);
   else paintMouth(ctx,ref,reference,destination,expressionBlend,w,h);
