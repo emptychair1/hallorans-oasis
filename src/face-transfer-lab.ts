@@ -48,6 +48,14 @@ original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>s
 const playButton=$<HTMLButtonElement>('play-animation'),speed=$<HTMLSelectElement>('animation-speed');
 const playable=entries.map(([path])=>path).filter(path=>Boolean(savedPresets[path.split('/').pop()||'']));
 let playing=false,frame=0,cycleStart=0,cycleIndex=-1;
+const expressionTiming:Record<string,[number,number,number]>={
+ 'surprised.json':[.45,.65,.8], 'excited.json':[.65,.85,.9],
+ 'full-laugh.json':[.7,1.15,1], 'full-smile.json':[.9,1.35,1.1],
+ 'smile.json':[1,1.3,1.2], 'smile2.json':[1,1.25,1.2],
+ 'sad.json':[1.5,1.5,1.5], 'sad2.json':[1.5,1.5,1.5],
+ 'thinking.json':[1.25,1.5,1.3], 'curious.json':[.85,1.1,1],
+ 'mad.json':[.7,1.3,1.2]
+};
 const ease=(x:number)=>x*x*(3-2*x);
 function stopAnimation(){playing=false;cancelAnimationFrame(frame);expressionBlend=1;playButton.textContent='▶ Animate expressions';render();}
 function nextExpression(){
@@ -60,9 +68,11 @@ function animate(now:number){
  const duration=Number(speed.value);
  const elapsed=now-cycleStart;
  // Rest -> expression -> hold -> rest, with the original portrait as resting.
- const rise=duration,hold=duration*.65,fall=duration;
+ const name=select.value.split('/').pop()||'';
+ const [inFactor,holdFactor,outFactor]=expressionTiming[name]||[1,1,1.1];
+ const rise=duration*inFactor,hold=duration*.65*holdFactor,fall=duration*outFactor;
  if(elapsed<rise)expressionBlend=ease(Math.min(1,elapsed/rise));
- else if(elapsed<rise+hold)expressionBlend=1;
+ else if(elapsed<rise+hold){const phase=(elapsed-rise)/Math.max(hold,1);expressionBlend=1-.018*Math.sin(Math.PI*phase)**2;}
  else if(elapsed<rise+hold+fall)expressionBlend=1-ease(Math.min(1,(elapsed-rise-hold)/fall));
  else {nextExpression();frame=requestAnimationFrame(animate);return;}
  render();frame=requestAnimationFrame(animate);
