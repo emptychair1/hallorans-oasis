@@ -25,7 +25,8 @@ export class OasisPiperVoice {
 
   constructor(
     private readonly onSpeechLevel: (level: number) => void = () => {},
-    private readonly onExpression: (expression: 'neutral' | 'smile' | 'blink' | 'surprise') => void = () => {}
+    private readonly onExpression: (expression: 'neutral' | 'smile' | 'blink' | 'surprise') => void = () => {},
+    private readonly onSpeechTiming: (event: {type:'start';text:string;duration:number}|{type:'frame';elapsed:number;level:number}|{type:'stop'}) => void = () => {}
   ) {
     this.root.className = 'oasis-voice';
     this.button.className = 'oasis-voice__button';
@@ -221,6 +222,7 @@ export class OasisPiperVoice {
       source.connect(speechAnalyser);
       speechAnalyser.connect(this.context.destination);
       const samples = new Float32Array(speechAnalyser.fftSize);
+      let speechStartedAt=0;
       const animateSpeech = () => {
         if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
         speechAnalyser.getFloatTimeDomainData(samples);
@@ -230,11 +232,13 @@ export class OasisPiperVoice {
         const target = Math.min(1, Math.max(0, (rms - 0.012) * 8));
         this.speechLevel += (target - this.speechLevel) * (target > this.speechLevel ? 0.45 : 0.22);
         this.onSpeechLevel(this.speechLevel);
+        this.onSpeechTiming({type:'frame',elapsed:Math.max(0,(this.context?.currentTime||0)-speechStartedAt),level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
       };
       source.onended = () => {
         if (this.activeSource === source) {
           this.activeSource = null;
+          this.onSpeechTiming({type:'stop'});
           this.resetSpeechAnimation();
         }
         if (this.wanted && generation === this.generation) {
@@ -242,6 +246,8 @@ export class OasisPiperVoice {
           this.listen(generation);
         }
       };
+      speechStartedAt=this.context.currentTime;
+      this.onSpeechTiming({type:'start',text:reply,duration:audioBuffer.duration});
       source.start();
       this.speechFrame = requestAnimationFrame(animateSpeech);
     } catch (error) {
@@ -339,6 +345,7 @@ export class OasisPiperVoice {
     this.speechFrame = 0;
     this.speechLevel = 0;
     this.onSpeechLevel(0);
+    this.onSpeechTiming({type:'stop'});
     this.onExpression('neutral');
     try { this.speechAnalyser?.disconnect(); } catch {}
     this.speechAnalyser = null;
