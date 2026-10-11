@@ -147,4 +147,70 @@ document.querySelector<HTMLButtonElement>('#demo')!.onclick=()=>{
  const delays:Record<Region,number>={brows:0,eyes:180,cheeks:350,mouth:550};
  const tick=(now:number)=>{if(run!==epoch)return;let active=false;for(const n of names){const t=clamp((now-start-delays[n])/950),hold=clamp((now-start-delays[n]-1200)/1000);const eased=t*t*(3-2*t),out=hold*hold*(3-2*hold);const v=Math.round(100*eased*(1-out));controls[n].value=String(v);document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=v+'%';if(now-start<delays[n]+2200)active=true;}draw();if(active)raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);
 };
+
+// Autonomous behavior: independent, smoothly interpolated regional intentions.
+// User interaction always takes priority and stops the performance.
+const autoplay=document.querySelector<HTMLButtonElement>('#autoplay')!;
+let playing=false,autoFrame=0,autoSeed=17;
+const random=()=>{autoSeed=(autoSeed*1664525+1013904223)>>>0;return autoSeed/4294967296;};
+type Pose={expression:string;values:Record<Region,number>;duration:number};
+let currentPose:Pose|null=null,nextPose:Pose|null=null,poseStart=0;
+const ease=(t:number)=>{const x=clamp(t);return x*x*(3-2*x);};
+function choosePose():Pose{
+ const choices=approvedExpressions;
+ const e=choices[Math.floor(random()*choices.length)];
+ const intensity=.32+random()*.48;
+ const values:Record<Region,number>={
+  brows:Math.round(intensity*(35+random()*60)),
+  eyes:Math.round(intensity*(45+random()*50)),
+  cheeks:Math.round(intensity*(50+random()*45)),
+  mouth:Math.round(intensity*(45+random()*55))
+ };
+ // Frequent neutral rests prevent a permanently animated, artificial expression.
+ if(random()<.28)for(const n of names)values[n]=Math.round(random()*9);
+ return {expression:e.filename,values,duration:2300+random()*2400};
+}
+function setPose(pose:Pose){
+ select.value=pose.expression;
+ for(const n of names){
+  controls[n].value=String(pose.values[n]);
+  document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=pose.values[n]+'%';
+ }
+ draw();
+}
+function stopAutoplay(){
+ playing=false;cancelAnimationFrame(autoFrame);
+ autoplay.textContent='▶ Play autonomous expressions';
+}
+function autoTick(now:number){
+ if(!playing)return;
+ if(!currentPose||!nextPose){
+  currentPose={expression:select.value,values:Object.fromEntries(names.map(n=>[n,Number(controls[n].value)])) as Record<Region,number>,duration:0};
+  nextPose=choosePose();poseStart=now;
+ }
+ const t=clamp((now-poseStart)/nextPose.duration);
+ const blend=ease(t);
+ const values={} as Record<Region,number>;
+ for(const n of names){
+  // Offset onset and release slightly between facial regions.
+  const lag=n==='mouth'?.12:n==='cheeks'?.08:n==='eyes'?.04:0;
+  const local=ease((t-lag)/(1-lag));
+  values[n]=Math.round(currentPose.values[n]+(nextPose.values[n]-currentPose.values[n])*local);
+ }
+ setPose({expression:t>.45?nextPose.expression:currentPose.expression,values,duration:0});
+ if(t>=1){currentPose=nextPose;nextPose=choosePose();poseStart=now;}
+ autoFrame=requestAnimationFrame(autoTick);
+}
+autoplay.onclick=()=>{
+ if(playing){stopAutoplay();return;}
+ epoch++;cancelAnimationFrame(raf);
+ playing=true;currentPose=null;nextPose=null;
+ autoplay.textContent='⏸ Pause autonomous expressions';
+ autoFrame=requestAnimationFrame(autoTick);
+};
+for(const n of names)controls[n].addEventListener('pointerdown',stopAutoplay);
+select.addEventListener('change',stopAutoplay);
+document.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',stopAutoplay);
+document.querySelector<HTMLButtonElement>('#demo')!.addEventListener('click',stopAutoplay);
+
 original.onload=draw;original.onerror=()=>status.textContent='Base portrait failed to load.';draw();
