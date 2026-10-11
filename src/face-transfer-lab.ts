@@ -482,6 +482,78 @@ $<HTMLInputElement>('studio-import').addEventListener('change',async event=>{
 $('studio-open').addEventListener('click',studioShow);
 studioRefreshCount();
 
+// Bite 04.8: speech-driven photographic faces. Reuse Bite 14 word boundaries and fallback durations.
+const spokenPhrase='Baby, I am right here with you.';
+const spokenWordCues=[
+ {start:0,shapes:['mbp','ah','mbp','ee'],duration:650},
+ {start:6,shapes:['ah'],duration:250},
+ {start:8,shapes:['ah','mbp'],duration:350},
+ {start:11,shapes:['rest','ah','ee','rest'],duration:500},
+ {start:17,shapes:['rest','ee','rest'],duration:450},
+ {start:22,shapes:['rest','ee','rest'],duration:430},
+ {start:27,shapes:['oo','rest'],duration:400}
+] as const;
+const speakFaceButton=$<HTMLButtonElement>('speak-faces');
+let speakingFaces=false,spokenWord=0,spokenWordStarted=0,speechFaceTimer:number|undefined,lastSpokenFace='';
+function showSpokenFace(shape:string){
+ if(shape===lastSpokenFace)return;
+ lastSpokenFace=shape;
+ const asset=shape==='rest'?null:visemeAssets.get(shape as SpeechViseme);
+ if(asset?.image.complete&&asset.image.naturalWidth){
+  canvas.width=asset.image.naturalWidth;canvas.height=asset.image.naturalHeight;
+  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(asset.image,0,0);
+ }else if(shape==='rest'){
+  // A single resting photograph, without any expression compositing.
+  if(original.complete&&original.naturalWidth){
+   canvas.width=original.naturalWidth;canvas.height=original.naturalHeight;
+   ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(original,0,0);
+  }
+ }
+ sequenceLabel.textContent='Speaking: '+shape.toUpperCase();
+}
+function stopSpeakingFaces(){
+ speakingFaces=false;
+ if(speechFaceTimer!==undefined){clearInterval(speechFaceTimer);speechFaceTimer=undefined;}
+ window.speechSynthesis.cancel();
+ speakFaceButton.textContent='▶ Speak with Piper';
+ lastSpokenFace='';
+ showSpokenFace('rest');
+ sequenceLabel.textContent='Ready';
+}
+speakFaceButton.addEventListener('click',()=>{
+ if(speakingFaces){stopSpeakingFaces();return;}
+ if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
+  sequenceLabel.textContent='Speech synthesis unavailable in this browser';return;
+ }
+ if(visemeAssets.size!==visemeOrder.length){sequenceLabel.textContent='Waiting for approved face photos';return;}
+ stopSequence();stopAnimation();stopSpeech();studioActive=false;calibrationPreview=false;
+ canvas.style.display='block';
+ const utterance=new SpeechSynthesisUtterance(spokenPhrase);
+ utterance.lang='en-US';utterance.rate=.88;utterance.pitch=1.05;
+ utterance.onstart=()=>{
+  speakingFaces=true;speakFaceButton.textContent='■ Stop speaking';
+  spokenWord=0;spokenWordStarted=performance.now();lastSpokenFace='';
+  showSpokenFace('mbp');
+  speechFaceTimer=window.setInterval(()=>{
+   if(!speakingFaces)return;
+   const now=performance.now();
+   while(spokenWord<spokenWordCues.length-1&&now-spokenWordStarted>spokenWordCues[spokenWord].duration){
+    spokenWordStarted+=spokenWordCues[spokenWord].duration;spokenWord++;
+   }
+   const word=spokenWordCues[spokenWord];
+   const index=Math.min(word.shapes.length-1,Math.floor(Math.max(0,now-spokenWordStarted)/word.duration*word.shapes.length));
+   showSpokenFace(word.shapes[index]);
+  },65);
+ };
+ utterance.onboundary=(event:SpeechSynthesisEvent)=>{
+  if(!speakingFaces)return;
+  const i=spokenWordCues.findIndex((word,index)=>event.charIndex>=word.start&&(index===spokenWordCues.length-1||event.charIndex<spokenWordCues[index+1].start));
+  if(i>=0&&i>=spokenWord){spokenWord=i;spokenWordStarted=performance.now();}
+ };
+ utterance.onend=stopSpeakingFaces;utterance.onerror=stopSpeakingFaces;
+ window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);
+});
+
 // Bite 04.7: strict sequential five-state audition. Exactly one facial state per frame.
 const sequenceButton=$<HTMLButtonElement>('play-sequence');
 const sequenceLabel=$<HTMLElement>('sequence-state');
@@ -518,6 +590,7 @@ function sequenceTick(now:number){
 }
 sequenceButton.addEventListener('click',()=>{
  if(sequencePlaying){stopSequence();render();return;}
+ if(speakingFaces)stopSpeakingFaces();
  stopAnimation();stopSpeech();auditionPlaying=false;auditionButton.textContent='▶ Play audition';
  ooStatic=false;ooButton.textContent='◉ Test static OO mouth';
  studioActive=false;calibrationPreview=false;
