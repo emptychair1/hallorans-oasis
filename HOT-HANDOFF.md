@@ -285,3 +285,7 @@ User approved revised uploaded mouth calibration (lowerInner x corrected to 0.50
 
 ## Viseme Bite 13
 User's live recording revealed mouth-only artifacts, not full-face pixelation. Bite 13 in Oasis `src/viseme-lab.ts` commits `d7246ec`, `4f98ba8` introduces requestAnimationFrame exponential interpolation (~95ms) for mouth opening, EE/OO horizontal deformation and M/B/P closure; speech shapes now route through interpolator. `viseme-lab.html` label updated `3fe4dfd`. Preserve approved landmarks, original IMG_4604.jpeg, production screen, Bite 12 word timing. No blanket blur. User audition and Cloudflare build not yet verified. Lab: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html
+
+
+## Viseme Bite 14
+User clarified Bite 13 smoothing worked well; the issue was a rectangular dark band visible in AH mouth opening (IMG_4613.jpeg). Do NOT revert smoothing. Current `src/viseme-lab.ts` commit `b103e3c` preserves ~95ms RAF interpolation, corrected landmark defaults and Bite 12 speech timeline, and replaces rectangular dark aperture with a central tapered, arched, feathered mask. HTML Bite 14 label `f41a64b`. The GitHub file fetched immediately before Bite 14 lacked Bite 13 interpolation, so Bite 14 explicitly reinstates it. Do not touch production portrait/main screen. Await Cloudflare build and user visual audition. Lab https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html
