@@ -52,13 +52,27 @@ run.addEventListener('click', async () => {
     stage = 'JavaScript import'; status.textContent = 'Stage 1: loading MediaPipe JavaScript';
     const vision = await import('@mediapipe/tasks-vision');
     stage = 'WASM runtime'; status.textContent = 'Stage 2: loading MediaPipe WASM';
-    const files = await vision.FilesetResolver.forVisionTasks('/mediapipe/wasm');
-    stage = 'model initialization'; status.textContent = 'Stage 3: loading face model';
+    // iOS can report "ModuleFactory not set" if the runtime JS fails to execute.
+    // Preflight exact same-origin files and report the failing URL rather than masking it.
+    const root = new URL('/mediapipe/wasm/', window.location.href);
+    const files = await vision.FilesetResolver.forVisionTasks(root.href);
+    for (const [kind, url] of [['WASM loader', files.wasmLoaderPath], ['WASM binary', files.wasmBinaryPath]] as const) {
+      stage = kind; status.textContent = 'Checking ' + kind + '…';
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(kind + ' HTTP ' + response.status + ': ' + url);
+      if (kind === 'WASM loader' && !(await response.text()).includes('Module')) throw new Error('Unexpected WASM loader response: ' + url);
+    }
+    stage = 'model download'; status.textContent = 'Stage 3: checking face model';
+    const modelResponse = await fetch('/mediapipe/face_landmarker.task', { cache: 'no-store' });
+    if (!modelResponse.ok) throw new Error('Face model HTTP ' + modelResponse.status);
+    const modelBytes = new Uint8Array(await modelResponse.arrayBuffer());
+    if (modelBytes.byteLength < 1000000) throw new Error('Face model incomplete: ' + modelBytes.byteLength + ' bytes');
+    stage = 'model initialization'; status.textContent = 'Stage 4: initializing face model';
     const detector: Detector = await vision.FaceLandmarker.createFromOptions(files, {
-      baseOptions: { modelAssetPath: '/mediapipe/face_landmarker.task', delegate: 'CPU' },
+      baseOptions: { modelAssetBuffer: modelBytes, delegate: 'CPU' },
       runningMode: 'IMAGE', numFaces: 1
     });
-    stage = 'face detection'; status.textContent = 'Stage 4: detecting faces';
+    stage = 'face detection'; status.textContent = 'Stage 5: detecting faces';
     originals.forEach((img,i) => {
       const faces = detector.detect(img).faceLandmarks;
       results[i] = faces[0] ?? null;
