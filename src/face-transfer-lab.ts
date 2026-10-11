@@ -280,7 +280,8 @@ function animate(now:number){
  else if(elapsed<rise+hold){const phase=(elapsed-rise)/Math.max(hold,1);expressionBlend=1-.018*Math.sin(Math.PI*phase)**2;}
  else if(elapsed<rise+hold+fall)expressionBlend=1-ease(Math.min(1,(elapsed-rise-hold)/fall));
  else {nextExpression();frame=requestAnimationFrame(animate);return;}
- if(now-lastAuditionPaint>=85){lastAuditionPaint=now;render();}frame=requestAnimationFrame(animate);
+ // Target 60 FPS for the combined expression + mouth canvas (display permitting).
+ if(now-lastAuditionPaint>=1000/60){lastAuditionPaint=now;render();}frame=requestAnimationFrame(animate);
 }
 playButton.addEventListener('click',()=>{
  if(playing){stopAnimation();return;}
