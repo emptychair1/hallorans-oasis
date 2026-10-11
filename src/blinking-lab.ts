@@ -49,16 +49,18 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
   ctx.fillStyle=g;ctx.fill();
  };
  band(top,movingTop);band(bottom,movingBottom);
- // The moving lids must cover the remaining exposed eye aperture too. Without this fill,
- // only thin lid strips move and the iris/eye-white remains visible, making blinks look unchanged.
+ // Cover the ORIGINAL eye aperture with sampled lid skin as closure increases.
+ // Filling only the converging lid edges creates a degenerate zero-area polygon at 100%.
  if(amount>0){
-  ctx.beginPath();ctx.moveTo(movingTop[0].x,movingTop[0].y);
-  for(const p of movingTop.slice(1))ctx.lineTo(p.x,p.y);
-  for(const p of movingBottom.slice().reverse())ctx.lineTo(p.x,p.y);
+  ctx.beginPath();ctx.moveTo(top[0].x,top[0].y);
+  for(const p of top.slice(1))ctx.lineTo(p.x,p.y);
+  for(const p of bottom.slice().reverse())ctx.lineTo(p.x,p.y);
   ctx.closePath();
-  const aperture=ctx.createLinearGradient(midX,midY-w*.22,midX,midY+w*.22);
+  const aperture=ctx.createLinearGradient(midX,midY-w*.34,midX,midY+w*.28);
   aperture.addColorStop(0,rgb(upperSkin));aperture.addColorStop(1,rgb(lowerSkin));
+  ctx.globalAlpha=amount;
   ctx.fillStyle=aperture;ctx.fill();
+  ctx.globalAlpha=1;
  }
  const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
  if(amount>.08){
