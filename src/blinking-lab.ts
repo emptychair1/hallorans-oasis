@@ -49,6 +49,17 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
   ctx.fillStyle=g;ctx.fill();
  };
  band(top,movingTop);band(bottom,movingBottom);
+ // The moving lids must cover the remaining exposed eye aperture too. Without this fill,
+ // only thin lid strips move and the iris/eye-white remains visible, making blinks look unchanged.
+ if(amount>0){
+  ctx.beginPath();ctx.moveTo(movingTop[0].x,movingTop[0].y);
+  for(const p of movingTop.slice(1))ctx.lineTo(p.x,p.y);
+  for(const p of movingBottom.slice().reverse())ctx.lineTo(p.x,p.y);
+  ctx.closePath();
+  const aperture=ctx.createLinearGradient(midX,midY-w*.22,midX,midY+w*.22);
+  aperture.addColorStop(0,rgb(upperSkin));aperture.addColorStop(1,rgb(lowerSkin));
+  ctx.fillStyle=aperture;ctx.fill();
+ }
  const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
  if(amount>.08){
   ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
