@@ -173,17 +173,29 @@ function paintViseme(destination:Point[],w:number,h:number){
  const align=(p:Point)=>({x:sc.x+(p.x-tc.x)*scale,y:sc.y+(p.y-tc.y)*scale});
  const srcBox=(indices:number[],points:Point[])=>{const xs=indices.map(i=>points[i].x),ys=indices.map(i=>points[i].y);return {left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)};};
  const refBox=srcBox(lipIndices,target);
- // Keep all expression geometry outside the lips. Apply only viseme-vs-rest mouth deltas.
- const mouth=lipIndices.map(i=>{const aligned=align(target[i]);return {x:destination[i].x+(aligned.x-source[i].x)*w,y:destination[i].y+(aligned.y-source[i].y)*h};});
+ // Screenshot-approved mouth-only calibration: 100% geometry and 100% reference
+ // texture. Do not inherit geometry/texture percentages from the 17 expressions.
+ const mouthGeometryStrength=1;
+ const mouthTextureStrength=1;
+ // Measure mouth size against the locked ORIGINAL, not the changing expression.
+ // Expression movement is applied to the center below, leaving calibrated size stable.
+ const mouth=lipIndices.map(i=>{const aligned=align(target[i]);return {
+  x:(source[i].x+(aligned.x-source[i].x)*mouthGeometryStrength)*w,
+  y:(source[i].y+(aligned.y-source[i].y)*mouthGeometryStrength)*h
+ };});
  const x0=Math.min(...mouth.map(p=>p.x)),x1=Math.max(...mouth.map(p=>p.x));
  const y0=Math.min(...mouth.map(p=>p.y)),y1=Math.max(...mouth.map(p=>p.y));
  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
  const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
  const mouthScale=.85;
- const cx=(destination[61].x+destination[291].x)/2+tune.x;
- const originalLipY=lipIndices.reduce((sum,i)=>sum+source[i].y*h,0)/lipIndices.length;
- const activeLipY=lipIndices.reduce((sum,i)=>sum+destination[i].y,0)/lipIndices.length;
- const cy=source[0].y*h-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y+(activeLipY-originalLipY);
+ // Restore the exact baseline positioning used when the five mouth screenshots
+ // were approved. Move the whole calibrated mouth with the live expression.
+ const originalCenterX=(source[61].x+source[291].x)*w/2;
+ const liveCenterX=(destination[61].x+destination[291].x)/2;
+ const originalCenterY=lipIndices.reduce((sum,i)=>sum+source[i].y*h,0)/lipIndices.length;
+ const liveCenterY=lipIndices.reduce((sum,i)=>sum+destination[i].y,0)/lipIndices.length;
+ const cx=originalCenterX+tune.x+(liveCenterX-originalCenterX);
+ const cy=source[0].y*h-(target[0].y-(refBox.top+refBox.bottom)/2)*bh/rh-10+tune.y+(liveCenterY-originalCenterY);
  visemeCanvas.width=w;visemeCanvas.height=h;
  visemeCtx.save();
  visemeCtx.translate(cx,cy);
@@ -198,7 +210,7 @@ function paintViseme(destination:Point[],w:number,h:number){
  mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
  visemeCtx.fillStyle=mask;visemeCtx.beginPath();visemeCtx.arc(0,0,1,0,Math.PI*2);visemeCtx.fill();
  visemeCtx.restore();visemeCtx.globalCompositeOperation='source-over';
- ctx.save();ctx.globalAlpha=(calibrationPreview?1:speechAmount)*tune.blend/100;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
+ ctx.save();ctx.globalAlpha=(calibrationPreview?1:speechAmount)*tune.blend/100*mouthTextureStrength;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
 }
 function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test mapped visemes';render();}
 function animateSpeech(now:number){
