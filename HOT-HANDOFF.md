@@ -1,3 +1,8 @@
+## 2026-10-11 · BITE 04 PORTRAIT DISPLAY REPAIR 2
+- Josh confirmed previous TS correction did not restore image. Switched Mouth Lab from SVG <image> to an independent absolutely positioned HTML <img id="portrait"> under SVG overlay. JS synchronizes zoom/crop to SVG viewBox using stage width and original image dimensions. Commits b79cc12 (HTML) and 4510a54 (TS).
+- Hypothesis: SVG image rendering issue on mobile; this is a structural fix, NOT yet browser verified. No changes to main Oasis or voice. Keep exact portrait IMG_4604.jpeg and 8 canonical + 6 provisional markers.
+- If still broken: request screenshot/console/deployment status rather than assert cause. No live deploy verification available in current tools.
+
 ## 2026-10-11 · BITE 04 BUILD REPAIR
 - Josh reported the image missing on Bite 04 page. Inspection identified a TypeScript mismatch: Key union expanded to 14 landmarks but defaults Record<Key,Point> literal initially only had the original 8, with 6 assigned afterward. This can break Vite TypeScript build.
 - Fixed declaration with explicit Record<Key,Point> assertion before assigning new inner defaults, commit 34ea73c. Portrait IMG_4604.jpeg unchanged. This is a probable build fix, not a verified live fix; Cloudflare deployment and browser image still need confirmation.
