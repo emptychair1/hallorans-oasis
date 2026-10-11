@@ -16,10 +16,7 @@ const eyeDefs=[
 ];
 let animationId=0;
 function point(id:number){const p=landmarks[id];return {x:p.x*canvas.width,y:p.y*canvas.height};}
-function sampleSkin(x:number,y:number):string{
- const sx=Math.max(0,Math.min(canvas.width-1,Math.round(x))),sy=Math.max(0,Math.min(canvas.height-1,Math.round(y)));
- const d=ctx.getImageData(sx,sy,1,1).data;return `rgb(${d[0]},${d[1]},${d[2]})`;
-}
+
 function curve(points:{x:number;y:number}[],t:number){const a=points[0],b=points[1],c=points[2];return {x:(1-t)*(1-t)*a.x+2*(1-t)*t*b.x+t*t*c.x,y:(1-t)*(1-t)*a.y+2*(1-t)*t*b.y+t*t*c.y};}
 function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
  const a=point(def.outer),b=point(def.inner),u1=point(def.upper[0]),u2=point(def.upper[1]),l1=point(def.lower[0]),l2=point(def.lower[1]);
@@ -42,7 +39,7 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
  const rgb=(c:number[])=>`rgb(${c[0]},${c[1]},${c[2]})`;
  ctx.save();
  // Upper lid skin advances downward; lower lid skin advances upward. They overlap at closure.
- const band=(outer:{x:number;y:number}[],inner:{x:number;y:number}[],upperSide:boolean)=>{
+ const band=(outer:{x:number;y:number}[],inner:{x:number;y:number}[])=>{
   ctx.beginPath();ctx.moveTo(outer[0].x,outer[0].y);
   for(const p of outer.slice(1))ctx.lineTo(p.x,p.y);
   for(const p of inner.slice().reverse())ctx.lineTo(p.x,p.y);
@@ -51,7 +48,7 @@ function drawEye(def:typeof eyeDefs[number],amount:number,lash:number){
   g.addColorStop(0,rgb(upperSkin));g.addColorStop(1,rgb(lowerSkin));
   ctx.fillStyle=g;ctx.fill();
  };
- band(top,movingTop,true);band(bottom,movingBottom,false);
+ band(top,movingTop);band(bottom,movingBottom);
  const seam=movingTop.map((p,i)=>({x:p.x,y:(p.y+movingBottom[i].y)/2}));
  if(amount>.08){
   ctx.beginPath();ctx.moveTo(seam[0].x,seam[0].y);for(const p of seam.slice(1))ctx.lineTo(p.x,p.y);
