@@ -1,3 +1,8 @@
+## 2026-10-11 · CONFIRMED BUILD FAILURE FIX
+- Josh supplied Cloudflare build log: npm run build -> tsc && vite build failed with TS18047 patchCtx possibly null at lines 50,57,60,61,63,64,66,67 of src/mouth-lab.ts. This explains why new builds did not deploy; prior SVG image theory was not established.
+- Commit 2cf9724 removes ALL obsolete Bite 03 canvas warp and dark aperture code, unused patchCtx and opening slider handler. Bite 04 is calibration-only with HTML portrait + 14 draggable markers. Export JSON version 2.
+- Await fresh Cloudflare build log / user confirmation. Do not claim success until npm run build succeeds and deployed page renders.
+
 ## 2026-10-11 · BITE 04 PORTRAIT DISPLAY REPAIR 2
 - Josh confirmed previous TS correction did not restore image. Switched Mouth Lab from SVG <image> to an independent absolutely positioned HTML <img id="portrait"> under SVG overlay. JS synchronizes zoom/crop to SVG viewBox using stage width and original image dimensions. Commits b79cc12 (HTML) and 4510a54 (TS).
 - Hypothesis: SVG image rendering issue on mobile; this is a structural fix, NOT yet browser verified. No changes to main Oasis or voice. Keep exact portrait IMG_4604.jpeg and 8 canonical + 6 provisional markers.
