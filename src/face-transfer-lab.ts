@@ -511,10 +511,9 @@ function renderSequenceState(index:number){
 function sequenceTick(now:number){
  if(!sequencePlaying)return;
  const elapsed=now-sequenceStart;
- const stateDuration=150;
- const index=Math.min(4,Math.floor(elapsed/stateDuration));
+ const stateDuration=300;
+ const index=Math.floor(elapsed/stateDuration)%sequenceStates.length;
  renderSequenceState(index);
- if(elapsed>=stateDuration*5){stopSequence();return;}
  sequenceFrame=requestAnimationFrame(sequenceTick);
 }
 sequenceButton.addEventListener('click',()=>{
