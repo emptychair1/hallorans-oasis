@@ -205,7 +205,7 @@ if(new URLSearchParams(location.search).has('live')){
   if(d?.type==='piper-viseme'){
    const shape=(event.data as {shape?:string}).shape||'rest';
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
-   if(shape===last || (shape!=='rest' && performance.now()-changedAt<90))return;
+   if(shape===last)return;
    changedAt=performance.now();last=shape;
    if(shape==='fv')facePhoto.src=speechPhotos.get('fv')?.src||portraitUrl;
    else setSpeechShape(shape as Viseme);
