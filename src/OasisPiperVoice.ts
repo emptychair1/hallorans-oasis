@@ -23,6 +23,10 @@ export class OasisPiperVoice {
   private speechFrame = 0;
   private speechLevel = 0;
   private readonly messages: VoiceMessage[] = [];
+  public lipOffset = 0;
+  public lipHold = 90;
+  private lastLip = '';
+  private lastLipAt = 0;
 
   constructor(
     private readonly onSpeechLevel: (level: number) => void = () => {},
@@ -247,9 +251,12 @@ export class OasisPiperVoice {
         const low=slice(4,14),mid=slice(14,40),high=slice(40,90),hiss=slice(90,160);
         const shape=rms<.012?'rest':hiss>high*1.5?'fv':high>low*1.3?'ee':low>mid*1.4?'oo':mid>low*.85?'ah':'mbp';
         if(alignment){
-          const cue=alignment.getFrame(Math.max(0,(this.context?.currentTime||0)-speechStartedAt)).visemeId;
+          const cue=alignment.getFrame(Math.max(0,(this.context?.currentTime||0)-speechStartedAt+this.lipOffset)).visemeId;
           const mapped=cue==='SILENT'?'rest':cue==='CLOSED'?'mbp':cue==='FRICATIVE'?'fv':cue==='ROUND'?'oo':cue==='OPEN'?'ah':'ee';
-          this.onViseme(mapped);
+          const now=performance.now();
+          if(mapped!==this.lastLip&&(mapped==='rest'||now-this.lastLipAt>=this.lipHold)){
+            this.lastLip=mapped;this.lastLipAt=now;this.onViseme(mapped);
+          }
         }else this.onViseme(shape);
         this.onSpeechTiming({type:'frame',elapsed:Math.max(0,(this.context?.currentTime||0)-speechStartedAt),level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
