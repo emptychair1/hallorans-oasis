@@ -14,7 +14,7 @@ let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
 let zoom=2,active:Key|null=null,w=1000,h=1000;
 let showMarkers=false,opening=0;
-type Viseme='rest'|'ah'|'ee'|'oo';
+type Viseme='rest'|'ah'|'ee'|'oo'|'mbp';
 let viseme:Viseme='rest';
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
@@ -44,7 +44,7 @@ function draw(){
   warpCtx.clearRect(0,0,w,h);
   warpCtx.drawImage(photo,0,0,w,h);
   warpCtx.setTransform(1,0,0,1,0,0);
-  if(opening>0){
+  if(opening>0||viseme==='mbp'){
    const frame=warpCtx.getImageData(0,0,size,size);
    const src=new Uint8ClampedArray(frame.data);
    const left=points.leftCorner.x,right=points.rightCorner.x;
@@ -123,7 +123,7 @@ svg.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();poin
 const stop=()=>{active=null};svg.addEventListener('pointerup',stop);svg.addEventListener('pointercancel',stop);svg.addEventListener('lostpointercapture',stop);
 const slider=document.querySelector<HTMLInputElement>('#opening')!;
 const choices=document.querySelectorAll<HTMLButtonElement>('[data-viseme]');
-const amounts:Record<Viseme,number>={rest:0,ah:.78,ee:.22,oo:.46};
+const amounts:Record<Viseme,number>={rest:0,ah:.78,ee:.22,oo:.46,mbp:0};
 choices.forEach(button=>button.addEventListener('click',()=>{
  viseme=button.dataset.viseme as Viseme;
  opening=amounts[viseme];slider.value=String(Math.round(opening*100));
