@@ -17,6 +17,8 @@ const closed=new Image();closed.decoding='async';
 const landmarks=(neutralMap as {images:{role:string;landmarks:P[]}[]}).images.find(i=>i.role==='locked-original')!.landmarks;
 const eyeDefs=[{outer:33,inner:133,top:159,bottom:145},{outer:263,inner:362,top:386,bottom:374}];
 let animationId=0,run=0,closedReady=false;
+const mask=document.createElement('canvas');mask.width=canvas.width;mask.height=canvas.height;
+const mc=mask.getContext('2d')!;
 const point=(id:number)=>({x:landmarks[id].x*canvas.width,y:landmarks[id].y*canvas.height});
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 function eyeBounds(def:typeof eyeDefs[number]){
@@ -38,16 +40,14 @@ function renderEye(def:typeof eyeDefs[number],amount:number){
  // Soft elliptical mask confines every pixel change to the eyelid region.
  // Expand with closure so lashes and crease are present without a hard cutout.
  const feather=Math.max(5,rx*.22);
- const mask=document.createElement('canvas');mask.width=canvas.width;mask.height=canvas.height;
- const mc=mask.getContext('2d')!;
+ mc.setTransform(1,0,0,1,0,0);mc.clearRect(0,0,mask.width,mask.height);
  mc.drawImage(closed,destX,destY,destW,destH);
  mc.globalCompositeOperation='destination-in';
- const g=mc.createRadialGradient(cx,cy,Math.max(1,rx-feather)*.45,cx,cy,rx);
+ mc.save();mc.translate(cx,cy);mc.scale(1,ry/rx);
+ const g=mc.createRadialGradient(0,0,Math.max(1,rx-feather),0,0,rx);
  g.addColorStop(0,'rgba(0,0,0,1)');
- g.addColorStop(.65,'rgba(0,0,0,1)');
  g.addColorStop(1,'rgba(0,0,0,0)');
- mc.save();mc.translate(cx,cy);mc.scale(1,ry/rx);mc.translate(-cx,-cy);
- mc.fillStyle=g;mc.fillRect(cx-rx-2,cy-rx-2,rx*2+4,rx*2+4);mc.restore();
+ mc.fillStyle=g;mc.beginPath();mc.arc(0,0,rx,0,Math.PI*2);mc.fill();mc.restore();
  mc.globalCompositeOperation='source-over';
  ctx.globalAlpha=clamp(amount);
  ctx.drawImage(mask,0,0);
