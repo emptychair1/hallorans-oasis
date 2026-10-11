@@ -214,10 +214,11 @@ export class OasisPiperVoice {
       while (this.messages.length > 8) this.messages.shift();
 
       // A separate model decision interprets the dialogue, never the TTS string.
-      const expressionDecision=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
-        .then(async response=>response.ok?(await response.json() as {expression?:string}).expression||'neutral':'neutral')
-        .catch(()=>'neutral');
-      void expressionDecision.then(expression=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression}}));});
+      type ExpressionCue={at:number;expression:string};
+      const expressionDecision:Promise<ExpressionCue[]>=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
+        .then(async response=>{if(!response.ok)return [{at:0,expression:'neutral'}];const data=await response.json() as {expression?:string;cues?:ExpressionCue[]};return Array.isArray(data.cues)&&data.cues.length?data.cues:[{at:0,expression:data.expression||'neutral'}];})
+        .catch(()=>([{at:0,expression:'neutral'}]));
+      void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:cues.map(c=>c.expression).join(' → ')}}));});
       const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
       this.setState('speaking', 'Piper is speaking…');
@@ -249,6 +250,9 @@ export class OasisPiperVoice {
       const samples = new Float32Array(speechAnalyser.fftSize);
       const spectrum = new Uint8Array(speechAnalyser.frequencyBinCount);
       let speechStartedAt=0;
+      let expressionCues:ExpressionCue[]=[];
+      let nextExpressionCue=0;
+      void expressionDecision.then(cues=>{if(!this.wanted||generation!==this.generation||this.activeSource!==source)return;expressionCues=cues;nextExpressionCue=0;});
       const animateSpeech = () => {
         if (this.activeSource !== source || !this.wanted || generation !== this.generation) return;
         speechAnalyser.getFloatTimeDomainData(samples);
@@ -270,7 +274,9 @@ export class OasisPiperVoice {
             this.lastLip=mapped;this.lastLipAt=now;this.onViseme(mapped);
           }
         }else this.onViseme(shape);
-        this.onSpeechTiming({type:'frame',elapsed:Math.max(0,(this.context?.currentTime||0)-speechStartedAt),level:this.speechLevel});
+        const elapsed=Math.max(0,(this.context?.currentTime||0)-speechStartedAt);
+        while(nextExpressionCue<expressionCues.length&&elapsed>=expressionCues[nextExpressionCue].at*audioBuffer.duration){this.onExpression(expressionCues[nextExpressionCue].expression);nextExpressionCue++;}
+        this.onSpeechTiming({type:'frame',elapsed,level:this.speechLevel});
         this.speechFrame = requestAnimationFrame(animateSpeech);
       };
       source.onended = () => {
@@ -278,7 +284,7 @@ export class OasisPiperVoice {
           this.activeSource = null;
           this.onSpeechTiming({type:'stop'});
           this.resetSpeechAnimation();
-          if(this.wanted && generation===this.generation){void expressionDecision.then(expression=>{if(!this.wanted||generation!==this.generation||this.activeSource)return;this.onExpression(expression);window.setTimeout(()=>{if(this.wanted&&generation===this.generation&&!this.activeSource)this.onExpression('neutral');},1800);});}
+          // Hold the final emotional beat through the listening pause; the next turn resets it.
         }
         if (this.wanted && generation === this.generation) {
           this.busy = false;
