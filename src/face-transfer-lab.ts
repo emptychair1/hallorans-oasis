@@ -54,7 +54,7 @@ function paintContinuousMouth(reference:Point[],destination:Point[],strength:num
  mouthCtx.globalCompositeOperation='destination-in';
  mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
  const mask=mouthCtx.createRadialGradient(0,0,.70,0,0,1);
- mask.addColorStop(Math.min(.94,tune.feather/100),'#000');mask.addColorStop(1,'transparent');
+ mask.addColorStop(.70,'#000');mask.addColorStop(1,'transparent');
  mouthCtx.fillStyle=mask;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
  mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
  ctx.save();ctx.globalAlpha=Math.min(1,strength);ctx.drawImage(mouthCanvas,0,0);ctx.restore();
