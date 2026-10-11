@@ -1,4 +1,3 @@
-import { warpCalibratedMouth, VISEME_AMOUNTS, shapeValue, type MouthKey, type MouthPoint } from './shared-viseme-engine';
 import presetData from '../data/expression-presets.json';
 import originalUrl from '../IMG_4604.jpeg?url';
 import { FaceLandmarker } from '@mediapipe/tasks-vision';
@@ -100,54 +99,80 @@ function paintFeatheredForeheadTexture(reference:Point[],destination:Point[],alp
 // Restrict repairs to expressions that failed visual QA. Approved expressions stay untouched.
 const mouthRepairs=new Set(['full-smile.json','surprised.json','excited.json','smile.json','horny.json']);
 const foreheadRepairs=new Set(['full-laugh.json','flush.json','thinking.json','horny.json']);
-// Bite 03.4: isolated visual speech test. At rest, the approved renderer is unchanged.
-const speechButton=document.getElementById('play-speech') as HTMLButtonElement;
-const speechLabel=document.getElementById('speech-shape') as HTMLElement;
-// Reuse the calibrated mouth model and displacement rules from src/viseme-lab.ts.
-// Never modify its saved calibration, source lab, or approved expression maps.
-type SpeechViseme='rest'|'ah'|'ee'|'oo'|'mbp';
-// Speech is driven by the exact same renderer as src/viseme-lab.ts.
-const visemes:SpeechViseme[]=['mbp','ah','ee','oo'];
-const calibratedMouth={"leftCorner":{"x":0.39844241801513464,"y":0.7019215105734092},"cupidLeft":{"x":0.4549139150630831,"y":0.6668338004823194},"upperCenter":{"x":0.48132795312831317,"y":0.680684215122528},"cupidRight":{"x":0.5101101966709075,"y":0.6668337480015316},"rightCorner":{"x":0.5924492626497562,"y":0.7009981635922722},"lowerRight":{"x":0.5505510868916985,"y":0.7499362883235705},"lowerCenter":{"x":0.4877037714860316,"y":0.7674801433691154},"lowerLeft":{"x":0.4184806894912267,"y":0.7407026610698355},"upperInner":{"x":0.47404131836765795,"y":0.7019215105734092},"lowerInner":{"x":0.5031879091788591,"y":0.7093083913840821},"upperInnerLeft":{"x":0.4461699429965808,"y":0.6995207244531921},"upperInnerRight":{"x":0.5226796597520409,"y":0.6967506310289929},"lowerInnerLeft":{"x":0.48588213868015795,"y":0.7157719252136178},"lowerInnerRight":{"x":0.5204936796775604,"y":0.7120784848082814}} as Record<MouthKey,MouthPoint>;
-const calibrationKey='piper-viseme-lab-12-corrected-calibration';
-let mouthCalibration:Record<MouthKey,MouthPoint>=calibratedMouth;
-try{
- const stored=JSON.parse(localStorage.getItem(calibrationKey)||'null');
- if(stored&&(['leftCorner','rightCorner','upperInner','lowerInner','lowerCenter'] as MouthKey[]).every(k=>Number.isFinite(stored[k]?.x)&&Number.isFinite(stored[k]?.y)))mouthCalibration=stored;
-}catch{/* preserve checked-in calibration */}
-let speechPlaying=false,speechFrame=0,speechStart=0;
-let speechShape:SpeechViseme='rest';
-let speechOpening=0,speechHorizontal=0,speechClosure=0,speechLast=0;
-function applySpeech(destination:Point[],w:number,h:number,source:Point[]){
- if(!speechPlaying)return;
- // Align Josh's calibration to the source and destination facial landmarks.
- // Use the same anatomical anchor indices for both, never a bounding box
- // inferred from arbitrary lip-triangle extrema.
- const sourceLeft=source[61],sourceRight=source[291],sourceUpper=source[13],sourceLower=source[17];
- const destLeft=destination[61],destRight=destination[291],destUpper=destination[13],destLower=destination[17];
- const sx=(destRight.x-destLeft.x)/Math.max(1,sourceRight.x-sourceLeft.x);
- const sy=(destLower.y-destUpper.y)/Math.max(1,sourceLower.y-sourceUpper.y);
- const mapped={} as Record<MouthKey,MouthPoint>;
- for(const key of ['leftCorner','rightCorner','upperInner','lowerInner','lowerCenter'] as MouthKey[]){
-  const p=mouthCalibration[key];
-  mapped[key]={x:(destLeft.x+(p.x*w-sourceLeft.x)*sx)/w,y:(destUpper.y+(p.y*h-sourceUpper.y)*sy)/h};
- }
- warpCalibratedMouth(ctx,w,h,w,h,mapped,speechOpening,speechHorizontal,speechClosure);
+// Bite 04.0: viseme reference photos and their scanned landmarks. Speech only paints the mouth.
+const visemeMaps = import.meta.glob('../assets/visemes/*.json', { eager:true, import:'default' }) as Record<string,FaceMap>;
+const visemePhotos = import.meta.glob('../assets/visemes/*.{png,jpg,jpeg,webp}', { eager:true, query:'?url', import:'default' }) as Record<string,string>;
+type SpeechViseme = 'oo'|'mbp'|'ah'|'ee'|'fv';
+const visemeOrder:SpeechViseme[]=['oo','mbp','ah','ee','fv'];
+const visemeAssets = new Map<SpeechViseme,{map:FaceMap;image:HTMLImageElement}>();
+for(const name of visemeOrder){
+ const map=Object.entries(visemeMaps).find(([p])=>p.endsWith('/'+name+'.json'))?.[1];
+ const filename=map?.images.find(i=>i.role==='expression-reference')?.filename;
+ const url=Object.entries(visemePhotos).find(([p])=>p.endsWith('/'+filename))?.[1];
+ if(!map||!url||map.images.some(i=>i.landmarks?.length!==478))continue;
+ const image=new Image();image.src=url;image.onload=()=>{if(speechPlaying)render();};
+ visemeAssets.set(name,{map,image});
 }
-function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechOpening=0;speechHorizontal=0;speechClosure=0;speechLast=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test calibrated visemes';render();}
+const speechButton=$<HTMLButtonElement>('play-speech'),speechLabel=$<HTMLElement>('speech-shape');
+let speechPlaying=false,speechFrame=0,speechStart=0,speechLast=0,speechAmount=0;
+let speechShape:SpeechViseme|'rest'='rest';
+const visemeCanvas=document.createElement('canvas'),visemeCtx=visemeCanvas.getContext('2d')!;
+const smooth=(x:number)=>{const q=Math.max(0,Math.min(1,x));return q*q*(3-2*q);};
+function paintViseme(destination:Point[],w:number,h:number){
+ if(!speechPlaying||speechShape==='rest'||speechAmount<.002)return;
+ const asset=visemeAssets.get(speechShape);if(!asset||!asset.image.complete||!asset.image.naturalWidth)return;
+ const source=asset.map.images.find(i=>i.role==='locked-original')?.landmarks;
+ const target=asset.map.images.find(i=>i.role==='expression-reference')?.landmarks;
+ if(!source||!target)return;
+ // Align full reference face using eye and nose anchors, never by stretching the portrait.
+ const anchors=[33,263,1,168];
+ const avg=(points:Point[])=>anchors.reduce((p,i)=>({x:p.x+points[i].x/anchors.length,y:p.y+points[i].y/anchors.length}),{x:0,y:0});
+ const sc=avg(source),tc=avg(target);
+ const distance=(p:Point[])=>Math.hypot(p[263].x-p[33].x,p[263].y-p[33].y);
+ const scale=distance(source)/Math.max(.001,distance(target));
+ const align=(p:Point)=>({x:sc.x+(p.x-tc.x)*scale,y:sc.y+(p.y-tc.y)*scale});
+ const srcBox=(indices:number[],points:Point[])=>{const xs=indices.map(i=>points[i].x),ys=indices.map(i=>points[i].y);return {left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)};};
+ const refBox=srcBox(lipIndices,target);
+ // Keep all expression geometry outside the lips. Apply only viseme-vs-rest mouth deltas.
+ const mouth=lipIndices.map(i=>{const aligned=align(target[i]);return {x:destination[i].x+(aligned.x-source[i].x)*w,y:destination[i].y+(aligned.y-source[i].y)*h};});
+ const x0=Math.min(...mouth.map(p=>p.x)),x1=Math.max(...mouth.map(p=>p.x));
+ const y0=Math.min(...mouth.map(p=>p.y)),y1=Math.max(...mouth.map(p=>p.y));
+ const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);
+ const rw=Math.max(.001,refBox.right-refBox.left),rh=Math.max(.001,refBox.bottom-refBox.top);
+ const cx=(x0+x1)/2,cy=(y0+y1)/2;
+ visemeCanvas.width=w;visemeCanvas.height=h;
+ visemeCtx.save();
+ visemeCtx.translate(cx,cy);
+ visemeCtx.scale(bw/(rw*asset.image.naturalWidth),bh/(rh*asset.image.naturalHeight));
+ visemeCtx.translate(-(refBox.left+refBox.right)*asset.image.naturalWidth/2,-(refBox.top+refBox.bottom)*asset.image.naturalHeight/2);
+ visemeCtx.drawImage(asset.image,0,0);visemeCtx.restore();
+ // Soft feather restricts reference pixels to lips and immediate mouth contour.
+ visemeCtx.globalCompositeOperation='destination-in';
+ visemeCtx.save();visemeCtx.translate(cx,cy);visemeCtx.scale(Math.max(2,bw*.66),Math.max(2,bh*.94));
+ const mask=visemeCtx.createRadialGradient(0,0,.57,0,0,1);
+ mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
+ visemeCtx.fillStyle=mask;visemeCtx.beginPath();visemeCtx.arc(0,0,1,0,Math.PI*2);visemeCtx.fill();
+ visemeCtx.restore();visemeCtx.globalCompositeOperation='source-over';
+ ctx.save();ctx.globalAlpha=speechAmount;ctx.drawImage(visemeCanvas,0,0);ctx.restore();
+}
+function stopSpeech(){speechPlaying=false;cancelAnimationFrame(speechFrame);speechAmount=0;speechShape='rest';speechLabel.textContent='Rest';speechButton.textContent='▶ Test mapped visemes';render();}
 function animateSpeech(now:number){
  if(!speechPlaying)return;
- const elapsed=now-speechStart,period=650,index=Math.floor(elapsed/period)%visemes.length;
- speechShape=visemes[index];
+ const period=850,elapsed=now-speechStart,index=Math.floor(elapsed/period)%visemeOrder.length;
+ speechShape=visemeOrder[index];
+ const phase=(elapsed%period)/period;
+ const goal=smooth(Math.min(1,phase/.23))*smooth(Math.min(1,(1-phase)/.23));
  const dt=speechLast?Math.min(64,now-speechLast):16;speechLast=now;
- const alpha=1-Math.exp(-dt/95);
- speechOpening+=(VISEME_AMOUNTS[speechShape]-speechOpening)*alpha;
- speechHorizontal+=(shapeValue(speechShape)-speechHorizontal)*alpha;
- speechClosure+=((speechShape==='mbp'?1:0)-speechClosure)*alpha;
+ speechAmount+=(goal-speechAmount)*(1-Math.exp(-dt/65));
  speechLabel.textContent=speechShape.toUpperCase();render();
  speechFrame=requestAnimationFrame(animateSpeech);
 }
-speechButton.addEventListener('click',()=>{if(speechPlaying){stopSpeech();return;}stopAnimation();speechPlaying=true;speechStart=performance.now();speechLast=0;speechButton.textContent='■ Stop viseme test';speechFrame=requestAnimationFrame(animateSpeech);});
+speechButton.addEventListener('click',()=>{
+ if(speechPlaying){stopSpeech();return;}
+ if(visemeAssets.size!==visemeOrder.length){status.textContent='Missing viseme JSON or matching reference photos. Found '+visemeAssets.size+'/5.';return;}
+ stopAnimation();speechPlaying=true;speechStart=performance.now();speechLast=0;
+ speechButton.textContent='■ Stop viseme test';speechFrame=requestAnimationFrame(animateSpeech);
+});
 let expressionBlend=1;
 function render(){if(!original.complete||!original.naturalWidth)return;const m=maps[select.value];if(!m)return;const src=m.images.find(i=>i.role==='locked-original')?.landmarks, target=m.images.find(i=>i.role==='expression-reference')?.landmarks;if(!src||!target)return;
 const w=original.naturalWidth,h=original.naturalHeight;canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
@@ -178,7 +203,7 @@ if(g){
 // Do not transfer occluding hand pixels into the portrait.
 if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));if(foreheadRepairs.has(select.value.split('/').pop()||''))paintFeatheredForeheadTexture(reference,destination,t*.55,w,h);else paint(ref,reference,destination,t*.55,select.value.endsWith('/smile.json')?0.7:0);if(select.value.endsWith('/full-laugh.json')||mouthRepairs.has(select.value.split('/').pop()||''))paintContinuousMouth(reference,destination,expressionBlend,w,h);else paintMouth(reference,destination,expressionBlend,w,h);}
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
-applySpeech(destination,w,h,source);
+paintViseme(destination,w,h);
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
 select.addEventListener('change',()=>{stopSpeech();stopAnimation();applyPreset();loadReference();});
