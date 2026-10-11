@@ -290,6 +290,51 @@ playButton.addEventListener('click',()=>{
  nextExpression();frame=requestAnimationFrame(animate);
 });
 
+
+ // Static OO-only experiment. Never deform the source photograph or touch saved presets.
+ // Align by interocular distance, then transplant a single continuous photographic
+ // lower-face region with an opaque center that fully covers the original lips.
+ const ooButton=$<HTMLButtonElement>('test-oo-static');
+ let ooStatic=false;
+ function renderStaticOO(){
+  const asset=visemeAssets.get('oo');
+  if(!asset?.image.complete||!asset.image.naturalWidth||!original.complete||!original.naturalWidth)return;
+  const source=asset.map.images.find(i=>i.role==='locked-original')?.landmarks;
+  const target=asset.map.images.find(i=>i.role==='expression-reference')?.landmarks;
+  if(!source||!target)return;
+  const w=original.naturalWidth,h=original.naturalHeight;
+  canvas.width=w;canvas.height=h;ctx.drawImage(original,0,0);
+  const px=(p:Point)=>({x:p.x*w,y:p.y*h});
+  const eyeDist=(p:Point[])=>Math.hypot(p[263].x-p[33].x,p[263].y-p[33].y);
+  const scale=eyeDist(source)/Math.max(.001,eyeDist(target));
+  const srcMouth=px(source[0]),refMouth=px(target[0]);
+  // Uniform scaling only: retain the real photographic mouth anatomy.
+  const centerX=srcMouth.x+approvedVisemeTuning.oo.x;
+  const centerY=srcMouth.y+approvedVisemeTuning.oo.y;
+  const mouthWidth=Math.hypot(source[291].x-source[61].x,source[291].y-source[61].y)*w;
+  const lipY=lipIndices.map(i=>source[i].y*h);
+  const lipHeight=Math.max(...lipY)-Math.min(...lipY);
+  const rx=Math.max(mouthWidth*.90,lipHeight*1.3),ry=Math.max(lipHeight*2.2,mouthWidth*.53);
+  const layer=document.createElement('canvas');layer.width=w;layer.height=h;
+  const c=layer.getContext('2d')!;
+  c.save();c.translate(centerX,centerY);c.scale(scale,scale);
+  c.translate(-refMouth.x,-refMouth.y);c.drawImage(asset.image,0,0);c.restore();
+  // Broad soft mask: fully replaces both original lips and their shadows.
+  c.globalCompositeOperation='destination-in';
+  c.save();c.translate(centerX,centerY);c.scale(rx,ry);
+  const matte=c.createRadialGradient(0,0,.63,0,0,1);
+  matte.addColorStop(0,'rgba(0,0,0,1)');matte.addColorStop(.63,'rgba(0,0,0,1)');
+  matte.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=matte;c.beginPath();c.arc(0,0,1,0,Math.PI*2);c.fill();c.restore();
+  ctx.drawImage(layer,0,0);
+  status.textContent='Static OO experiment: uniform photo alignment, original mouth covered. No mesh deformation.';
+ }
+ ooButton.addEventListener('click',()=>{
+  ooStatic=!ooStatic;
+  if(ooStatic){stopAnimation();stopSpeech();ooButton.textContent='↩ Return to audition';renderStaticOO();}
+  else {ooButton.textContent='◉ Test static OO mouth';render();}
+ });
+
  // Bite 04.5: independent clocks for approved expressions and calibrated visemes.
  const auditionButton=$<HTMLButtonElement>('play-audition');
  let auditionPlaying=false;
