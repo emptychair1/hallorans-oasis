@@ -18,12 +18,19 @@ const patch=document.createElement('canvas');const patchCtx=patch.getContext('2d
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
-const photo=new Image();photo.src=portraitUrl;
+const photo=document.querySelector<HTMLImageElement>('#portrait')!;
+photo.src=portraitUrl;
 function draw(){
  const side=Math.min(w,h)/zoom, cx=.5*w,cy=.707*h;
  svg.setAttribute('viewBox',`${cx-side/2} ${cy-side/2} ${side} ${side}`);
  svg.replaceChildren();
- const image=element('image');image.setAttribute('href',portraitUrl);image.setAttribute('width',String(w));image.setAttribute('height',String(h));svg.append(image);
+ // Keep the portrait in HTML instead of an SVG <image>, which can fail on mobile.
+ const stage=svg.parentElement!;
+ const pixels=stage.clientWidth/side;
+ photo.style.width=(w*pixels)+'px';
+ photo.style.height=(h*pixels)+'px';
+ photo.style.left=(-(cx-side/2)*pixels)+'px';
+ photo.style.top=(-(cy-side/2)*pixels)+'px';
  // Bite 03: experimental pixel-warping of the lower lip and nearby skin.
  // This does not synthesize teeth or photorealistic inner-mouth imagery.
  if(false && opening>0){
