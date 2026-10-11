@@ -265,3 +265,7 @@ Josh approved Bite 06 visually as natural; do not modify its pixel-warp algorith
 
 ## Mouth Lab Bites 07–08
 User approves 50–70 percent. At full opening, screenshot showed horizontal dark band and vertical striping. Bite 07 b70033c softened and curved high-opening shadow. Bite 08 bf5e951 interpolated upper-mouth texture above 70 percent, preserving all geometry and lower range. HTML label updated to Bite 08 in 6999096. User and Cloudflare verification pending; main Oasis unchanged.
+
+
+## Viseme Lab 01
+User approved Bite 06 as closest visual baseline and requested a separate viseme audition before audio synchronization. Added isolated `viseme-lab.html` (`9a7a4b3`), `src/viseme-lab.ts` (`e587767`) and Vite multi-page entry (`3ee31c6`). REST, AH, EE, OO experimental presets; calibrated landmarks copied, local storage key separate. No changes to approved Mouth Lab or main Oasis. URL: https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html . GitHub commits complete; Cloudflare build and user visual acceptance unverified. Next: review individual shapes, especially horizontal EE/OO warp, before adding more visemes or voice sync.
