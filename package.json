@@ -12,7 +12,7 @@
   "dependencies": {
     "three": "^0.186.1",
     "fflate": "^0.8.2",
-    "lighter-sync": "^0.1.0",
+    "lighter-sync": "^0.1.2",
     "@mediapipe/tasks-vision": "^0.10.22"
   },
   "devDependencies": {
