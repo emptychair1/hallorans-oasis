@@ -3,6 +3,15 @@ type VoiceMessage = { role: 'user' | 'assistant'; content: string };
 type VoiceState = 'idle' | 'opening' | 'listening' | 'transcribing' | 'thinking' | 'speaking' | 'error';
 
 const SESSION_CONTEXT = 'home-ephemeral-session-v1';
+const VOICE_STYLE = 'Voice mode: speak naturally in plain spoken sentences. Do not write stage directions, asterisk actions, facial-expression narration, emoji, or emoji names. Convey emotion through your words, not descriptions of gestures.';
+function spokenText(reply:string):string {
+ return reply
+  .replace(/\*[^*\n]{1,120}\*/g,' ')
+  .replace(/\[[^\]\n]{1,100}(?:smil|laugh|wink|blush|nod|sigh|gasp|expression|emoji)[^\]\n]*\]/gi,' ')
+  .replace(/:[a-z][a-z0-9_+-]{2,40}:/gi,' ')
+  .replace(/[\p{Extended_Pictographic}\uFE0F\u200D\u{1F3FB}-\u{1F3FF}]/gu,'')
+  .replace(/\s+([,.!?;:])/g,'$1').replace(/\s+/g,' ').trim();
+}
 
 export class OasisPiperVoice {
   private readonly root = document.createElement('div');
@@ -184,11 +193,12 @@ export class OasisPiperVoice {
 
       this.setState('thinking', 'Piper is thinking…');
       const current = [...this.messages, { role: 'user' as const, content: transcript }].slice(-8);
+      const voiceMessages = [{role:'system',content:VOICE_STYLE},...current];
       const response = await fetch('/api/oasis/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'text/event-stream, application/json' },
         body: JSON.stringify({
-          messages: current,
+          messages: voiceMessages,
           current_session_messages: current,
           session_context: SESSION_CONTEXT,
           input_mode: 'voice',
@@ -207,12 +217,13 @@ export class OasisPiperVoice {
       const expression = /😳|😮|😲|\*(?:gasps|looks surprised)\*/i.test(reply) ? 'surprise'
         : /😉|\*(?:winks?|blinks?)\*/i.test(reply) ? 'blink'
         : /😏|😂|🤣|😊|🥰|❤️|\*(?:smirks?|smiles?|grins?|laughs?)\*/i.test(reply) ? 'smile' : 'neutral';
+      const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
       this.setState('speaking', 'Piper is speaking…');
       const speech = await fetch('/api/oasis/speak-fast', {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'audio/*' },
-        body: JSON.stringify({ text: reply })
+        body: JSON.stringify({ text: spoken })
       });
       if (!speech.ok) throw new Error(await this.errorFrom(speech));
       const bytes = await speech.arrayBuffer();
@@ -222,7 +233,7 @@ export class OasisPiperVoice {
       let alignment: LighterSync | null = null;
       try {
         const candidate = new LighterSync({mode:'simple'});
-        await candidate.prepare(audioBuffer, reply);
+        await candidate.prepare(audioBuffer, spoken);
         if(candidate.keyframes.length) { alignment=candidate; console.info('[BITE 08D] LighterSync keyframes',candidate.keyframes.slice(0,20)); }
       } catch(error) { console.warn('LighterSync unavailable, using audio fallback',error); }
       if (!this.wanted || generation !== this.generation || !this.context) return;
@@ -274,7 +285,7 @@ export class OasisPiperVoice {
         }
       };
       speechStartedAt=this.context.currentTime;
-      this.onSpeechTiming({type:'start',text:reply,duration:audioBuffer.duration});
+      this.onSpeechTiming({type:'start',text:spoken,duration:audioBuffer.duration});
       source.start();
       this.speechFrame = requestAnimationFrame(animateSpeech);
     } catch (error) {
