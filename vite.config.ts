@@ -5,6 +5,6 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
-    rollupOptions: { input: { main: new URL('./index.html', import.meta.url).pathname, mouthLab: new URL('./mouth-lab.html', import.meta.url).pathname } }
+    rollupOptions: { input: { main: new URL('./index.html', import.meta.url).pathname, mouthLab: new URL('./mouth-lab.html', import.meta.url).pathname, visemeLab: new URL('./viseme-lab.html', import.meta.url).pathname } }
   }
 });
