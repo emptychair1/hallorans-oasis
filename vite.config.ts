@@ -1,9 +1,25 @@
 import { defineConfig } from 'vite';
 import { readdir, mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 export default defineConfig({
   plugins: [{
+    name: 'automatic-oasis-version',
+    transformIndexHtml(html) {
+      if (!html.includes('__OASIS_VERSION_LABEL__')) return html;
+      const baseline = '83e5aac6bba7860bae2a977134be3b5450f2139e';
+      // A full Git history is required so shallow clones cannot silently reset the counter.
+      try {
+        execFileSync('git', ['merge-base', '--is-ancestor', baseline, 'HEAD'], { stdio: 'pipe' });
+        const commits = Number(execFileSync('git', ['rev-list', '--count', `${baseline}..HEAD`], { encoding: 'utf8' }).trim());
+        if (!Number.isSafeInteger(commits) || commits < 0) throw new Error('Invalid commit count');
+        return html.replaceAll('__OASIS_VERSION_LABEL__', `V9.${12 + commits} · EXPRESSION HOLD`);
+      } catch (error) {
+        throw new Error('Cannot calculate Oasis version. Build requires Git history including baseline 83e5aac (disable shallow clone).', { cause: error });
+      }
+    }
+  }, {
     name: 'ensure-mediapipe-assets',
     async buildStart() {
       const from = 'node_modules/@mediapipe/tasks-vision/wasm';
