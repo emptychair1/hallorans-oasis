@@ -40,6 +40,24 @@ if(t&&ref.complete&&ref.naturalWidth){const reference=target.map(p=>({x:p.x*ref.
 if(f){const cheeks=[src[205],src[425],src[50],src[280]];ctx.save();ctx.globalCompositeOperation='source-over';for(const p of cheeks){const x=p.x*w,y=p.y*h,r=w*.09;const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(221,79,92,'+(f*.22)+')');grad.addColorStop(1,'rgba(221,79,92,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(x,y,r,r*.7,0,0,Math.PI*2);ctx.fill();}ctx.restore();}
 }
 function loadReference(){const id=++token;const m=maps[select.value];if(!m)return;const name=m.images.find(i=>i.role==='expression-reference')?.filename;const url=Object.entries(photos).find(([p])=>p.endsWith('/'+name))?.[1];if(!url){status.textContent='Reference image not found: '+name;render();return;}ref.onload=()=>{if(id!==token)return;status.textContent=(savedPresets[select.value.split('/').pop()||'']?'Saved preset ready: ':'Untuned expression: ')+(m.expressionName||select.selectedOptions[0]?.textContent);render();};ref.onerror=()=>{status.textContent='Reference photo failed to load';render();};ref.src=url;render();}
-select.addEventListener('change',()=>{applyPreset();loadReference();});
+select.addEventListener('change',()=>{stopAnimation();applyPreset();loadReference();});
 for(const control of [geometry,texture,flush])control.addEventListener('input',render);
 original.decode().then(()=>{applyPreset();loadReference();render();}).catch(e=>status.textContent='Original image failed: '+String(e));
+
+const playButton=$<HTMLButtonElement>('play-animation'),speed=$<HTMLSelectElement>('animation-speed');
+const playable=entries.map(([path])=>path).filter(path=>Boolean(savedPresets[path.split('/').pop()||'']));
+let playing=false,animationTimer:number|undefined;
+function stopAnimation(){playing=false;window.clearTimeout(animationTimer);playButton.textContent='▶ Animate expressions';}
+function advanceAnimation(){
+ if(!playing)return;
+ const index=playable.indexOf(select.value);
+ select.value=playable[(index+1+playable.length)%playable.length];
+ applyPreset();loadReference();
+ animationTimer=window.setTimeout(advanceAnimation,Number(speed.value)+550);
+}
+playButton.addEventListener('click',()=>{
+ if(playing){stopAnimation();return;}
+ if(!playable.length){status.textContent='No saved presets available';return;}
+ playing=true;playButton.textContent='■ Stop animation';
+ advanceAnimation();
+});
