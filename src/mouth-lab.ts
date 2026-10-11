@@ -12,8 +12,8 @@ defaults.lowerInnerLeft={x:0.46529734630115566,y:0.7089390315993122};defaults.lo
 const storeKey='piper-mouth-lab-06-calibrated';
 let points:Record<Key,Point>=structuredClone(defaults);
 try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&keys.every(k=>Number.isFinite(saved[k]?.x)&&Number.isFinite(saved[k]?.y)))points=saved;}catch{/* ignore */}
-let zoom=5,active:Key|null=null,w=1000,h=1000;
-let showMarkers=true,opening=0;
+let zoom=2,active:Key|null=null,w=1000,h=1000;
+let showMarkers=false,opening=.65;
 const ns='http://www.w3.org/2000/svg';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const element=(name:string)=>document.createElementNS(ns,name);
