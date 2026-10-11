@@ -48,12 +48,16 @@ run.addEventListener('click', async () => {
     status.textContent = 'Loading MediaPipe face landmark detector…';
     await Promise.all(originals.map(ready));
     // Vite bundles the JavaScript module locally; only WASM/model assets load externally.
+    status.textContent = 'Stage 1: loading MediaPipe JavaScript';
     const vision = await import('@mediapipe/tasks-vision');
+    status.textContent = 'Stage 2: loading MediaPipe WASM';
     const files = await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+    status.textContent = 'Stage 3: loading face model';
     const detector: Detector = await vision.FaceLandmarker.createFromOptions(files, {
       baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task', delegate: 'CPU' },
       runningMode: 'IMAGE', numFaces: 1
     });
+    status.textContent = 'Stage 4: detecting faces';
     originals.forEach((img,i) => {
       const faces = detector.detect(img).faceLandmarks;
       results[i] = faces[0] ?? null;
@@ -62,7 +66,7 @@ run.addEventListener('click', async () => {
     });
     status.textContent = results.every(Boolean) ? 'Both faces mapped. Inspect eyes, brows, nose, lips, and chin before Bite 02.' : 'Detection incomplete. Do not proceed to transplant until both faces map.';
   } catch (e) {
-    status.textContent = 'Detection failed: ' + (e instanceof Error ? e.message : String(e));
+    status.textContent = 'Detection failed: ' + (e instanceof Error ? e.message : (e instanceof Event ? 'Resource event ' + e.type : String(e)));
   } finally { run.disabled = false; }
 });
 Promise.all(originals.map(ready)).then(()=>{status.textContent='Images loaded. Tap Detect faces.';}).catch(e=>{status.textContent='Image load failed: '+String(e);});
