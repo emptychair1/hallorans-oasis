@@ -217,6 +217,7 @@ export class OasisPiperVoice {
       const expressionDecision=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
         .then(async response=>response.ok?(await response.json() as {expression?:string}).expression||'neutral':'neutral')
         .catch(()=>'neutral');
+      void expressionDecision.then(expression=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression}}));});
       const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
       this.setState('speaking', 'Piper is speaking…');
