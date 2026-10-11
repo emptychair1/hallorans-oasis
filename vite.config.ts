@@ -6,18 +6,23 @@ import { execFileSync } from 'node:child_process';
 export default defineConfig({
   plugins: [{
     name: 'automatic-oasis-version',
-    transformIndexHtml(html) {
+    async transformIndexHtml(html) {
       if (!html.includes('__OASIS_VERSION_LABEL__')) return html;
       const baseline = '83e5aac6bba7860bae2a977134be3b5450f2139e';
-      // A full Git history is required so shallow clones cannot silently reset the counter.
-      try {
-        execFileSync('git', ['merge-base', '--is-ancestor', baseline, 'HEAD'], { stdio: 'pipe' });
-        const commits = Number(execFileSync('git', ['rev-list', '--count', `${baseline}..HEAD`], { encoding: 'utf8' }).trim());
-        if (!Number.isSafeInteger(commits) || commits < 0) throw new Error('Invalid commit count');
-        return html.replaceAll('__OASIS_VERSION_LABEL__', `V9.${12 + commits} · EXPRESSION HOLD`);
-      } catch (error) {
-        throw new Error('Cannot calculate Oasis version. Build requires Git history including baseline 83e5aac (disable shallow clone).', { cause: error });
+      // Cloudflare may provide a shallow clone. Ask GitHub for the commit distance,
+      // rather than requiring the baseline object to exist in the local build checkout.
+      const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+      const response = await fetch(`https://api.github.com/repos/emptychair1/hallorans-oasis/compare/${baseline}...${head}`, {
+        headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'hallorans-oasis-version-build' }
+      });
+      if (!response.ok) throw new Error('Cannot calculate Oasis version: GitHub compare API returned HTTP ' + response.status);
+      const comparison = await response.json() as { ahead_by?: number; status?: string };
+      const commits = comparison.ahead_by;
+      if (!Number.isSafeInteger(commits) || (commits as number) < 0 || comparison.status === 'behind' || comparison.status === 'diverged') {
+        throw new Error('Cannot calculate Oasis version: baseline and build commit are not in the expected history.');
       }
+      return html.replaceAll('__OASIS_VERSION_LABEL__', `V9.${12 + (commits as number)} · EXPRESSION HOLD`);
+    }
     }
   }, {
     name: 'ensure-mediapipe-assets',
