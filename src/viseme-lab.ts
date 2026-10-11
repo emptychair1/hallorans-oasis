@@ -1,3 +1,4 @@
+import { warpCalibratedMouth, VISEME_AMOUNTS, shapeValue } from './shared-viseme-engine';
 import portraitUrl from '../IMG_4604.jpeg?url';
 type Point = {x:number;y:number};
 type Key = 'leftCorner'|'rightCorner'|'upperCenter'|'lowerCenter'|'cupidLeft'|'cupidRight'|'lowerLeft'|'lowerRight'|'upperInner'|'lowerInner'|'upperInnerLeft'|'upperInnerRight'|'lowerInnerLeft'|'lowerInnerRight';
@@ -15,7 +16,7 @@ type Viseme='rest'|'ah'|'ee'|'oo'|'mbp';
 let viseme:Viseme='rest';
 let targetOpening=0,shapeBlend=0,targetShape=0,mbpBlend=0,targetMbp=0;
 let animationFrame=0,lastFrame=0;
-const shapeValue=(v:Viseme)=>v==='ee'?-.12:v==='oo'?.18:0;
+
 function animateMouth(now:number){
  const dt=lastFrame?Math.min(64,now-lastFrame):16;lastFrame=now;
  const alpha=1-Math.exp(-dt/95);
@@ -62,67 +63,7 @@ function draw(){
   warpCtx.drawImage(photo,0,0,w,h);
   warpCtx.setTransform(1,0,0,1,0,0);
   if(opening>.0001||mbpBlend>.0001||Math.abs(shapeBlend)>.0001){
-   const frame=warpCtx.getImageData(0,0,size,size);
-   const src=new Uint8ClampedArray(frame.data);
-   const left=points.leftCorner.x,right=points.rightCorner.x;
-   const mouthMid=(left+right)/2;
-   const halfWidth=(right-left)/2;
-   const upper=points.upperInner.y;
-   const lower=points.lowerInner.y;
-   const shift=opening*.016;
-   const sourceY=(y:number)=> (y-(cy-side/2)/h)*h*scale;
-   const sourceX=(x:number)=> (x-(cx-side/2)/w)*w*scale;
-   const minX=Math.max(0,Math.floor(sourceX(left-.045)));
-   const maxX=Math.min(size-1,Math.ceil(sourceX(right+.045)));
-   const minY=Math.max(0,Math.floor(sourceY(upper-.012)));
-   const maxY=Math.min(size-1,Math.ceil(sourceY(points.lowerCenter.y+.085)));
-   const smooth=(t:number)=>{const q=Math.max(0,Math.min(1,t));return q*q*(3-2*q);};
-   for(let py=minY;py<=maxY;py++){
-    const yn=((py/scale)+(cy-side/2))/h;
-    for(let px=minX;px<=maxX;px++){
-     const xn=((px/scale)+(cx-side/2))/w;
-     const u=(xn-mouthMid)/halfWidth;
-     const horizontal=1-smooth((Math.abs(u)-.72)/.58);
-     if(horizontal<=0)continue;
-     const below=smooth((yn-(upper-.007))/.022);
-     const chinFade=1-smooth((yn-(points.lowerCenter.y+.012))/.07);
-     const displacement=shift*horizontal*below*chinFade;
-     // Experimental horizontal lip deformation for EE and OO.
-     // Fade to zero at the cheek and above/below the lips.
-     const lipVertical=smooth((yn-(upper-.035))/.035)*(1-smooth((yn-(points.lowerCenter.y+.012))/.045));
-     const shape=shapeBlend;
-     const xShift=shape*halfWidth*u*horizontal*lipVertical;
-     const sx=Math.max(0,Math.min(size-1,Math.round(px+xShift*w*scale)));
-     // Bite 15: M/B/P must close without a discontinuous vertical pixel jump.
-     // A smooth, tapered convergence replaces the old +/- offset that
-     // produced a hard horizontal seam across the lips.
-     const closureCenter=(upper+lower)/2;
-     const closureDistance=(yn-closureCenter)/.012;
-     const mbpOffset=.0018*mbpBlend*horizontal*lipVertical*
-       (closureDistance/(1+closureDistance*closureDistance));
-     const sy=Math.max(0,Math.min(size-1,Math.round(py-(displacement+mbpOffset)*h*scale)));
-     const dest=(py*size+px)*4,from=(sy*size+sx)*4;
-     for(let ch=0;ch<3;ch++)frame.data[dest+ch]=src[from+ch];
-     // A soft shadow between upper and displaced lower seam; no pointed polygon.
-     // Bite 14: curved, tapered inner aperture instead of a horizontal dark band.
-     // Restrict the opening to the central lip seam and feather every edge.
-     const apertureU=u/.77;
-     const arch=Math.sqrt(Math.max(0,1-apertureU*apertureU));
-     const centerY=(upper+lower)/2+.001+displacement*.28;
-     const halfHeight=(.0025+opening*.0105)*arch;
-     const feather=.0022;
-     const vertical=smooth((yn-(centerY-halfHeight))/feather)*
-       (1-smooth((yn-(centerY+halfHeight-feather))/feather));
-     const sideFade=1-smooth((Math.abs(apertureU)-.76)/.24);
-     const dark=vertical*sideFade*opening*.76;
-     if(dark>0){
-      frame.data[dest]=Math.round(frame.data[dest]*(1-dark)+38*dark);
-      frame.data[dest+1]=Math.round(frame.data[dest+1]*(1-dark)+19*dark);
-      frame.data[dest+2]=Math.round(frame.data[dest+2]*(1-dark)+25*dark);
-     }
-    }
-   }
-   warpCtx.putImageData(frame,0,0);
+   warpCalibratedMouth(warpCtx,size,size,w,h,points,opening,shapeBlend,mbpBlend,cx-side/2,cy-side/2,scale);
   }
   warp.style.display='block';
   photo.style.visibility='hidden';
@@ -153,7 +94,7 @@ svg.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();poin
 const stop=()=>{active=null};svg.addEventListener('pointerup',stop);svg.addEventListener('pointercancel',stop);svg.addEventListener('lostpointercapture',stop);
 const slider=document.querySelector<HTMLInputElement>('#opening')!;
 const choices=document.querySelectorAll<HTMLButtonElement>('[data-viseme]');
-const amounts:Record<Viseme,number>={rest:0,ah:.78,ee:.22,oo:.46,mbp:0};
+const amounts:Record<Viseme,number>=VISEME_AMOUNTS;
 choices.forEach(button=>button.addEventListener('click',()=>{
  viseme=button.dataset.viseme as Viseme;
  aimMouth(viseme,amounts[viseme]);slider.value=String(Math.round(amounts[viseme]*100));
