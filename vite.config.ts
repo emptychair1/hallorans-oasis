@@ -31,6 +31,6 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
-    rollupOptions: { input: { main: new URL('./index.html', import.meta.url).pathname, mouthLab: new URL('./mouth-lab.html', import.meta.url).pathname, visemeLab: new URL('./viseme-lab.html', import.meta.url).pathname, oasisLive: new URL('./oasis-live.html', import.meta.url).pathname, expressionLab: new URL('./expression-lab.html', import.meta.url).pathname, faceMapLab: new URL('./face-map-lab.html', import.meta.url).pathname, faceTransferLab: new URL('./face-transfer-lab.html', import.meta.url).pathname } }
+    rollupOptions: { input: { main: new URL('./index.html', import.meta.url).pathname, mouthLab: new URL('./mouth-lab.html', import.meta.url).pathname, visemeLab: new URL('./viseme-lab.html', import.meta.url).pathname, oasisLive: new URL('./oasis-live.html', import.meta.url).pathname, lighterSyncLab: new URL('./lighter-sync-lab.html', import.meta.url).pathname, expressionLab: new URL('./expression-lab.html', import.meta.url).pathname, faceMapLab: new URL('./face-map-lab.html', import.meta.url).pathname, faceTransferLab: new URL('./face-transfer-lab.html', import.meta.url).pathname } }
   }
 });
