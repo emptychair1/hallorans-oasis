@@ -10,7 +10,7 @@ export default defineConfig({
       const to = 'public/mediapipe/wasm';
       await mkdir(to, { recursive: true });
       const names = await readdir(from);
-      for (const name of names.filter(n => n.endsWith('.js') || n.endsWith('.wasm'))) await copyFile(join(from,name),join(to,name));
+      for (const name of names.filter((n: string) => n.endsWith('.js') || n.endsWith('.wasm'))) await copyFile(join(from,name),join(to,name));
       for (const required of ['vision_wasm_internal.js','vision_wasm_internal.wasm']) {
         const bytes = await readFile(join(to,required));
         if (bytes.length < 10000) throw new Error('MediaPipe build asset invalid: ' + required + ' (' + bytes.length + ' bytes)');
