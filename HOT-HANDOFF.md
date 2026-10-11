@@ -289,3 +289,7 @@ User's live recording revealed mouth-only artifacts, not full-face pixelation. B
 
 ## Viseme Bite 14
 User clarified Bite 13 smoothing worked well; the issue was a rectangular dark band visible in AH mouth opening (IMG_4613.jpeg). Do NOT revert smoothing. Current `src/viseme-lab.ts` commit `b103e3c` preserves ~95ms RAF interpolation, corrected landmark defaults and Bite 12 speech timeline, and replaces rectangular dark aperture with a central tapered, arched, feathered mask. HTML Bite 14 label `f41a64b`. The GitHub file fetched immediately before Bite 14 lacked Bite 13 interpolation, so Bite 14 explicitly reinstates it. Do not touch production portrait/main screen. Await Cloudflare build and user visual audition. Lab https://hallorans-oasis.daniels-joshua100.workers.dev/viseme-lab.html
+
+
+## Live Piper voice audition (Bite 16)
+User approved Bite 15 mouth visuals. Created isolated `/oasis-live.html` (NOT production root) with `src/oasis-live.ts` reusing unmodified `OasisPiperVoice` and its actual `/api/oasis/speak-fast` audio RMS callback, posting same-origin `piper-speech-level` to `/viseme-lab.html?live=1`. Viseme Lab handles RMS via smoothed Bite 15 renderer, rough REST/M/B/P/OO/AH energy mapping. No phoneme timestamps, so this is real-audio reactive, not accurate phoneme sync. Vite entry added; original portrait and main Oasis screen untouched. Relevant commits `6f9853e`, `52b08ad`, `8a6cbda`, `8619485`, `83e4abe`, `8158238`. Deployment and live voice unverified. Preview https://hallorans-oasis.daniels-joshua100.workers.dev/oasis-live.html .
