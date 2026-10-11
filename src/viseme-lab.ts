@@ -156,8 +156,6 @@ function showLiveExpression(){
  if(result)facePhoto.src=expressionCanvas.toDataURL('image/png');
 }
 originalExpressionPhoto.addEventListener('load',showLiveExpression);
-smileReference.addEventListener('load',showLiveExpression);
-;
 function setSpeechShape(next:Viseme){
  // One complete photographic face per viseme, never a second mouth overlay.
  viseme=next;
@@ -220,7 +218,7 @@ if(new URLSearchParams(location.search).has('live')){
  window.addEventListener('message',(event:MessageEvent)=>{
   if(event.origin!==location.origin||event.source!==window.parent)return;
   const d=event.data as {type?:string;level?:number};
-  if(d?.type==='piper-expression'){const expression=(event.data as {expression?:string}).expression;if(expression==='neutral'||approvedExpressions.some(item=>item.filename===expression+'.json')){liveExpression=expression;showLiveExpression();}return;}
+  if(d?.type==='piper-expression'){const expression=(event.data as {expression?:string}).expression;if(expression==='neutral'||approvedExpressions.some(item=>item.filename===expression+'.json')){liveExpression=expression || 'neutral';showLiveExpression();}return;}
   if(d?.type==='piper-viseme'){
    const shape=(event.data as {shape?:string}).shape||'rest';
    if(!['rest','mbp','fv','ah','ee','oo'].includes(shape))return;
