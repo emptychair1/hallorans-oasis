@@ -1,9 +1,16 @@
 import './style.css';
 import { OasisPiperVoice } from './OasisPiperVoice';
 const frame=document.querySelector<HTMLIFrameElement>('#portrait')!;
+const expressionDiagnostic=document.createElement('div');
+expressionDiagnostic.style.cssText='position:fixed;top:8px;left:8px;z-index:100002;background:#171717e8;color:#fff;padding:6px 9px;border:1px solid #9b8265;border-radius:6px;font:12px system-ui;pointer-events:none';
+expressionDiagnostic.textContent='Expression · selected: waiting | applied: neutral';
+document.body.append(expressionDiagnostic);
+let selectedExpression='waiting',appliedExpression='neutral';
+const updateExpressionDiagnostic=()=>{expressionDiagnostic.textContent=`Expression · selected: ${selectedExpression} | applied: ${appliedExpression}`;};
+window.addEventListener('oasis-expression-selected',(event)=>{selectedExpression=(event as CustomEvent<{expression:string}>).detail.expression;updateExpressionDiagnostic();});
 const voice=new OasisPiperVoice(
  level=>frame.contentWindow?.postMessage({type:'piper-speech-level',level},location.origin),
- expression=>frame.contentWindow?.postMessage({type:'piper-expression',expression},location.origin),
+ expression=>{appliedExpression=expression;updateExpressionDiagnostic();frame.contentWindow?.postMessage({type:'piper-expression',expression},location.origin);},
  shape=>frame.contentWindow?.postMessage({type:'piper-viseme',shape},location.origin),
  event=>frame.contentWindow?.postMessage({...event,type:'piper-speech-timing'},location.origin)
 );
