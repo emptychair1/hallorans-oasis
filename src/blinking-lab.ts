@@ -1,3 +1,4 @@
+import portraitUrl from '../IMG_4604.jpeg';
 import neutralMap from '../data/face-maps/neutral.json';
 type P={x:number;y:number;z?:number};
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
@@ -8,7 +9,7 @@ const speed=document.querySelector<HTMLInputElement>('#speed')!;
 const asym=document.querySelector<HTMLInputElement>('#asym')!;
 const lashes=document.querySelector<HTMLInputElement>('#lashes')!;
 const outputs={closure:document.querySelector<HTMLOutputElement>('#closureOut')!,speed:document.querySelector<HTMLOutputElement>('#speedOut')!,asym:document.querySelector<HTMLOutputElement>('#asymOut')!,lashes:document.querySelector<HTMLOutputElement>('#lashesOut')!};
-const image=new Image();image.src='/IMG_4604.jpeg';
+const image=new Image();image.src=portraitUrl;
 const landmarks=(neutralMap as {images:{role:string;landmarks:P[]}[]}).images.find(i=>i.role==='locked-original')!.landmarks;
 const eyeDefs=[
  {name:'left',outer:33,inner:133,upper:[160,158],lower:[144,153],brow:70,sign:1},
