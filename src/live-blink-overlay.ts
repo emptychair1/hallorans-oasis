@@ -5,7 +5,7 @@ import closedEyeUrl from '../assets/ad3261163d764c34291dd6dfb0612bfa7f0a42ea92be
 
 type Point={x:number;y:number};
 const canvas=document.querySelector<HTMLCanvasElement>('#blinkOverlay');
-const isLive=new URLSearchParams(location.search).has('live');
+const isLive=new URLSearchParams(location.search).has('live') || location.pathname.endsWith('/speech-expression-integration.html');
 if(canvas && isLive){
  const ctx=canvas.getContext('2d');
  const closed=new Image();
