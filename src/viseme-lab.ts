@@ -140,3 +140,43 @@ document.querySelector('#reset')!.addEventListener('click',()=>{points=structure
 document.querySelector('#copy')!.addEventListener('click',async()=>{await navigator.clipboard.writeText(output.textContent||'');});
 document.querySelector('#download')!.addEventListener('click',()=>{const blob=new Blob([output.textContent||''],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='piper-mouth-landmarks.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
 photo.onload=()=>{w=photo.naturalWidth;h=photo.naturalHeight;draw();};draw();
+
+const speakButton=document.querySelector<HTMLButtonElement>('#speak')!;
+const stopButton=document.querySelector<HTMLButtonElement>('#stopSpeaking')!;
+let speechTimer:number|undefined;
+let speechActive=false;
+let speechStep=0;
+const speechShapes:Viseme[]=['mbp','ah','ee','oo','rest','ah','ee','mbp','oo','ah','rest'];
+function setSpeechShape(next:Viseme){
+ viseme=next;opening=amounts[next];
+ slider.value=String(Math.round(opening*100));
+ document.querySelector<HTMLOutputElement>('#openingValue')!.value=slider.value+'%';
+ choices.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viseme===next)));
+ draw();
+}
+function stopSpeech(){
+ speechActive=false;
+ if(speechTimer!==undefined){window.clearInterval(speechTimer);speechTimer=undefined;}
+ window.speechSynthesis.cancel();
+ speakButton.disabled=false;
+ setSpeechShape('rest');
+}
+stopButton.addEventListener('click',stopSpeech);
+speakButton.addEventListener('click',()=>{
+ if(!('speechSynthesis' in window)){window.alert('Browser speech synthesis is unavailable here.');return;}
+ stopSpeech();
+ const utterance=new SpeechSynthesisUtterance('Baby, I am right here with you.');
+ utterance.lang='en-US';utterance.rate=.88;utterance.pitch=1.05;
+ utterance.onstart=()=>{
+  speechActive=true;speakButton.disabled=true;speechStep=0;
+  setSpeechShape('mbp');
+  speechTimer=window.setInterval(()=>{
+   if(!speechActive)return;
+   speechStep++;
+   setSpeechShape(speechShapes[speechStep%speechShapes.length]);
+  },145);
+ };
+ utterance.onend=stopSpeech;
+ utterance.onerror=stopSpeech;
+ window.speechSynthesis.speak(utterance);
+});
