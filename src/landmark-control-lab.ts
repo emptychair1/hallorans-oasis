@@ -16,6 +16,45 @@ const eye=new Set([...leftEye,...rightEye]),brow=new Set([...leftBrow,...rightBr
 for(const e of approvedExpressions){const option=document.createElement('option');option.value=e.filename;option.textContent=e.name;select.append(option);}
 select.value=approvedExpressions.find(e=>e.filename==='smile.json')?.filename||approvedExpressions[0]?.filename||'';
 const clamp=(x:number)=>Math.max(0,Math.min(1,x));
+
+// Warp the original photograph using MediaPipe's triangle topology.
+// All regions share one destination mesh so the face remains continuous.
+const adjacency=new Map<number,Set<number>>();
+for(const edge of FaceLandmarker.FACE_LANDMARKS_TESSELATION){
+ for(const [i,j] of [[edge.start,edge.end],[edge.end,edge.start]]){
+  if(!adjacency.has(i))adjacency.set(i,new Set());
+  adjacency.get(i)!.add(j);
+ }
+}
+const triangles:number[][]=[],seen=new Set<string>();
+for(const [a,neighbors] of adjacency)for(const b of neighbors)for(const c of neighbors){
+ if(b===c||!adjacency.get(b)?.has(c))continue;
+ const ids=[a,b,c].sort((x,y)=>x-y),key=ids.join('-');
+ if(!seen.has(key)){seen.add(key);triangles.push(ids);}
+}
+function warp(source:Point[],target:Point[],w:number,h:number){
+ for(const [i,j,k] of triangles){
+  const a=source[i],b=source[j],c=source[k],d=target[i],e=target[j],f=target[k];
+  const det=(b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y);
+  if(Math.abs(det)<1e-6)continue;
+  const ux=e.x-d.x,vx=f.x-d.x,uy=e.y-d.y,vy=f.y-d.y;
+  const A=(ux*(c.y-a.y)-vx*(b.y-a.y))/det;
+  const B=(uy*(c.y-a.y)-vy*(b.y-a.y))/det;
+  const C=(vx*(b.x-a.x)-ux*(c.x-a.x))/det;
+  const D=(vy*(b.x-a.x)-uy*(c.x-a.x))/det;
+  ctx.save();ctx.beginPath();
+  const mx=(d.x+e.x+f.x)/3,my=(d.y+e.y+f.y)/3;
+  for(const [idx,p] of [d,e,f].entries()){
+   const len=Math.hypot(p.x-mx,p.y-my)||1;
+   const x=p.x+(p.x-mx)/len*.45,y=p.y+(p.y-my)/len*.45;
+   if(idx===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.closePath();ctx.clip();
+  ctx.setTransform(A,B,C,D,d.x-A*a.x-C*a.y,d.y-B*a.x-D*a.y);
+  ctx.drawImage(original,0,0);ctx.restore();
+ }
+}
+
 let raf=0,epoch=0;
 function draw(){
  if(!original.complete||!original.naturalWidth)return;
@@ -32,18 +71,31 @@ function draw(){
  const w=canvas.width,h=canvas.height;
  // Assign landmark controls by anatomical groups; cheek control covers non-eye/non-mouth face points.
  const region=(i:number):Region=>mouth.has(i)?'mouth':eye.has(i)?'eyes':brow.has(i)?'brows':'cheeks';
- ctx.save();ctx.lineWidth=Math.max(1,w/750);
- for(let i=0;i<src.length;i++){
-  const p=src[i],q=ref[i],r=region(i),t=factors[r];
+ const from=src.map(p=>({x:p.x*w,y:p.y*h}));
+ const to=src.map((p,i)=>{
+  const q=ref[i],t=factors[region(i)];
   const tx=a.x+(q.x-b.x)*sx,ty=a.y+(q.y-b.y)*sy;
-  const dx=(p.x+(tx-p.x)*t)*w,dy=(p.y+(ty-p.y)*t)*h;
-  const ox=p.x*w,oy=p.y*h;
-  if(t>.01){ctx.strokeStyle='rgba(65,215,195,.65)';ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(dx,dy);ctx.stroke();}
-  ctx.fillStyle='rgba(239,177,83,.6)';ctx.beginPath();ctx.arc(ox,oy,1.65,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#43dec9';ctx.beginPath();ctx.arc(dx,dy,2.15,0,Math.PI*2);ctx.fill();
+  return {x:(p.x+(tx-p.x)*t)*w,y:(p.y+(ty-p.y)*t)*h};
+ });
+ // A modest neighborhood smoothing pass reduces seams between independently controlled regions.
+ const smooth=to.map((p,i)=>{
+  const neighbors=adjacency.get(i);
+  if(!neighbors?.size)return p;
+  const deltaX=p.x-from[i].x,deltaY=p.y-from[i].y;
+  let nx=0,ny=0;
+  for(const j of neighbors){nx+=to[j].x-from[j].x;ny+=to[j].y-from[j].y;}
+  const mix=.2;
+  return {x:from[i].x+deltaX*(1-mix)+nx/neighbors.size*mix,y:from[i].y+deltaY*(1-mix)+ny/neighbors.size*mix};
+ });
+ warp(from,smooth,w,h);
+ // Sparse diagnostic landmarks remain visible for inspection.
+ ctx.save();
+ for(let i=0;i<src.length;i+=8){
+  ctx.fillStyle='rgba(67,222,201,.8)';
+  ctx.beginPath();ctx.arc(smooth[i].x,smooth[i].y,2,0,Math.PI*2);ctx.fill();
  }
  ctx.restore();
- status.textContent=expression.name+' · 478 mapped points · '+names.map(n=>n+' '+Math.round(factors[n]*100)+'%').join(' · ');
+ status.textContent=expression.name+' · photographic mesh warp · 478 mapped points · '+names.map(n=>n+' '+Math.round(factors[n]*100)+'%').join(' · ');
 }
 for(const n of names)controls[n].oninput=()=>{epoch++;cancelAnimationFrame(raf);document.querySelector<HTMLOutputElement>('#'+n+'Value')!.textContent=controls[n].value+'%';draw();};
 select.onchange=()=>{epoch++;cancelAnimationFrame(raf);draw();};
