@@ -246,7 +246,7 @@ if(g){
 }
 // Embarrassed 2 reference contains a hand: use its landmarks for motion only.
 // Do not transfer occluding hand pixels into the portrait.
-const speechMouthActive=calibrationPreview||(speechPlaying&&speechShape!=='rest'&&speechAmount>.002);
+const speechMouthActive=calibrationPreview||speechPlaying;
 if(t&&ref.complete&&ref.naturalWidth&&!select.value.endsWith('/embarrassed2.json')){
  const reference=target.map(p=>({x:p.x*ref.naturalWidth,y:p.y*ref.naturalHeight}));
  const forehead=foreheadRepairs.has(select.value.split('/').pop()||'');
