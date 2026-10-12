@@ -80,13 +80,14 @@ function draw(){
   return dest[14].y-dest[13].y>width*.025;
  }
  // Speech is a replacement texture, never a deformation of existing teeth.
- function replaceMouth(name:Shape,alpha:number){
+ function replaceMouth(name:Shape,alpha:number,overrideDest?:{x:number;y:number}[]){
   const image=visemeImages.get(name);
   const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
   if(!image?.naturalWidth||!map||alpha<=0)return;
   const geometry=visemeGeometry(name);
   if(!geometry)return;
-  const {ref,base,dest}=geometry;
+  const {ref,base}=geometry;
+  const dest=overrideDest||geometry.dest;
   const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
@@ -121,14 +122,14 @@ function draw(){
  // Dark interior is between the previous expression and the new viseme layer.
  // Use the existing AH photographic mouth interior, aligned to the
  // current lip landmarks and clipped to their exact inner contour.
- function compositeMouthInterior(name:Shape,alpha:number){
+ function compositeMouthInterior(name:Shape,alpha:number,overrideDest?:{x:number;y:number}[]){
   if(alpha<=0)return;
   const geometry=visemeGeometry(name);
   const ah=visemeImages.get('ah');
   const ahMap=Object.entries(maps).find(([path])=>path.endsWith('/ah.json'))?.[1];
   const ahRef=ahMap?.images.find(i=>i.role==='expression-reference')?.landmarks;
-  if(!geometry||!hasOpening(geometry.dest)||!ah?.naturalWidth||!ahRef)return;
-  const dest=geometry.dest;
+  if(!geometry||!hasOpening(overrideDest||geometry.dest)||!ah?.naturalWidth||!ahRef)return;
+  const dest=overrideDest||geometry.dest;
   const src=ahRef.map(p=>({x:p.x*ah.naturalWidth,y:p.y*ah.naturalHeight}));
   // Align the AH image to the moving mouth using inner lip corners and
   // upper/lower midpoints; leave expression and speech geometry unchanged.
@@ -147,10 +148,23 @@ function draw(){
   ctx.drawImage(ah,0,0);
   ctx.restore();
  }
- compositeMouthInterior(previous,1-shapeMix);
- compositeMouthInterior(shape,shapeMix);
- replaceMouth(previous,1-shapeMix);
- replaceMouth(shape,shapeMix);
+ // One moving mouth surface during transitions: interpolate its geometry rather
+ // than overlaying two independent lip textures (which produces ghost contours).
+ const incoming=visemeGeometry(shape);
+ const outgoing=visemeGeometry(previous);
+ const activeImage=visemeImages.get(shape);
+ const outgoingImage=visemeImages.get(previous);
+ if(incoming&&activeImage?.naturalWidth){
+  const dest=outgoing&&shapeMix<1
+   ? incoming.dest.map((p,i)=>({x:outgoing.dest[i].x*(1-shapeMix)+p.x*shapeMix,
+                               y:outgoing.dest[i].y*(1-shapeMix)+p.y*shapeMix}))
+   : incoming.dest;
+  compositeMouthInterior(shape,1,dest);
+  replaceMouth(shape,previous==='rest'?shapeMix:1,dest);
+ }else if(outgoing&&outgoingImage?.naturalWidth&&shapeMix<1){
+  compositeMouthInterior(previous,1-shapeMix);
+  replaceMouth(previous,1-shapeMix);
+ }
  status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
 }
 smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
