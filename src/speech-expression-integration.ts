@@ -46,17 +46,14 @@ function draw(){
   if(result){points=result.destination;ctx.drawImage(expressionCanvas,0,0,w,h);}
   else ctx.drawImage(original,0,0,w,h);
  }else ctx.drawImage(original,0,0,w,h);
- // Speech is a replacement texture, never a deformation of existing teeth.
- function replaceMouth(name:Shape,alpha:number){
-  const image=visemeImages.get(name);
+ // Exact inner-lip contour, shared by the dark occluder and the viseme cutout.
+ const innerUpper=[78,191,80,81,82,13,312,311,310,415,308];
+ const innerLower=[308,324,318,402,317,14,87,178,88,95,78];
+ function visemeGeometry(name:Shape){
   const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
-  if(!image?.naturalWidth||!map||alpha<=0)return;
-  const ref=map.images.find(i=>i.role==='expression-reference')?.landmarks;
-  const locked=map.images.find(i=>i.role==='locked-original')?.landmarks;
-  if(!ref||!locked||ref.length!==478||locked.length!==478)return;
-  const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
-  // Transfer the actual viseme displacement onto the current expression.
-  // A source AH lip gap must survive even when the smile geometry is narrow.
+  const ref=map?.images.find(i=>i.role==='expression-reference')?.landmarks;
+  const locked=map?.images.find(i=>i.role==='locked-original')?.landmarks;
+  if(!ref||!locked||ref.length!==478||locked.length!==478)return null;
   const base=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
   const center=base[13],corner=base[61];
   const mouthWidth=Math.max(1,Math.abs(base[291].x-corner.x));
@@ -69,6 +66,28 @@ function draw(){
    return {x:p.x+(ref[i].x-locked[i].x)*w*falloff,
            y:p.y+(ref[i].y-locked[i].y)*h*falloff};
   });
+  return {ref,base,dest};
+ }
+ function innerLipPath(c:CanvasRenderingContext2D,dest:{x:number;y:number}[]){
+  c.beginPath();
+  const first=dest[innerUpper[0]];c.moveTo(first.x,first.y);
+  for(const i of innerUpper.slice(1))c.lineTo(dest[i].x,dest[i].y);
+  for(const i of innerLower.slice(1))c.lineTo(dest[i].x,dest[i].y);
+  c.closePath();
+ }
+ function hasOpening(dest:{x:number;y:number}[]){
+  const width=Math.abs(dest[291].x-dest[61].x);
+  return dest[14].y-dest[13].y>width*.025;
+ }
+ // Speech is a replacement texture, never a deformation of existing teeth.
+ function replaceMouth(name:Shape,alpha:number){
+  const image=visemeImages.get(name);
+  const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
+  if(!image?.naturalWidth||!map||alpha<=0)return;
+  const geometry=visemeGeometry(name);
+  if(!geometry)return;
+  const {ref,base,dest}=geometry;
+  const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
   // Fill any uncovered mesh triangles with opaque original face pixels.
@@ -87,25 +106,26 @@ function draw(){
   fade.addColorStop(0,'black');fade.addColorStop(.91,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
+  // Remove only the inner-lip aperture from this OFFSCREEN viseme layer.
+  // The opaque dark interior underneath remains visible through this exact opening.
+  if(hasOpening(dest)){
+   mouthCtx.save();mouthCtx.globalCompositeOperation='destination-out';
+   innerLipPath(mouthCtx,dest);mouthCtx.fillStyle='#000';mouthCtx.fill();
+   mouthCtx.restore();
+  }
   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
  }
  // Dark interior is between the previous expression and the new viseme layer.
  function darkenLipOpening(name:Shape,alpha:number){
-  const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
-  const ref=map?.images.find(i=>i.role==='expression-reference')?.landmarks;
-  const locked=map?.images.find(i=>i.role==='locked-original')?.landmarks;
-  if(!ref||!locked||alpha<=0)return;
-  const base=(i:number)=>points?.[i]||{x:locked[i].x*w,y:locked[i].y*h};
-  const pt=(i:number)=>{const b=base(i);return {x:b.x+(ref[i].x-locked[i].x)*w,y:b.y+(ref[i].y-locked[i].y)*h};};
-  const upper=pt(13),lower=pt(14),left=pt(61),right=pt(291);
-  const gap=lower.y-upper.y,width=Math.abs(right.x-left.x);
-  if(gap<=width*.025)return;
-  const cx=(left.x+right.x)/2,cy=(upper.y+lower.y)/2,halfWidth=width*.35;
-  ctx.save();ctx.globalAlpha=Math.min(1,alpha*.88);ctx.fillStyle='#170d13';
-  ctx.beginPath();ctx.moveTo(cx-halfWidth,cy);
-  ctx.quadraticCurveTo(cx,upper.y+gap*.10,cx+halfWidth,cy);
-  ctx.quadraticCurveTo(cx,lower.y-gap*.10,cx-halfWidth,cy);
-  ctx.closePath();ctx.fill();ctx.restore();
+  if(alpha<=0)return;
+  const geometry=visemeGeometry(name);
+  if(!geometry||!hasOpening(geometry.dest))return;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='#170d13';
+  innerLipPath(ctx,geometry.dest);
+  ctx.fill();
+  ctx.restore();
  }
  darkenLipOpening(previous,1-shapeMix);
  darkenLipOpening(shape,shapeMix);
