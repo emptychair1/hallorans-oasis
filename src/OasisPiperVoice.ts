@@ -211,10 +211,10 @@ export class OasisPiperVoice {
       });
       if (!response.ok) throw new Error(await this.errorFrom(response));
       const rawReply = await this.readReply(response);
-      const expressionMatch = rawReply.match(/\\[\\[OASIS_EXPRESSION:([a-z0-9-]+):([01](?:\\.\\d+)?)\\]\\]/i);
+      const expressionMatch = rawReply.match(/\[\[OASIS_EXPRESSION:([a-z0-9-]+):([01](?:\.\d+)?)\]\]/i);
       const approvedModelExpressions = new Set(['neutral','wanting','thinking','surprised','smile2','smile','sad2','sad','mischievous','mad','horny','full-smile','full-laugh','flush','flirt','excited','embarrassed2']);
       const modelExpression = expressionMatch && approvedModelExpressions.has(expressionMatch[1].toLowerCase()) && Number(expressionMatch[2]) <= 1 ? expressionMatch[1].toLowerCase() : null;
-      const reply = rawReply.replace(/\\[\\[OASIS_EXPRESSION:[^\\]\\r\\n]*\\]\\]/gi,'').trim();
+      const reply = rawReply.replace(/\[\[OASIS_EXPRESSION:[^\]\r\n]*\]\]/gi,'').trim();
       if (!reply.trim()) throw new Error('Piper Home returned no reply.');
       if (!this.wanted || generation !== this.generation) return;
       this.messages.push({ role: 'user', content: transcript }, { role: 'assistant', content: reply });
