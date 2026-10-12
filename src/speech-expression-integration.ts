@@ -159,8 +159,9 @@ function draw(){
    ? incoming.dest.map((p,i)=>({x:outgoing.dest[i].x*(1-shapeMix)+p.x*shapeMix,
                                y:outgoing.dest[i].y*(1-shapeMix)+p.y*shapeMix}))
    : incoming.dest;
-  compositeMouthInterior(shape,1,dest);
-  replaceMouth(shape,previous==='rest'?shapeMix:1,dest);
+  const opacity=previous==='rest'?shapeMix:1;
+  compositeMouthInterior(shape,opacity,dest);
+  replaceMouth(shape,opacity,dest);
  }else if(outgoing&&outgoingImage?.naturalWidth&&shapeMix<1){
   compositeMouthInterior(previous,1-shapeMix);
   replaceMouth(previous,1-shapeMix);
