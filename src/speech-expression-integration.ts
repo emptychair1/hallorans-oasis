@@ -71,7 +71,11 @@ function draw(){
   });
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
-  // Fill any uncovered mesh triangles with opaque original face pixels.\n  // This fixes see-through patches without clearing the underlying face.\n  mouthCtx.save();mouthCtx.globalCompositeOperation='destination-over';\n  mouthCtx.drawImage(original,0,0,w,h);mouthCtx.restore();\n  // Cover the old expression mouth as well as the displaced viseme mouth.
+  // Fill any uncovered mesh triangles with opaque original face pixels.
+  // This fixes see-through patches without clearing the underlying face.
+  mouthCtx.save();mouthCtx.globalCompositeOperation='destination-over';
+  mouthCtx.drawImage(original,0,0,w,h);mouthCtx.restore();
+  // Cover the old expression mouth as well as the displaced viseme mouth.
   const lips=[...lipIndices.map(i=>dest[i]),...lipIndices.map(i=>base[i])];
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
@@ -85,6 +89,26 @@ function draw(){
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
  }
+ // Dark interior is between the previous expression and the new viseme layer.
+ function darkenLipOpening(name:Shape,alpha:number){
+  const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
+  const ref=map?.images.find(i=>i.role==='expression-reference')?.landmarks;
+  const locked=map?.images.find(i=>i.role==='locked-original')?.landmarks;
+  if(!ref||!locked||alpha<=0)return;
+  const base=(i:number)=>points?.[i]||{x:locked[i].x*w,y:locked[i].y*h};
+  const pt=(i:number)=>{const b=base(i);return {x:b.x+(ref[i].x-locked[i].x)*w,y:b.y+(ref[i].y-locked[i].y)*h};};
+  const upper=pt(13),lower=pt(14),left=pt(61),right=pt(291);
+  const gap=lower.y-upper.y,width=Math.abs(right.x-left.x);
+  if(gap<=width*.025)return;
+  const cx=(left.x+right.x)/2,cy=(upper.y+lower.y)/2,halfWidth=width*.35;
+  ctx.save();ctx.globalAlpha=Math.min(1,alpha*.88);ctx.fillStyle='#170d13';
+  ctx.beginPath();ctx.moveTo(cx-halfWidth,cy);
+  ctx.quadraticCurveTo(cx,upper.y+gap*.10,cx+halfWidth,cy);
+  ctx.quadraticCurveTo(cx,lower.y-gap*.10,cx-halfWidth,cy);
+  ctx.closePath();ctx.fill();ctx.restore();
+ }
+ darkenLipOpening(previous,1-shapeMix);
+ darkenLipOpening(shape,shapeMix);
  replaceMouth(previous,1-shapeMix);
  replaceMouth(shape,shapeMix);
  status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
