@@ -62,11 +62,11 @@ function draw(){
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
   const cx=(left+right)/2,cy=(top+bottom)/2;
-  const rx=Math.max(2,(right-left)*.9),ry=Math.max(2,(bottom-top)*1.65,(right-left)*.34);
+  const rx=Math.max(2,(right-left)*1.08),ry=Math.max(2,(bottom-top)*2.0,(right-left)*.46);
   mouthCtx.globalCompositeOperation='destination-in';
   mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
-  const fade=mouthCtx.createRadialGradient(0,0,.83,0,0,1);
-  fade.addColorStop(0,'black');fade.addColorStop(.83,'black');fade.addColorStop(1,'transparent');
+  const fade=mouthCtx.createRadialGradient(0,0,.94,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.94,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
