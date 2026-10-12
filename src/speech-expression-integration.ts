@@ -1,6 +1,6 @@
 import portraitUrl from '../IMG_4604.jpeg?url';
-import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
-import {warpExpressionAwareMouth,VISEME_AMOUNTS,shapeValue,type Viseme,type MouthCalibration} from './shared-viseme-engine';
+import {approvedExpressions,drawCalibratedFace,paintFaceMesh,lipIndices} from './calibrated-expression-renderer';
+
 
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
 const ctx=canvas.getContext('2d')!;
@@ -11,13 +11,20 @@ const smile=approvedExpressions.find(e=>e.filename==='smile.json');
 const smileImage=new Image();if(smile)smileImage.src=smile.photoUrl;
 const expressionCanvas=document.createElement('canvas');
 const expressionCtx=expressionCanvas.getContext('2d')!;
-type Shape=Viseme|'fv';
+type Shape='rest'|'mbp'|'ah'|'ee'|'oo'|'fv';
 const maps=import.meta.glob('../assets/visemes/*.json',{eager:true,import:'default'}) as Record<string,{images:{role:string;landmarks:{x:number;y:number}[]}[]}>;
-const neutral=Object.entries(maps).find(([path])=>path.endsWith('/ah.json'))?.[1]?.images.find(i=>i.role==='locked-original')?.landmarks;
+const visemeUrls=import.meta.glob('../assets/visemes/*.{png,jpg,jpeg,webp}',{eager:true,query:'?url',import:'default'}) as Record<string,string>;
+const visemeImages=new Map<Shape,HTMLImageElement>();
+for(const name of ['mbp','ah','ee','oo','fv'] as Shape[]){
+ const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
+ const filename=(map?.images as {role:string;filename?:string}[]|undefined)?.find(i=>i.role==='expression-reference')?.filename;
+ const url=filename&&Object.entries(visemeUrls).find(([path])=>path.endsWith('/'+filename))?.[1];
+ if(url){const image=new Image();image.src=url;image.onload=draw;visemeImages.set(name,image);}
+}
+const mouthCanvas=document.createElement('canvas');
+const mouthCtx=mouthCanvas.getContext('2d')!;
 let smiling=true,smileMix=1,smileTarget=1,shape:Shape='rest',previous:Shape='rest',shapeMix=1,speaking=false,run=0,timer=0,animation=0,lastTick=0;
 const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
-const amount=(name:Shape)=>name==='fv'?.12:VISEME_AMOUNTS[name];
-const horizontal=(name:Shape)=>name==='fv'?-.06:shapeValue(name);
 function animate(now:number){
  const dt=lastTick?Math.min(64,now-lastTick):16;lastTick=now;
  smileMix+=(smileTarget-smileMix)*ease(dt,150);
@@ -39,23 +46,34 @@ function draw(){
   if(result){points=result.destination;ctx.drawImage(expressionCanvas,0,0,w,h);}
   else ctx.drawImage(original,0,0,w,h);
  }else ctx.drawImage(original,0,0,w,h);
- // The face already contains exactly one mouth. Deform those pixels in place.
- // No second photographic mouth, overlay canvas, or replacement mask is rendered.
- const blend=(a:number,b:number)=>a+(b-a)*shapeMix;
- const opening=blend(amount(previous),amount(shape));
- const spread=blend(horizontal(previous),horizontal(shape));
- const closure=blend(previous==='mbp'?1:0,shape==='mbp'?1:0);
- const p=(index:number)=>points?.[index]||neutral&&{x:neutral[index].x*w,y:neutral[index].y*h};
- const a=p(61),b=p(291),upper=p(13),lower=p(14),center=p(17);
- if(a&&b&&upper&&lower&&center&&(opening>.001||Math.abs(spread)>.001||closure>.001)){
-  const calibration:MouthCalibration={
-   leftCorner:{x:a.x/w,y:a.y/h},rightCorner:{x:b.x/w,y:b.y/h},
-   upperInner:{x:upper.x/w,y:upper.y/h},lowerInner:{x:lower.x/w,y:lower.y/h},
-   lowerCenter:{x:center.x/w,y:center.y/h}
-  };
-  warpExpressionAwareMouth(ctx,w,h,calibration,opening,spread,closure);
+ // Speech is a replacement texture, never a deformation of existing teeth.
+ function replaceMouth(name:Shape,alpha:number){
+  const image=visemeImages.get(name);
+  const map=Object.entries(maps).find(([path])=>path.endsWith('/'+name+'.json'))?.[1];
+  if(!image?.naturalWidth||!map||alpha<=0)return;
+  const ref=map.images.find(i=>i.role==='expression-reference')?.landmarks;
+  const locked=map.images.find(i=>i.role==='locked-original')?.landmarks;
+  if(!ref||!locked||ref.length!==478||locked.length!==478)return;
+  const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
+  const dest=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
+  mouthCanvas.width=w;mouthCanvas.height=h;
+  paintFaceMesh(image,source,dest,1,.5,mouthCtx);
+  const lips=lipIndices.map(i=>dest[i]);
+  const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
+  const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
+  const cx=(left+right)/2,cy=(top+bottom)/2;
+  const rx=Math.max(2,(right-left)*.9),ry=Math.max(2,(bottom-top)*1.65,(right-left)*.34);
+  mouthCtx.globalCompositeOperation='destination-in';
+  mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
+  const fade=mouthCtx.createRadialGradient(0,0,.83,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.83,'black');fade.addColorStop(1,'transparent');
+  mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
+  mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
+  ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
  }
- status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · LANDMARK DYNAMIC';
+ replaceMouth(previous,1-shapeMix);
+ replaceMouth(shape,shapeMix);
+ status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
 }
 smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
 function stop(){run++;clearInterval(timer);speechSynthesis.cancel();speaking=false;setShape('rest');draw();}
