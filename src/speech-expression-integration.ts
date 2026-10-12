@@ -217,3 +217,121 @@ document.querySelector<HTMLButtonElement>('#speak')!.onclick=()=>{
  speechSynthesis.speak(utterance);
 };
 original.onload=draw;draw();
+
+ 
+// Isolated conversation bridge. Reuses Oasis's existing Piper Home chat proxy
+// and local expression director; no new model keys, rules, or Live Oasis changes.
+type ChatTurn={role:'user'|'assistant';content:string};
+type DirectorCue={at:number;expression:string};
+const conversation:ChatTurn[]=[];
+const chatInput=document.querySelector<HTMLInputElement>('#chat-input')!;
+const chatSend=document.querySelector<HTMLButtonElement>('#chat-send')!;
+const chatOutput=document.querySelector<HTMLElement>('#chat-output')!;
+const directorStatus=document.querySelector<HTMLElement>('#director-status')!;
+let conversationGeneration=0;
+let cueTimers:number[]=[];
+function cancelCues(){for(const id of cueTimers)clearTimeout(id);cueTimers=[];}
+async function readChatResponse(response:Response):Promise<string>{
+ if(!response.ok)throw new Error('Chat HTTP '+response.status);
+ const type=response.headers.get('content-type')||'';
+ if(!type.includes('text/event-stream')){
+  const data=await response.json() as {reply?:string;response?:string;error?:string};
+  if(data.error)throw new Error(data.error);
+  return String(data.reply||data.response||'').trim();
+ }
+ if(!response.body)throw new Error('Empty chat response');
+ const reader=response.body.getReader(),decoder=new TextDecoder();
+ let pending='',reply='';
+ const consume=(line:string)=>{
+  if(!line.startsWith('data:'))return;
+  const raw=line.slice(5).trim();if(!raw||raw==='[DONE]')return;
+  const packet=JSON.parse(raw) as {reply?:string;response?:string;text?:string;error?:string;choices?:Array<{delta?:{content?:string}}>} ;
+  if(packet.error)throw new Error(packet.error);
+  reply+=packet.reply??packet.response??packet.text??packet.choices?.[0]?.delta?.content??'';
+ };
+ try{
+  while(true){
+   const {value,done}=await reader.read();
+   pending+=decoder.decode(value,{stream:!done});
+   const lines=pending.split(/\r?\n/);pending=lines.pop()||'';
+   for(const line of lines)consume(line);
+   if(done){if(pending)consume(pending);break;}
+  }
+ }finally{reader.releaseLock();}
+ return reply.trim();
+}
+function speakWithCues(reply:string,cues:DirectorCue[],generation:number){
+ stop();cancelCues();
+ const words=reply.trim().split(/\s+/).length;
+ // Browser speech synthesis does not expose dependable word timing here.
+ // Use approximate cue offsets for the visual integration test.
+ const estimatedDuration=Math.max(1600,words/2.5*1000);
+ const approved=cues.filter(c=>Number.isFinite(c.at)&&c.at>=0&&c.at<=1&&
+  approvedExpressions.some(e=>e.filename===c.expression+'.json'));
+ for(const cue of approved){
+  const id=window.setTimeout(()=>{
+   if(generation!==conversationGeneration)return;
+   chooseExpression({expression:cue.expression,intensity:1});
+   directorStatus.textContent='Director: '+cue.expression;
+  },Math.round(cue.at*estimatedDuration));
+  cueTimers.push(id);
+ }
+ const utterance=new SpeechSynthesisUtterance(reply);
+ utterance.rate=.88;utterance.pitch=1.05;
+ const id=run;
+ const sequence:Shape[]=['mbp','ah','ee','rest','ah','rest','oo','ee','fv','rest'];
+ utterance.onstart=()=>{
+  if(id!==run||generation!==conversationGeneration)return;
+  speaking=true;let i=0;setShape(sequence[0]);
+  timer=window.setInterval(()=>{
+   if(id!==run||generation!==conversationGeneration){clearInterval(timer);return;}
+   setShape(sequence[++i%sequence.length]);
+  },160);
+ };
+ utterance.onend=()=>{if(id===run){stop();cancelCues();}};
+ utterance.onerror=()=>{if(id===run){stop();cancelCues();}};
+ speechSynthesis.speak(utterance);
+}
+async function sendConversation(){
+ const message=chatInput.value.trim();
+ if(!message||chatSend.disabled)return;
+ const generation=++conversationGeneration;
+ cancelCues();stop();
+ chatSend.disabled=true;
+ chatOutput.textContent='You: '+message+'\nPiper: thinking…';
+ directorStatus.textContent='Director: waiting for reply';
+ chatInput.value='';
+ const current=[...conversation,{role:'user' as const,content:message}].slice(-8);
+ try{
+  const response=await fetch('/api/oasis/chat',{
+   method:'POST',headers:{'content-type':'application/json',accept:'text/event-stream, application/json'},
+   body:JSON.stringify({messages:current,current_session_messages:current,
+    session_context:'home-ephemeral-session-v1',input_mode:'text',stream:true,
+    client_turn_id:crypto.randomUUID()})
+  });
+  const reply=await readChatResponse(response);
+  if(!reply)throw new Error('Empty reply from Piper Home');
+  if(generation!==conversationGeneration)return;
+  conversation.push({role:'user',content:message},{role:'assistant',content:reply});
+  while(conversation.length>8)conversation.shift();
+  chatOutput.textContent='You: '+message+'\nPiper: '+reply;
+  const decision=await fetch('/api/oasis/expression',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({conversation:current,reply})
+  });
+  if(!decision.ok)throw new Error('Expression director HTTP '+decision.status);
+  const result=await decision.json() as {cues?:DirectorCue[];expression?:string;source?:string};
+  if(generation!==conversationGeneration)return;
+  const cues=Array.isArray(result.cues)&&result.cues.length?result.cues:
+   [{at:0,expression:result.expression||'neutral'}];
+  directorStatus.textContent='Director ('+(result.source||'unknown')+'): '+cues.map(c=>c.expression).join(' → ');
+  speakWithCues(reply,cues,generation);
+ }catch(error){
+  if(generation===conversationGeneration){
+   directorStatus.textContent='Director unavailable';
+   chatOutput.textContent+='\nError: '+(error instanceof Error?error.message:String(error));
+  }
+ }finally{if(generation===conversationGeneration)chatSend.disabled=false;}
+}
+chatSend.onclick=()=>{void sendConversation();};
+chatInput.onkeydown=event=>{if(event.key==='Enter')void sendConversation();};
