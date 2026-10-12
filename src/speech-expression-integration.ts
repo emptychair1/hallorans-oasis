@@ -224,7 +224,9 @@ original.onload=draw;draw();
 if(new URLSearchParams(location.search).has('live')){
  chooseExpression({expression:'neutral',intensity:1});
  window.addEventListener('message',(event:MessageEvent)=>{
-  if(event.origin!==location.origin||event.source!==window.parent)return;
+  const allowedParent=event.origin===location.origin ||
+   (event.origin==='https://piper-home.daniels-joshua100.workers.dev');
+  if(!allowedParent||event.source!==window.parent)return;
   const data=event.data as {type?:string;expression?:string;shape?:string;level?:number};
   if(data?.type==='piper-expression'&&typeof data.expression==='string'){
    chooseExpression({expression:data.expression,intensity:1});
