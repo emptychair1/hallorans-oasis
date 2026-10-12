@@ -264,12 +264,8 @@ export class OasisPiperVoice {
       const audioBuffer = await this.context.decodeAudioData(bytes);
       if (!this.wanted || generation !== this.generation || !this.context) return;
       let alignment: LighterSync | null = null;
-      try {
-        const candidate = new LighterSync({mode:'simple'});
-        await candidate.prepare(audioBuffer, spoken);
-        if(candidate.keyframes.length) { alignment=candidate; console.info('[BITE 08D] LighterSync keyframes',candidate.keyframes.slice(0,20)); }
-      } catch(error) { console.warn('LighterSync unavailable, using audio fallback',error); }
-      if (!this.wanted || generation !== this.generation || !this.context) return;
+      // Start playback without waiting for lip alignment. Audio-driven visemes
+      // provide a fallback until the precise alignment is ready.
       const source = this.context.createBufferSource();
       this.activeSource = source;
       source.buffer = audioBuffer;
@@ -351,6 +347,16 @@ export class OasisPiperVoice {
       speechStartedAt=this.context.currentTime;
       this.onSpeechTiming({type:'start',text:spoken,duration:audioBuffer.duration});
       source.start();
+      void (async () => {
+        try {
+          const candidate = new LighterSync({mode:'simple'});
+          await candidate.prepare(audioBuffer, spoken);
+          if (candidate.keyframes.length && this.activeSource === source && this.wanted && generation === this.generation) {
+            alignment = candidate;
+            console.info('[BITE 08D] LighterSync keyframes', candidate.keyframes.slice(0,20));
+          }
+        } catch (error) { console.warn('LighterSync unavailable, using audio fallback', error); }
+      })();
       this.speechFrame = requestAnimationFrame(animateSpeech);
     } catch (error) {
       if (this.wanted && generation === this.generation) {
