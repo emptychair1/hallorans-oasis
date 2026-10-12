@@ -7,8 +7,15 @@ const ctx=canvas.getContext('2d')!;
 const status=document.querySelector<HTMLElement>('#status')!;
 const smileButton=document.querySelector<HTMLButtonElement>('#smile')!;
 const original=new Image();original.src=portraitUrl;
-const smile=approvedExpressions.find(e=>e.filename==='smile.json');
-const smileImage=new Image();if(smile)smileImage.src=smile.photoUrl;
+const expressionImages=new Map<string,HTMLImageElement>();
+for(const entry of approvedExpressions){const image=new Image();image.src=entry.photoUrl;image.onload=draw;expressionImages.set(entry.filename,image);}
+let activeExpression=approvedExpressions.find(e=>e.filename==='smile.json');
+let pendingExpression:typeof activeExpression|undefined;
+let requestedIntensity=1;
+const expressionSelect=document.querySelector<HTMLSelectElement>('#expression')!;
+const intensityInput=document.querySelector<HTMLInputElement>('#intensity')!;
+for(const entry of approvedExpressions){const option=document.createElement('option');option.value=entry.filename.replace(/\.json$/,'');option.textContent=entry.name;expressionSelect.appendChild(option);}
+expressionSelect.value='smile';
 const expressionCanvas=document.createElement('canvas');
 const expressionCtx=expressionCanvas.getContext('2d')!;
 type Shape='rest'|'mbp'|'ah'|'ee'|'oo'|'fv';
@@ -28,9 +35,10 @@ const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
 function animate(now:number){
  const dt=lastTick?Math.min(64,now-lastTick):16;lastTick=now;
  smileMix+=(smileTarget-smileMix)*ease(dt,150);
+ if(pendingExpression&&smileMix<.015){activeExpression=pendingExpression;pendingExpression=undefined;smileTarget=requestedIntensity;}
  shapeMix+=(1-shapeMix)*ease(dt,85);
  draw();
- if(Math.abs(smileTarget-smileMix)>.005||shapeMix<.995)animation=requestAnimationFrame(animate);
+ if(pendingExpression||Math.abs(smileTarget-smileMix)>.005||shapeMix<.995)animation=requestAnimationFrame(animate);
  else{smileMix=smileTarget;shapeMix=1;animation=0;lastTick=0;draw();}
 }
 function refresh(){if(!animation)animation=requestAnimationFrame(animate);}
@@ -41,8 +49,9 @@ function draw(){
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
  ctx.clearRect(0,0,w,h);
  let points:{x:number;y:number}[]|undefined;
- if(smileMix>.001&&smile&&smileImage.complete&&smileImage.naturalWidth){
-  const result=drawCalibratedFace(expressionCtx,original,smileImage,smile.map,smile.filename,smile.preset,smileMix);
+ const selectedImage=activeExpression&&expressionImages.get(activeExpression.filename);
+ if(smileMix>.001&&activeExpression&&selectedImage?.complete&&selectedImage.naturalWidth){
+  const result=drawCalibratedFace(expressionCtx,original,selectedImage,activeExpression.map,activeExpression.filename,activeExpression.preset,smileMix);
   if(result){points=result.destination;ctx.drawImage(expressionCanvas,0,0,w,h);}
   else ctx.drawImage(original,0,0,w,h);
  }else ctx.drawImage(original,0,0,w,h);
@@ -166,9 +175,33 @@ function draw(){
   compositeMouthInterior(previous,1-shapeMix);
   replaceMouth(previous,1-shapeMix);
  }
- status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
+ status.textContent=(smileMix>.01?(activeExpression?.name||'Expression'):'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
 }
-smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
+// This is the isolated model-to-renderer command contract. A future model adapter
+// can dispatch 'piper:expression' with {expression,intensity,transitionMs}.
+type ExpressionCommand={expression:string;intensity?:number;transitionMs?:number};
+function chooseExpression(command:ExpressionCommand):boolean{
+ const entry=approvedExpressions.find(e=>e.filename.replace(/\\.json$/,'')===command.expression);
+ if(!entry)return false;
+ const strength=typeof command.intensity==='number'&&Number.isFinite(command.intensity)
+  ?Math.max(0,Math.min(1,command.intensity)):1;
+ requestedIntensity=strength;
+ expressionSelect.value=command.expression;
+ intensityInput.value=String(Math.round(strength*100));
+ smiling=strength>0;
+ smileButton.textContent='Expression: '+(smiling?'ON':'OFF');
+ if(activeExpression?.filename===entry.filename&&!pendingExpression){smileTarget=strength;}
+ else{pendingExpression=entry;smileTarget=0;}
+ refresh();
+ return true;
+}
+window.addEventListener('piper:expression',(event:Event)=>{
+ const detail=(event as CustomEvent<ExpressionCommand>).detail;
+ if(detail&&typeof detail.expression==='string')chooseExpression(detail);
+});
+expressionSelect.onchange=()=>{chooseExpression({expression:expressionSelect.value,intensity:Number(intensityInput.value)/100});};
+intensityInput.oninput=()=>{chooseExpression({expression:expressionSelect.value,intensity:Number(intensityInput.value)/100});};
+smileButton.onclick=()=>{smiling=!smiling;requestedIntensity=smiling?Number(intensityInput.value)/100:0;smileTarget=requestedIntensity;refresh();smileButton.textContent='Expression: '+(smiling?'ON':'OFF');};
 function stop(){run++;clearInterval(timer);speechSynthesis.cancel();speaking=false;setShape('rest');draw();}
 document.querySelector<HTMLButtonElement>('#stop')!.onclick=stop;
 document.querySelector<HTMLButtonElement>('#speak')!.onclick=()=>{
@@ -181,4 +214,4 @@ document.querySelector<HTMLButtonElement>('#speak')!.onclick=()=>{
  utterance.onerror=()=>{if(id===run)stop();};
  speechSynthesis.speak(utterance);
 };
-original.onload=draw;smileImage.onload=draw;draw();
+original.onload=draw;draw();
