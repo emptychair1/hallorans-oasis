@@ -450,8 +450,7 @@ export class OasisPiperVoice {
     this.onSpeechLevel(0);
     this.onViseme('rest');
     this.onSpeechTiming({type:'stop'});
-    this.traceExpression('reset', 'neutral', 'resetSpeechAnimation');
-    this.onExpression('neutral');
+    // Speech cleanup resets articulation, not the model-selected emotion.
     try { this.speechAnalyser?.disconnect(); } catch {}
     this.speechAnalyser = null;
   }
