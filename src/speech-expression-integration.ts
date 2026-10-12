@@ -55,18 +55,32 @@ function draw(){
   const locked=map.images.find(i=>i.role==='locked-original')?.landmarks;
   if(!ref||!locked||ref.length!==478||locked.length!==478)return;
   const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
-  const dest=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
+  // Transfer the actual viseme displacement onto the current expression.
+  // A source AH lip gap must survive even when the smile geometry is narrow.
+  const base=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
+  const center=base[13],corner=base[61];
+  const mouthWidth=Math.max(1,Math.abs(base[291].x-corner.x));
+  const dest=base.map((p,i)=>{
+   const nx=(p.x-(corner.x+base[291].x)/2)/(mouthWidth*1.45);
+   const ny=(p.y-center.y)/(mouthWidth*.95);
+   const radius=Math.hypot(nx,ny);
+   const weight=Math.max(0,Math.min(1,(1.35-radius)/.75));
+   const falloff=weight*weight*(3-2*weight);
+   return {x:p.x+(ref[i].x-locked[i].x)*w*falloff,
+           y:p.y+(ref[i].y-locked[i].y)*h*falloff};
+  });
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
-  const lips=lipIndices.map(i=>dest[i]);
+  // Cover the old expression mouth as well as the displaced viseme mouth.
+  const lips=[...lipIndices.map(i=>dest[i]),...lipIndices.map(i=>base[i])];
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
   const cx=(left+right)/2,cy=(top+bottom)/2;
-  const rx=Math.max(2,(right-left)*.9),ry=Math.max(2,(bottom-top)*1.65,(right-left)*.34);
+  const rx=Math.max(2,(right-left)*.80),ry=Math.max(2,(bottom-top)*1.28,(right-left)*.29);
   mouthCtx.globalCompositeOperation='destination-in';
   mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
-  const fade=mouthCtx.createRadialGradient(0,0,.83,0,0,1);
-  fade.addColorStop(0,'black');fade.addColorStop(.83,'black');fade.addColorStop(1,'transparent');
+  const fade=mouthCtx.createRadialGradient(0,0,.91,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.91,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
