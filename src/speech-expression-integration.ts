@@ -116,19 +116,37 @@ function draw(){
   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
  }
  // Dark interior is between the previous expression and the new viseme layer.
- function darkenLipOpening(name:Shape,alpha:number){
+ // Use the existing AH photographic mouth interior, aligned to the
+ // current lip landmarks and clipped to their exact inner contour.
+ function compositeMouthInterior(name:Shape,alpha:number){
   if(alpha<=0)return;
   const geometry=visemeGeometry(name);
-  if(!geometry||!hasOpening(geometry.dest))return;
+  const ah=visemeImages.get('ah');
+  const ahMap=Object.entries(maps).find(([path])=>path.endsWith('/ah.json'))?.[1];
+  const ahRef=ahMap?.images.find(i=>i.role==='expression-reference')?.landmarks;
+  if(!geometry||!hasOpening(geometry.dest)||!ah?.naturalWidth||!ahRef)return;
+  const dest=geometry.dest;
+  const src=ahRef.map(p=>({x:p.x*ah.naturalWidth,y:p.y*ah.naturalHeight}));
+  // Align the AH image to the moving mouth using inner lip corners and
+  // upper/lower midpoints; leave expression and speech geometry unchanged.
+  const ids=[78,308,13,14];
+  const sourceCenter={x:(src[78].x+src[308].x)/2,y:(src[13].y+src[14].y)/2};
+  const targetCenter={x:(dest[78].x+dest[308].x)/2,y:(dest[13].y+dest[14].y)/2};
+  const sourceWidth=Math.max(1,Math.abs(src[308].x-src[78].x));
+  const targetWidth=Math.max(1,Math.abs(dest[308].x-dest[78].x));
+  const sourceGap=Math.max(1,Math.abs(src[14].y-src[13].y));
+  const targetGap=Math.max(1,Math.abs(dest[14].y-dest[13].y));
   ctx.save();
+  innerLipPath(ctx,dest);ctx.clip();
   ctx.globalAlpha=alpha;
-  ctx.fillStyle='#170d13';
-  innerLipPath(ctx,geometry.dest);
-  ctx.fill();
+  ctx.translate(targetCenter.x,targetCenter.y);
+  ctx.scale(targetWidth/sourceWidth,targetGap/sourceGap);
+  ctx.translate(-sourceCenter.x,-sourceCenter.y);
+  ctx.drawImage(ah,0,0);
   ctx.restore();
  }
- darkenLipOpening(previous,1-shapeMix);
- darkenLipOpening(shape,shapeMix);
+ compositeMouthInterior(previous,1-shapeMix);
+ compositeMouthInterior(shape,shapeMix);
  replaceMouth(previous,1-shapeMix);
  replaceMouth(shape,shapeMix);
  status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
