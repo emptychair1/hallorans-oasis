@@ -129,7 +129,6 @@ function draw(){
   const src=ahRef.map(p=>({x:p.x*ah.naturalWidth,y:p.y*ah.naturalHeight}));
   // Align the AH image to the moving mouth using inner lip corners and
   // upper/lower midpoints; leave expression and speech geometry unchanged.
-  const ids=[78,308,13,14];
   const sourceCenter={x:(src[78].x+src[308].x)/2,y:(src[13].y+src[14].y)/2};
   const targetCenter={x:(dest[78].x+dest[308].x)/2,y:(dest[13].y+dest[14].y)/2};
   const sourceWidth=Math.max(1,Math.abs(src[308].x-src[78].x));
