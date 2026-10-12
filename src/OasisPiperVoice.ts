@@ -205,11 +205,16 @@ export class OasisPiperVoice {
           session_context: SESSION_CONTEXT,
           input_mode: 'voice',
           stream: true,
+          oasis_expression: true,
           client_turn_id: crypto.randomUUID()
         })
       });
       if (!response.ok) throw new Error(await this.errorFrom(response));
-      const reply = await this.readReply(response);
+      const rawReply = await this.readReply(response);
+      const expressionMatch = rawReply.match(/\\[\\[OASIS_EXPRESSION:([a-z0-9-]+):([01](?:\\.\\d+)?)\\]\\]/i);
+      const approvedModelExpressions = new Set(['neutral','wanting','thinking','surprised','smile2','smile','sad2','sad','mischievous','mad','horny','full-smile','full-laugh','flush','flirt','excited','embarrassed2']);
+      const modelExpression = expressionMatch && approvedModelExpressions.has(expressionMatch[1].toLowerCase()) && Number(expressionMatch[2]) <= 1 ? expressionMatch[1].toLowerCase() : null;
+      const reply = rawReply.replace(/\\[\\[OASIS_EXPRESSION:[^\\]\\r\\n]*\\]\\]/gi,'').trim();
       if (!reply.trim()) throw new Error('Piper Home returned no reply.');
       if (!this.wanted || generation !== this.generation) return;
       this.messages.push({ role: 'user', content: transcript }, { role: 'assistant', content: reply });
@@ -219,9 +224,12 @@ export class OasisPiperVoice {
       type ExpressionCue={at:number;expression:string};
       const reportExpression=(status:string)=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-status',{detail:{status}}));};
       reportExpression('requesting');
-      const expressionDecision:Promise<ExpressionCue[]>=fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
+      const expressionDecision:Promise<ExpressionCue[]>=modelExpression
+        ? Promise.resolve([{at:0,expression:modelExpression}])
+        : fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
         .then(async response=>{if(!response.ok){reportExpression('HTTP '+response.status);return [{at:0,expression:'neutral'}];}const data=await response.json() as {expression?:string;cues?:ExpressionCue[];fallback?:boolean;reason?:string};reportExpression(data.fallback?'fallback: '+(data.reason||'unknown'):'ok');return Array.isArray(data.cues)&&data.cues.length?data.cues:[{at:0,expression:data.expression||'neutral'}];})
         .catch((error:unknown)=>{reportExpression('request error: '+(error instanceof Error?error.message:'unknown'));return [{at:0,expression:'neutral'}];});
+      if(modelExpression)reportExpression('model-native');
       void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:cues.map(c=>c.expression).join(' → ')}}));});
       const spoken = spokenText(reply) || 'I am here with you.';
       this.onExpression('neutral');
