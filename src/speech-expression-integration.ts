@@ -72,8 +72,10 @@ function draw(){
    const radius=Math.hypot(nx,ny);
    const weight=Math.max(0,Math.min(1,(1.35-radius)/.75));
    const falloff=weight*weight*(3-2*weight);
-   return {x:p.x+(ref[i].x-locked[i].x)*w*falloff,
-           y:p.y+(ref[i].y-locked[i].y)*h*falloff};
+   // Speech-only restraint: reduce lateral stretching and slightly soften jaw opening.
+   // Emotional expression geometry, source photos, and mouth compositing stay unchanged.
+   return {x:p.x+(ref[i].x-locked[i].x)*w*falloff*.75,
+           y:p.y+(ref[i].y-locked[i].y)*h*falloff*.85};
   });
   return {ref,base,dest};
  }
