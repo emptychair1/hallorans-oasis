@@ -1,6 +1,6 @@
 import portraitUrl from '../IMG_4604.jpeg?url';
 import {approvedExpressions,drawCalibratedFace} from './calibrated-expression-renderer';
-import {warpCalibratedMouth,VISEME_AMOUNTS,shapeValue,type Viseme,type MouthCalibration} from './shared-viseme-engine';
+import {warpExpressionAwareMouth,VISEME_AMOUNTS,shapeValue,type Viseme,type MouthCalibration} from './shared-viseme-engine';
 
 const canvas=document.querySelector<HTMLCanvasElement>('#face')!;
 const ctx=canvas.getContext('2d')!;
@@ -53,9 +53,9 @@ function draw(){
    upperInner:{x:upper.x/w,y:upper.y/h},lowerInner:{x:lower.x/w,y:lower.y/h},
    lowerCenter:{x:center.x/w,y:center.y/h}
   };
-  warpCalibratedMouth(ctx,w,h,w,h,calibration,opening,spread,closure);
+  warpExpressionAwareMouth(ctx,w,h,calibration,opening,spread,closure);
  }
- status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · SINGLE MOUTH';
+ status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · LANDMARK DYNAMIC';
 }
 smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
 function stop(){run++;clearInterval(timer);speechSynthesis.cancel();speaking=false;setShape('rest');draw();}
