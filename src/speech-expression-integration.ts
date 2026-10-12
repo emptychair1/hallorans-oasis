@@ -90,20 +90,23 @@ function draw(){
   const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
-  // Fill any uncovered mesh triangles with opaque original face pixels.
-  // This fixes see-through patches without clearing the underlying face.
+  // Fill uncovered mesh triangles from the SAME viseme photograph.
+  // Using the original portrait here reintroduced its stationary lip contours
+  // beneath the warped replacement, producing a doubled upper lip.
   mouthCtx.save();mouthCtx.globalCompositeOperation='destination-over';
-  mouthCtx.drawImage(original,0,0,w,h);mouthCtx.restore();
+  mouthCtx.drawImage(image,0,0,w,h);mouthCtx.restore();
   // Cover the old expression mouth as well as the displaced viseme mouth.
   const lips=[...lipIndices.map(i=>dest[i]),...lipIndices.map(i=>base[i])];
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
   const cx=(left+right)/2,cy=(top+bottom)/2;
-  const rx=Math.max(2,(right-left)*.80),ry=Math.max(2,(bottom-top)*1.28,(right-left)*.29);
+  // Keep the old and displaced lips fully inside the opaque replacement core.
+  // Feather only the outer cheek transition, beyond both lip contours.
+  const rx=Math.max(2,(right-left)*.94),ry=Math.max(2,(bottom-top)*1.48,(right-left)*.34);
   mouthCtx.globalCompositeOperation='destination-in';
   mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
-  const fade=mouthCtx.createRadialGradient(0,0,.91,0,0,1);
-  fade.addColorStop(0,'black');fade.addColorStop(.91,'black');fade.addColorStop(1,'transparent');
+  const fade=mouthCtx.createRadialGradient(0,0,.88,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.88,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
   // Remove only the inner-lip aperture from this OFFSCREEN viseme layer.
