@@ -23,6 +23,8 @@ for(const name of ['mbp','ah','ee','oo','fv'] as Shape[]){
 }
 const mouthCanvas=document.createElement('canvas');
 const mouthCtx=mouthCanvas.getContext('2d')!;
+const mouthMaskCanvas=document.createElement('canvas');
+const mouthMaskCtx=mouthMaskCanvas.getContext('2d')!;
 let smiling=true,smileMix=1,smileTarget=1,shape:Shape='rest',previous:Shape='rest',shapeMix=1,speaking=false,run=0,timer=0,animation=0,lastTick=0;
 const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
 function animate(now:number){
@@ -108,9 +110,9 @@ function draw(){
   const padX=Math.max(8,width*.10),padY=Math.max(6,height*.19);
   const x0=left-padX,x1=right+padX,y0=top-padY,y1=bottom+padY;
   const feather=Math.max(5,Math.min(14,width*.045));
-  const mask=document.createElement('canvas');
-  mask.width=w;mask.height=h;
-  const mc=mask.getContext('2d')!;
+  if(mouthMaskCanvas.width!==w||mouthMaskCanvas.height!==h){mouthMaskCanvas.width=w;mouthMaskCanvas.height=h;}
+  mouthMaskCtx.clearRect(0,0,w,h);
+  const mc=mouthMaskCtx;
   mc.save();
   mc.filter='blur('+feather+'px)';
   mc.fillStyle='#fff';
@@ -127,7 +129,7 @@ function draw(){
   mc.quadraticCurveTo(x0,y0,x0+radius,y0);
   mc.closePath();mc.fill();mc.restore();
   mouthCtx.save();mouthCtx.globalCompositeOperation='destination-in';
-  mouthCtx.drawImage(mask,0,0);mouthCtx.restore();
+  mouthCtx.drawImage(mouthMaskCanvas,0,0);mouthCtx.restore();
   // Remove only the inner-lip aperture from this OFFSCREEN viseme layer.
   // The opaque dark interior underneath remains visible through this exact opening.
   if(hasOpening(dest)){
