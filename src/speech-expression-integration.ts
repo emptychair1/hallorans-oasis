@@ -23,6 +23,10 @@ for(const name of ['mbp','ah','ee','oo','fv'] as Shape[]){
 }
 const mouthCanvas=document.createElement('canvas');
 const mouthCtx=mouthCanvas.getContext('2d')!;
+const replacementCanvas=document.createElement('canvas');
+const replacementCtx=replacementCanvas.getContext('2d')!;
+const coverageCanvas=document.createElement('canvas');
+const coverageCtx=coverageCanvas.getContext('2d')!;
 let smiling=true,smileMix=1,smileTarget=1,shape:Shape='rest',previous:Shape='rest',shapeMix=1,speaking=false,run=0,timer=0,animation=0,lastTick=0;
 const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
 function animate(now:number){
@@ -78,10 +82,24 @@ function draw(){
   fade.addColorStop(0,'black');fade.addColorStop(.94,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
-  ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
+  replacementCtx.save();replacementCtx.globalAlpha=alpha;replacementCtx.drawImage(mouthCanvas,0,0);replacementCtx.restore();
  }
+ replacementCanvas.width=w;replacementCanvas.height=h;
  replaceMouth(previous,1-shapeMix);
  replaceMouth(shape,shapeMix);
+ // Remove the original smile/lip pixels under the replacement, instead
+ // of leaving them visible through the viseme texture.
+ if(visemeImages.has(shape)||visemeImages.has(previous)){
+  coverageCanvas.width=w;coverageCanvas.height=h;
+  coverageCtx.drawImage(replacementCanvas,0,0);
+  coverageCtx.globalCompositeOperation='source-in';
+  coverageCtx.fillStyle='#000';
+  coverageCtx.fillRect(0,0,w,h);
+  coverageCtx.globalCompositeOperation='source-over';
+  ctx.save();ctx.globalCompositeOperation='destination-out';
+  ctx.drawImage(coverageCanvas,0,0);ctx.restore();
+ }
+ ctx.drawImage(replacementCanvas,0,0);
  status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
 }
 smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
