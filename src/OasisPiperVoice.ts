@@ -174,7 +174,7 @@ export class OasisPiperVoice {
         heardSpeech = true;
         lastVoice = now;
       }
-      if ((heardSpeech && now - lastVoice >= 700 && now - started >= 800) || now - started >= 18000) {
+      if ((heardSpeech && now - lastVoice >= 450 && now - started >= 650) || now - started >= 18000) {
         recorder.stop();
         return;
       }
@@ -202,6 +202,8 @@ export class OasisPiperVoice {
       }
 
       this.setState('thinking', 'Piper is thinking…');
+      this.traceExpression('applied', 'thinking', 'awaiting-model-reply');
+      this.onExpression('thinking');
       const current = [...this.messages, { role: 'user' as const, content: transcript }].slice(-8);
       const voiceMessages = [{role:'system',content:VOICE_STYLE},...current];
       const response = await fetch('/api/oasis/chat', {
