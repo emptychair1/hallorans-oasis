@@ -34,7 +34,7 @@ function draw(){
  ctx.clearRect(0,0,w,h);
  let expressionDestination:{x:number;y:number}[]|undefined;
  if(smileMix>.001&&smile&&smileImage.complete&&smileImage.naturalWidth){
-  const result=drawCalibratedFace(expressionCtx,original,smileImage,smile.map,smile.filename,smile.preset,smileMix);
+  const result=drawCalibratedFace(expressionCtx,original,smileImage,smile.map,smile.filename,smile.preset,smileMix,shape!=='rest'||(transitionFrom!=='rest'&&shapeMix<.999));
   if(result){expressionDestination=result.destination;ctx.drawImage(expressionCanvas,0,0,w,h);}else ctx.drawImage(original,0,0,w,h);
  }else ctx.drawImage(original,0,0,w,h);
  // Build one destination landmark field for expression and speech.
@@ -70,10 +70,10 @@ function draw(){
   const minX=Math.min(...lips.map(p=>p.x)),maxX=Math.max(...lips.map(p=>p.x));
   const minY=Math.min(...lips.map(p=>p.y)),maxY=Math.max(...lips.map(p=>p.y));
   const mx=(minX+maxX)/2,my=(minY+maxY)/2;
-  const rx=Math.max(2,(maxX-minX)*.72),ry=Math.max(2,(maxY-minY)*1.05);
+  const rx=Math.max(2,(maxX-minX)*.9),ry=Math.max(2,(maxY-minY)*1.4);
   layerCtx.globalCompositeOperation='destination-in';
   layerCtx.save();layerCtx.translate(mx,my);layerCtx.scale(rx,ry);
-  const mask=layerCtx.createRadialGradient(0,0,.58,0,0,1);
+  const mask=layerCtx.createRadialGradient(0,0,.82,0,0,1);
   mask.addColorStop(0,'#000');mask.addColorStop(1,'transparent');
   layerCtx.fillStyle=mask;layerCtx.beginPath();layerCtx.arc(0,0,1,0,Math.PI*2);layerCtx.fill();
   layerCtx.restore();layerCtx.globalCompositeOperation='source-over';
