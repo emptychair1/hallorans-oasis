@@ -229,7 +229,10 @@ if(new URLSearchParams(location.search).has('live')){
   if(!allowedParent||event.source!==window.parent)return;
   const data=event.data as {type?:string;expression?:string;shape?:string;level?:number};
   if(data?.type==='piper-expression'&&typeof data.expression==='string'){
-   chooseExpression({expression:data.expression,intensity:1});
+   const applied=chooseExpression({expression:data.expression,intensity:1});
+   if(event.source && 'postMessage' in event.source){
+    (event.source as Window).postMessage({type:'piper-expression-ack',expression:data.expression,accepted:applied},event.origin);
+   }
   }else if(data?.type==='piper-viseme'&&typeof data.shape==='string'){
    if(['rest','mbp','ah','ee','oo','fv'].includes(data.shape)){
     speaking=data.shape!=='rest';
