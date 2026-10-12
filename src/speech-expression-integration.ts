@@ -23,10 +23,6 @@ for(const name of ['mbp','ah','ee','oo','fv'] as Shape[]){
 }
 const mouthCanvas=document.createElement('canvas');
 const mouthCtx=mouthCanvas.getContext('2d')!;
-const replacementCanvas=document.createElement('canvas');
-const replacementCtx=replacementCanvas.getContext('2d')!;
-const coverageCanvas=document.createElement('canvas');
-const coverageCtx=coverageCanvas.getContext('2d')!;
 let smiling=true,smileMix=1,smileTarget=1,shape:Shape='rest',previous:Shape='rest',shapeMix=1,speaking=false,run=0,timer=0,animation=0,lastTick=0;
 const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
 function animate(now:number){
@@ -59,47 +55,24 @@ function draw(){
   const locked=map.images.find(i=>i.role==='locked-original')?.landmarks;
   if(!ref||!locked||ref.length!==478||locked.length!==478)return;
   const source=ref.map(p=>({x:p.x*image.naturalWidth,y:p.y*image.naturalHeight}));
-  const base=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
-  const cx=(base[61].x+base[291].x)/2;
-  const cy=(base[13].y+base[14].y)/2;
-  const mouthWidth=Math.max(1,Math.abs(base[291].x-base[61].x));
-  const dest=base.map((p,i)=>{
-   const radius=Math.hypot((p.x-cx)/(mouthWidth*1.3),(p.y-cy)/(mouthWidth*.85));
-   const t=Math.max(0,1-radius);
-   const influence=t*t*(3-2*t);
-   return {x:p.x+(ref[i].x-locked[i].x)*w*.65*influence,y:p.y+(ref[i].y-locked[i].y)*h*.65*influence};
-  });
+  const dest=locked.map((p,i)=>points?.[i]||{x:p.x*w,y:p.y*h});
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
   const lips=lipIndices.map(i=>dest[i]);
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
-  const maskCx=(left+right)/2,maskCy=(top+bottom)/2;
-  const rx=Math.max(2,(right-left)*1.08),ry=Math.max(2,(bottom-top)*2.0,(right-left)*.46);
+  const cx=(left+right)/2,cy=(top+bottom)/2;
+  const rx=Math.max(2,(right-left)*.9),ry=Math.max(2,(bottom-top)*1.65,(right-left)*.34);
   mouthCtx.globalCompositeOperation='destination-in';
-  mouthCtx.save();mouthCtx.translate(maskCx,maskCy);mouthCtx.scale(rx,ry);
-  const fade=mouthCtx.createRadialGradient(0,0,.94,0,0,1);
-  fade.addColorStop(0,'black');fade.addColorStop(.94,'black');fade.addColorStop(1,'transparent');
+  mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
+  const fade=mouthCtx.createRadialGradient(0,0,.83,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.83,'black');fade.addColorStop(1,'transparent');
   mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
   mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
-  replacementCtx.save();replacementCtx.globalAlpha=alpha;replacementCtx.drawImage(mouthCanvas,0,0);replacementCtx.restore();
+  ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(mouthCanvas,0,0);ctx.restore();
  }
- replacementCanvas.width=w;replacementCanvas.height=h;
  replaceMouth(previous,1-shapeMix);
  replaceMouth(shape,shapeMix);
- // Remove the original smile/lip pixels under the replacement, instead
- // of leaving them visible through the viseme texture.
- if(visemeImages.has(shape)||visemeImages.has(previous)){
-  coverageCanvas.width=w;coverageCanvas.height=h;
-  coverageCtx.drawImage(replacementCanvas,0,0);
-  coverageCtx.globalCompositeOperation='source-in';
-  coverageCtx.fillStyle='#000';
-  coverageCtx.fillRect(0,0,w,h);
-  coverageCtx.globalCompositeOperation='source-over';
-  ctx.save();ctx.globalCompositeOperation='destination-out';
-  ctx.drawImage(coverageCanvas,0,0);ctx.restore();
- }
- ctx.drawImage(replacementCanvas,0,0);
  status.textContent=(smileMix>.5?'Smile':'Neutral')+' · '+(speaking?'speaking · ':'')+shape+' · REPLACEMENT TEST';
 }
 smileButton.onclick=()=>{smiling=!smiling;smileTarget=smiling?1:0;refresh();smileButton.textContent='Smile: '+(smiling?'ON':'OFF');};
