@@ -181,7 +181,7 @@ function draw(){
 // can dispatch 'piper:expression' with {expression,intensity,transitionMs}.
 type ExpressionCommand={expression:string;intensity?:number;transitionMs?:number};
 function chooseExpression(command:ExpressionCommand):boolean{
- const entry=approvedExpressions.find(e=>e.filename.replace(/\\.json$/,'')===command.expression);
+ const entry=approvedExpressions.find(e=>e.filename.replace(/\.json$/,'')===command.expression);
  if(!entry)return false;
  const strength=typeof command.intensity==='number'&&Number.isFinite(command.intensity)
   ?Math.max(0,Math.min(1,command.intensity)):1;
