@@ -71,7 +71,7 @@ function draw(){
   });
   mouthCanvas.width=w;mouthCanvas.height=h;
   paintFaceMesh(image,source,dest,1,.5,mouthCtx);
-  // Cover the old expression mouth as well as the displaced viseme mouth.
+  // Fill any uncovered mesh triangles with opaque original face pixels.\n  // This fixes see-through patches without clearing the underlying face.\n  mouthCtx.save();mouthCtx.globalCompositeOperation='destination-over';\n  mouthCtx.drawImage(original,0,0,w,h);mouthCtx.restore();\n  // Cover the old expression mouth as well as the displaced viseme mouth.
   const lips=[...lipIndices.map(i=>dest[i]),...lipIndices.map(i=>base[i])];
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
