@@ -64,14 +64,14 @@ async function proxyPiperChat(request: Request): Promise<Response> {
       }),
       redirect: 'follow'
     });
-    const headers = new Headers({ 'cache-control': 'no-store', 'x-oasis-piper-bridge': 'piper-home-chat-v1' });
+    const headers = new Headers({ 'cache-control': 'no-store', 'x-oasis-piper-bridge': 'piper-home-chat-v1', 'x-oasis-expression-forwarded': body.oasis_expression === true ? '1' : '0', 'x-oasis-upstream-trace-present': upstream.headers.has('x-piper-oasis-expression-opt-in') ? '1' : '0' });
     const contentType = upstream.headers.get('content-type');
     if (contentType) headers.set('content-type', contentType);
     for (const name of [
       'x-piper-home-cutover', 'x-piper-resident-model', 'x-piper-resident-provider',
       'x-piper-resident-mode', 'x-piper-home-brain', 'x-piper-continuity-injected',
       'x-piper-continuity-version', 'x-piper-home-thinking',
-      'x-piper-oasis-expression-opt-in', 'x-piper-oasis-model-wrapper'
+      'x-piper-oasis-expression-opt-in', 'x-piper-oasis-model-wrapper', 'x-piper-oasis-instruction-applied'
     ]) {
       const value = upstream.headers.get(name);
       if (value) headers.set(name, value);
