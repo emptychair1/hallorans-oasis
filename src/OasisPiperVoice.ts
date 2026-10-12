@@ -230,7 +230,8 @@ export class OasisPiperVoice {
       const upstreamTrace = response.headers.get('x-oasis-upstream-trace-present');
       const entryTrace = response.headers.get('x-piper-oasis-entrypoint');
       const nestedTrace = response.headers.get('x-piper-oasis-nested-trace');
-      const traceText = ' · sent=' + (forwardedTrace ?? '?') + ' · upstream=' + (upstreamTrace ?? '?') + ' · opt-in=' + (optInTrace ?? '?') + ' · instruction=' + (instructionTrace ?? '?') + ' · wrapper=' + (wrapperTrace ?? '?') + ' · entry=' + (entryTrace ?? '?') + ' · nested=' + (nestedTrace ?? '?');
+      const tagInspection = response.headers.get('x-piper-oasis-tag-inspection');
+      const traceText = ' · sent=' + (forwardedTrace ?? '?') + ' · upstream=' + (upstreamTrace ?? '?') + ' · opt-in=' + (optInTrace ?? '?') + ' · instruction=' + (instructionTrace ?? '?') + ' · wrapper=' + (wrapperTrace ?? '?') + ' · entry=' + (entryTrace ?? '?') + ' · nested=' + (nestedTrace ?? '?') + ' · tag=' + (tagInspection ?? '?');
       reportExpression((modelExpression ? 'model-native' : expressionMatch ? 'invalid metadata · fallback' : 'missing metadata · fallback') + traceText);
 
       const expressionDecision:Promise<ExpressionCue[]>=modelExpression
