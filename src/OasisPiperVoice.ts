@@ -240,7 +240,7 @@ export class OasisPiperVoice {
         .catch((error:unknown)=>{reportExpression('request error: '+(error instanceof Error?error.message:'unknown'));return [{at:0,expression:'neutral'}];});
       void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:cues.map(c=>c.expression).join(' → ')}}));});
       const spoken = spokenText(reply) || 'I am here with you.';
-      this.onExpression('neutral');
+      // Preserve the previous expression until the next selected cue arrives.
       this.setState('speaking', 'Piper is speaking…');
       const speech = await fetch('/api/oasis/speak-fast', {
         method: 'POST',
@@ -273,8 +273,8 @@ export class OasisPiperVoice {
       // Preserve expressive beats long enough to read on the portrait.
       let expressionCues:ExpressionCue[]=[];
       let nextExpressionCue=0;
-      let currentExpression='neutral';
-      let expressionBeganAt=0;
+      let currentExpression='';
+      let expressionBeganAt=-100;
       const expressiveHold=(expression:string)=>['flirt','wanting','flush','horny','mischievous'].includes(expression)?3.2:expression==='neutral'?0:1.5;
       const applyExpression=(expression:string,elapsed:number)=>{
         if(expression===currentExpression)return;
@@ -356,7 +356,8 @@ export class OasisPiperVoice {
     if (!type.includes('text/event-stream')) {
       const data = await response.json() as { reply?: string; response?: string; error?: string };
       if (data.error) throw new Error(data.error);
-      return String(data.reply || data.response || '');
+      const tag = data.oasis_expression?.name ? ' [[OASIS_EXPRESSION:' + data.oasis_expression.name + ':' + data.oasis_expression.intensity + ']]' : '';
+      return String(data.reply || data.response || '') + tag;
     }
     if (!response.body) throw new Error('Piper Home returned an empty stream.');
 
@@ -375,7 +376,9 @@ export class OasisPiperVoice {
         text?: string;
         choices?: Array<{ delta?: { content?: string } }>;
         error?: string;
+        oasis_expression?: {name:string;intensity:number};
       };
+      if (packet.oasis_expression?.name) reply += ' [[OASIS_EXPRESSION:' + packet.oasis_expression.name + ':' + packet.oasis_expression.intensity + ']]';
       if (packet.error) throw new Error(packet.error);
       reply += packet.response ?? packet.reply ?? packet.text ?? packet.choices?.[0]?.delta?.content ?? '';
     };
