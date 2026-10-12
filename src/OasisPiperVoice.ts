@@ -354,7 +354,7 @@ export class OasisPiperVoice {
   private async readReply(response: Response): Promise<string> {
     const type = response.headers.get('content-type') || '';
     if (!type.includes('text/event-stream')) {
-      const data = await response.json() as { reply?: string; response?: string; error?: string };
+      const data = await response.json() as { reply?: string; response?: string; error?: string; oasis_expression?: {name:string;intensity:number} };
       if (data.error) throw new Error(data.error);
       const tag = data.oasis_expression?.name ? ' [[OASIS_EXPRESSION:' + data.oasis_expression.name + ':' + data.oasis_expression.intensity + ']]' : '';
       return String(data.reply || data.response || '') + tag;
