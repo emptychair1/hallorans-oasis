@@ -71,7 +71,8 @@ async function proxyPiperChat(request: Request): Promise<Response> {
       'x-piper-home-cutover', 'x-piper-resident-model', 'x-piper-resident-provider',
       'x-piper-resident-mode', 'x-piper-home-brain', 'x-piper-continuity-injected',
       'x-piper-continuity-version', 'x-piper-home-thinking',
-      'x-piper-oasis-expression-opt-in', 'x-piper-oasis-model-wrapper', 'x-piper-oasis-instruction-applied'
+      'x-piper-oasis-expression-opt-in', 'x-piper-oasis-model-wrapper', 'x-piper-oasis-instruction-applied',
+      'x-piper-oasis-entrypoint', 'x-piper-oasis-nested-trace'
     ]) {
       const value = upstream.headers.get(name);
       if (value) headers.set(name, value);
