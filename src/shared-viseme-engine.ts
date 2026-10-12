@@ -92,12 +92,7 @@ export function warpExpressionAwareMouth(
  const y0=Math.max(0,Math.floor(lipMid-ry)),y1=Math.min(h-1,Math.ceil(lipMid+ry));
  const frame=ctx.getImageData(0,0,w,h),source=new Uint8ClampedArray(frame.data);
  const smooth=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
- const sample=(x:number,y:number,d:number)=>{
-  const sx=Math.max(0,Math.min(w-1,Math.round(x)));
-  const sy=Math.max(0,Math.min(h-1,Math.round(y)));
-  const at=(sy*w+sx)*4;
-  for(let c=0;c<3;c++)frame.data[d+c]=source[at+c];
- };
+
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
   const u=(x-cx)/(width*.5),v=(y-lipMid)/ry;
   const side=1-smooth((Math.abs(u)-.75)/.85);
