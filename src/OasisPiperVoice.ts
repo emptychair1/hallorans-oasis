@@ -61,8 +61,16 @@ export class OasisPiperVoice {
     window.addEventListener('pagehide', this.dispose, { once: true });
   }
 
+  private traceExpression(action: string, expression: string, reason: string): void {
+    window.dispatchEvent(new CustomEvent('oasis-expression-transition', { detail: {
+      at: new Date().toLocaleTimeString(), action, expression, reason,
+      voiceState: this.root.dataset.state || 'idle'
+    } }));
+  }
+
   private setState(state: VoiceState, message: string): void {
     this.root.dataset.state = state;
+    this.traceExpression('state', state, 'voice-state-change');
     this.status.textContent = message;
     const label = state === 'listening' ? 'Listening. Tap to pause Piper'
       : state === 'speaking' ? 'Piper is speaking. Tap to stop'
@@ -239,7 +247,7 @@ export class OasisPiperVoice {
         : fetch('/api/oasis/expression',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation:current,reply})})
         .then(async response=>{if(!response.ok){reportExpression('HTTP '+response.status);return [{at:0,expression:'neutral'}];}const data=await response.json() as {expression?:string;cues?:ExpressionCue[];fallback?:boolean;reason?:string};if(!modelExpression)reportExpression((data.fallback?'local fallback: '+(data.reason||'unknown'):'local director') + ' · ' + (expressionMatch?'invalid model metadata':'missing model metadata') + traceText);return Array.isArray(data.cues)&&data.cues.length?data.cues:[{at:0,expression:data.expression||'neutral'}];})
         .catch((error:unknown)=>{reportExpression('request error: '+(error instanceof Error?error.message:'unknown'));return [{at:0,expression:'neutral'}];});
-      void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation)window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:cues.map(c=>c.expression).join(' → ')}}));});
+      void expressionDecision.then(cues=>{if(this.wanted&&generation===this.generation){const selected=cues.map(c=>c.expression).join(' → ');this.traceExpression('selected',selected,modelExpression?'model-native':'local-director');window.dispatchEvent(new CustomEvent('oasis-expression-selected',{detail:{expression:selected}}));}});
       const spoken = spokenText(reply) || 'I am here with you.';
       // Preserve the previous expression until the next selected cue arrives.
       this.setState('speaking', 'Piper is speaking…');
@@ -281,6 +289,7 @@ export class OasisPiperVoice {
         if(expression===currentExpression)return;
         currentExpression=expression;
         expressionBeganAt=elapsed;
+        this.traceExpression('applied',expression,'speech-cue elapsed='+elapsed.toFixed(2)+'s');
         this.onExpression(expression);
       };
       const advanceExpression=(elapsed:number)=>{
@@ -441,6 +450,7 @@ export class OasisPiperVoice {
     this.onSpeechLevel(0);
     this.onViseme('rest');
     this.onSpeechTiming({type:'stop'});
+    this.traceExpression('reset', 'neutral', 'resetSpeechAnimation');
     this.onExpression('neutral');
     try { this.speechAnalyser?.disconnect(); } catch {}
     this.speechAnalyser = null;
