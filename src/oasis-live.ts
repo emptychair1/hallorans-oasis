@@ -9,6 +9,18 @@ let selectedExpression='waiting',appliedExpression='neutral',expressionStatus='i
 const updateExpressionDiagnostic=()=>{expressionDiagnostic.textContent=`Expression · status: ${expressionStatus} | selected: ${selectedExpression} | applied: ${appliedExpression}`;};
 window.addEventListener('oasis-expression-status',(event)=>{expressionStatus=(event as CustomEvent<{status:string}>).detail.status;updateExpressionDiagnostic();});
 window.addEventListener('oasis-expression-selected',(event)=>{selectedExpression=(event as CustomEvent<{expression:string}>).detail.expression;updateExpressionDiagnostic();});
+// Compact on-device transition log; no conversation text or audio is recorded.
+const transitionPanel=document.createElement('details');
+transitionPanel.style.cssText='position:fixed;top:92px;left:8px;z-index:100003;background:#171717ee;color:#fff;border:1px solid #9b8265;border-radius:6px;padding:5px 8px;font:11px system-ui;max-width:min(94vw,380px);max-height:38vh;overflow:auto';
+transitionPanel.innerHTML='<summary style="cursor:pointer">Expression transitions (last 16)</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0" aria-live="off"></pre>';
+document.body.append(transitionPanel);
+const transitionLines:string[]=[];
+window.addEventListener('oasis-expression-transition',(event)=>{
+ const item=(event as CustomEvent<{at:string;action:string;expression:string;reason:string;voiceState:string}>).detail;
+ transitionLines.unshift(item.at+' ['+item.voiceState+'] '+item.action+' '+item.expression+' ('+item.reason+')');
+ transitionLines.length=Math.min(16,transitionLines.length);
+ transitionPanel.querySelector('pre')!.textContent=transitionLines.join('\\n');
+});
 const voice=new OasisPiperVoice(
  level=>frame.contentWindow?.postMessage({type:'piper-speech-level',level},location.origin),
  expression=>{appliedExpression=expression;updateExpressionDiagnostic();frame.contentWindow?.postMessage({type:'piper-expression',expression},location.origin);},
