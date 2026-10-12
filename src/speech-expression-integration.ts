@@ -23,8 +23,6 @@ for(const name of ['mbp','ah','ee','oo','fv'] as Shape[]){
 }
 const mouthCanvas=document.createElement('canvas');
 const mouthCtx=mouthCanvas.getContext('2d')!;
-const mouthMaskCanvas=document.createElement('canvas');
-const mouthMaskCtx=mouthMaskCanvas.getContext('2d')!;
 let smiling=true,smileMix=1,smileTarget=1,shape:Shape='rest',previous:Shape='rest',shapeMix=1,speaking=false,run=0,timer=0,animation=0,lastTick=0;
 const ease=(dt:number,ms:number)=>1-Math.exp(-dt/ms);
 function animate(now:number){
@@ -102,34 +100,16 @@ function draw(){
   const lips=[...lipIndices.map(i=>dest[i]),...lipIndices.map(i=>base[i])];
   const left=Math.min(...lips.map(p=>p.x)),right=Math.max(...lips.map(p=>p.x));
   const top=Math.min(...lips.map(p=>p.y)),bottom=Math.max(...lips.map(p=>p.y));
-  // Follow the lip envelope rather than a broad oval. The old oval reached
-  // into the philtrum and chin, revealing a mismatched photographic skin patch.
-  // A narrow, feathered capsule keeps both old and displaced lip outlines inside
-  // its solid center, while fading out before reaching unrelated facial skin.
-  const width=right-left,height=bottom-top;
-  const padX=Math.max(8,width*.10),padY=Math.max(6,height*.19);
-  const x0=left-padX,x1=right+padX,y0=top-padY,y1=bottom+padY;
-  const feather=Math.max(5,Math.min(14,width*.045));
-  if(mouthMaskCanvas.width!==w||mouthMaskCanvas.height!==h){mouthMaskCanvas.width=w;mouthMaskCanvas.height=h;}
-  mouthMaskCtx.clearRect(0,0,w,h);
-  const mc=mouthMaskCtx;
-  mc.save();
-  mc.filter='blur('+feather+'px)';
-  mc.fillStyle='#fff';
-  mc.beginPath();
-  const radius=Math.min((y1-y0)*.48,(x1-x0)*.22);
-  mc.moveTo(x0+radius,y0);
-  mc.lineTo(x1-radius,y0);
-  mc.quadraticCurveTo(x1,y0,x1,y0+radius);
-  mc.lineTo(x1,y1-radius);
-  mc.quadraticCurveTo(x1,y1,x1-radius,y1);
-  mc.lineTo(x0+radius,y1);
-  mc.quadraticCurveTo(x0,y1,x0,y1-radius);
-  mc.lineTo(x0,y0+radius);
-  mc.quadraticCurveTo(x0,y0,x0+radius,y0);
-  mc.closePath();mc.fill();mc.restore();
-  mouthCtx.save();mouthCtx.globalCompositeOperation='destination-in';
-  mouthCtx.drawImage(mouthMaskCanvas,0,0);mouthCtx.restore();
+  const cx=(left+right)/2,cy=(top+bottom)/2;
+  // Keep the old and displaced lips fully inside the opaque replacement core.
+  // Feather only the outer cheek transition, beyond both lip contours.
+  const rx=Math.max(2,(right-left)*.94),ry=Math.max(2,(bottom-top)*1.48,(right-left)*.34);
+  mouthCtx.globalCompositeOperation='destination-in';
+  mouthCtx.save();mouthCtx.translate(cx,cy);mouthCtx.scale(rx,ry);
+  const fade=mouthCtx.createRadialGradient(0,0,.88,0,0,1);
+  fade.addColorStop(0,'black');fade.addColorStop(.88,'black');fade.addColorStop(1,'transparent');
+  mouthCtx.fillStyle=fade;mouthCtx.beginPath();mouthCtx.arc(0,0,1,0,Math.PI*2);mouthCtx.fill();
+  mouthCtx.restore();mouthCtx.globalCompositeOperation='source-over';
   // Remove only the inner-lip aperture from this OFFSCREEN viseme layer.
   // The opaque dark interior underneath remains visible through this exact opening.
   if(hasOpening(dest)){
