@@ -69,3 +69,52 @@ export function warpCalibratedMouth(targetCtx:CanvasRenderingContext2D,pixelWidt
    }
    targetCtx.putImageData(frame,0,0);
 }
+
+
+// Expression-aware mouth warp. All measurements come from the active expression's
+// landmark JSON (after the expression renderer has interpolated its geometry).
+// Unlike the neutral-only warp, this does not paint a second artificial lip seam.
+export function warpExpressionAwareMouth(
+ ctx:CanvasRenderingContext2D,w:number,h:number,p:MouthCalibration,
+ opening:number,spread:number,closure:number
+){
+ const left=p.leftCorner.x*w,right=p.rightCorner.x*w;
+ const cx=(left+right)*.5, width=Math.abs(right-left);
+ if(width<4)return;
+ const upper=p.upperInner.y*h,lower=p.lowerInner.y*h;
+ const lipMid=(upper+lower)*.5;
+ const existingGap=Math.max(0,lower-upper);
+ const desiredGap=width*(.015+opening*.26)*(1-closure*.92);
+ const gapChange=desiredGap-existingGap;
+ const lowerCenter=p.lowerCenter.y*h;
+ const rx=width*.85,ry=Math.max(width*.43,Math.abs(lowerCenter-lipMid)*1.55);
+ const x0=Math.max(0,Math.floor(cx-rx)),x1=Math.min(w-1,Math.ceil(cx+rx));
+ const y0=Math.max(0,Math.floor(lipMid-ry)),y1=Math.min(h-1,Math.ceil(lipMid+ry));
+ const frame=ctx.getImageData(0,0,w,h),source=new Uint8ClampedArray(frame.data);
+ const smooth=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
+ const sample=(x:number,y:number,d:number)=>{
+  const sx=Math.max(0,Math.min(w-1,Math.round(x)));
+  const sy=Math.max(0,Math.min(h-1,Math.round(y)));
+  const at=(sy*w+sx)*4;
+  for(let c=0;c<3;c++)frame.data[d+c]=source[at+c];
+ };
+ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+  const u=(x-cx)/(width*.5),v=(y-lipMid)/ry;
+  const side=1-smooth((Math.abs(u)-.75)/.85);
+  const vertical=1-smooth((Math.abs(v)-.12)/.88);
+  const weight=side*vertical;
+  if(weight<=0)continue;
+  const lipSide=Math.tanh((y-lipMid)/Math.max(2,width*.035));
+  // Pull upper and lower lips toward their desired separation. The existing
+  // aperture is measured from the expression, not assumed to be closed.
+  const sourceY=y-lipSide*gapChange*.5*weight;
+  const sourceX=x+spread*(x-cx)*.32*weight;
+  const d=(y*w+x)*4;
+  const sx=Math.max(0,Math.min(w-1,Math.round(sourceX)));
+  const sy=Math.max(0,Math.min(h-1,Math.round(sourceY)));
+  const from=(sy*w+sx)*4;
+  const blend=weight;
+  for(let c=0;c<3;c++)frame.data[d+c]=Math.round(source[d+c]*(1-blend)+source[from+c]*blend);
+ }
+ ctx.putImageData(frame,0,0);
+}
