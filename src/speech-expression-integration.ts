@@ -219,6 +219,27 @@ document.querySelector<HTMLButtonElement>('#speak')!.onclick=()=>{
 original.onload=draw;draw();
 
  
+// Live portrait adapter: reuse the approved combined photographic renderer, while
+// OasisPiperVoice continues to own model chat, expression cues and speech timing.
+if(new URLSearchParams(location.search).has('live')){
+ chooseExpression({expression:'neutral',intensity:1});
+ window.addEventListener('message',(event:MessageEvent)=>{
+  if(event.origin!==location.origin||event.source!==window.parent)return;
+  const data=event.data as {type?:string;expression?:string;shape?:string;level?:number};
+  if(data?.type==='piper-expression'&&typeof data.expression==='string'){
+   chooseExpression({expression:data.expression,intensity:1});
+  }else if(data?.type==='piper-viseme'&&typeof data.shape==='string'){
+   if(['rest','mbp','ah','ee','oo','fv'].includes(data.shape)){
+    speaking=data.shape!=='rest';
+    setShape(data.shape as Shape);
+   }
+  }else if(data?.type==='piper-speech-timing'){
+   const timing=event.data as {type:string};
+   if(timing.type==='stop'){speaking=false;setShape('rest');}
+  }
+ });
+}
+
 // Isolated conversation bridge. Reuses Oasis's existing Piper Home chat proxy
 // and local expression director; no new model keys, rules, or Live Oasis changes.
 type ChatTurn={role:'user'|'assistant';content:string};
