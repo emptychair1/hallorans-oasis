@@ -19,7 +19,7 @@ window.addEventListener('oasis-expression-transition',(event)=>{
  const item=(event as CustomEvent<{at:string;action:string;expression:string;reason:string;voiceState:string}>).detail;
  transitionLines.unshift(item.at+' ['+item.voiceState+'] '+item.action+' '+item.expression+' ('+item.reason+')');
  transitionLines.length=Math.min(16,transitionLines.length);
- transitionPanel.querySelector('pre')!.textContent=transitionLines.join('\\n');
+ transitionPanel.querySelector('pre')!.textContent=transitionLines.join('\n');
 });
 const voice=new OasisPiperVoice(
  level=>frame.contentWindow?.postMessage({type:'piper-speech-level',level},location.origin),
